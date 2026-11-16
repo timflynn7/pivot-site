@@ -1,24 +1,32 @@
-// Writes a sample order DXF covering every design, for testing imports in VCarve.
-// Usage: node scripts/sample-dxf.js [output.dxf]
+// Writes test DXFs for every design: one file per design plus one file with all of them.
+// Usage: node scripts/sample-dxf.js [output-folder]
 const fs = require("fs");
+const path = require("path");
 const E = require("../public/js/engine.js");
 
-const raw = [
-  { design: "slab", width: 400, height: 700, opts: { corners: "round" }, hingeSide: "left", name: "Slab test" },
-  { design: "shaker", width: 500, height: 1100, opts: { border: 70, rails: 1 }, hingeSide: "right", hingeCount: 3, name: "Larder" },
-  { design: "skinny", width: 450, height: 600, hingeSide: "left", name: "Skinny test" },
-  { design: "flutedshaker", width: 500, height: 720, opts: { border: 70, spacing: 20 }, hingeSide: "left", name: "Fluted shaker test" },
-  { design: "fluted", width: 450, height: 600, opts: { margin: 40, spacing: 22 }, name: "Fluted test", qty: 2 },
-  { design: "reeded", width: 400, height: 900, opts: { spacing: 17 }, name: "Reeded test" },
-  { design: "tvgroove", width: 600, height: 720, opts: { spacing: 100 }, name: "T and V test" },
-  { design: "lattice", width: 400, height: 700, name: "Lattice test" }
-];
-const doors = raw.map((r) => {
-  const { door, errors } = E.normalizeDoor(r);
-  if (Object.keys(errors).length) throw new Error(r.design + ": " + JSON.stringify(errors));
-  return door;
+// Test sizes: a typical wall-unit door, taller where the design needs it.
+const SIZES = { archtop: [500, 1100], ringpanel: [450, 900], shaker: [450, 1100] };
+const EXTRA = { shaker: { rails: 1 }, slab: { corners: "round" } };
+
+const outDir = process.argv[2] || "test-dxf";
+fs.mkdirSync(outDir, { recursive: true });
+
+const all = [];
+E.DESIGNS.forEach((d, i) => {
+  const [width, height] = SIZES[d.id] || [450, 700];
+  const { door, errors } = E.normalizeDoor({ design: d.id, width, height, opts: EXTRA[d.id] || {}, hingeSide: "left", name: d.name });
+  if (Object.keys(errors).length) throw new Error(d.id + ": " + JSON.stringify(errors));
+  all.push(door);
+  const file = path.join(outDir, `${String(i + 1).padStart(2, "0")}-${d.id}-${width}x${height}.dxf`);
+  fs.writeFileSync(file, E.orderDXF({ ref: "TEST-" + d.id.toUpperCase(), doors: [door] }));
 });
-const out = process.argv[2] || "sample-order.dxf";
-fs.writeFileSync(out, E.orderDXF({ ref: "PD-SAMPLE", doors }));
-console.log("Wrote " + out);
-console.table(E.layerList(doors));
+fs.writeFileSync(path.join(outDir, "00-all-designs.dxf"), E.orderDXF({ ref: "TEST-ALL", doors: all }));
+
+const lines = ["Pivot test DXFs", "", "File | Design | Size | Settings | Layers"];
+E.DESIGNS.forEach((d, i) => {
+  const door = all[i];
+  lines.push(`${String(i + 1).padStart(2, "0")} | ${d.name} | ${door.width} x ${door.height} mm | ${E.describe(door)} | ${E.layerList([door]).map((l) => l.layer).join(", ")}`);
+});
+lines.push("", "Layers", ...E.layerList(all).map((l) => `${l.layer}: ${l.label}`));
+fs.writeFileSync(path.join(outDir, "README.txt"), lines.join("\r\n") + "\r\n");
+console.log(`Wrote ${E.DESIGNS.length + 1} DXFs to ${outDir}`);

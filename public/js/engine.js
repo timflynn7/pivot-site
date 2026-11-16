@@ -27,10 +27,15 @@
     cutout:   { layer: "CUTOUT_EM6",          label: "6 mm end mill, profile outside, with tabs", width: 6,    color: 7 },
     pocket8:  { layer: "POCKET_EM6_D8",       label: "6 mm end mill pocket, 8 mm deep",           width: 6,    color: 5, pocket: true },
     pocket6:  { layer: "POCKET_EM6_D6",       label: "6 mm end mill pocket, 6 mm deep",           width: 6,    color: 5, pocket: true },
+    pocket4:  { layer: "POCKET_EM6_D4",       label: "6 mm end mill pocket, 4 mm deep (first step)", width: 6, color: 150, pocket: true },
     flute16:  { layer: "FLUTE_CORE16_D5",     label: "16 mm fluting bit, 5 mm deep",              width: 16,   color: 3 },
+    flute8:   { layer: "FLUTE_BALL8_D4",      label: "8 mm ball nose, 4 mm deep",                 width: 8,    color: 3 },
     reed13:   { layer: "REED_FORM13_D4",      label: "12.7 mm round-nose form tool, 4 mm deep",   width: 12.7, color: 4 },
+    bead6:    { layer: "BEAD_FORM6_D3",       label: "6 mm bead form tool, 3 mm deep",            width: 6,    color: 4 },
     v90d4:    { layer: "GROOVE_V90_D4",       label: "90 degree V-bit, 4 mm deep",                width: 8,    color: 1 },
     v90d5:    { layer: "GROOVE_V90_D5",       label: "90 degree V-bit, 5 mm deep",                width: 10,   color: 1 },
+    bevel:    { layer: "BEVEL_V90_D8",        label: "90 degree V-bit bevel along the panel edge, 8 mm deep", width: 16, color: 6 },
+    mould:    { layer: "MOULD_TBN_RAIL",      label: "Moulding toolpath drive rail (tapered ball nose). Draw the profile in VCarve.", width: 18, color: 30 },
     chamfer:  { layer: "EDGE_CHAMFER_V90_D3", label: "90 degree V-bit edge chamfer, 3 mm",        width: 6,    color: 6 }
   };
 
@@ -69,6 +74,21 @@
       else { if (t < t0) return null; if (t < t1) t1 = t; }
     }
     return [[a[0] + dx * t0, a[1] + dy * t0], [a[0] + dx * t1, a[1] + dy * t1]];
+  }
+  // Points along an arc, angles in degrees (y down, so -90 is the top).
+  function arc(cx, cy, r, a0, a1, seg) {
+    seg = seg || Math.max(12, Math.ceil(Math.abs(a1 - a0) / 4));
+    const pts = [];
+    for (let i = 0; i <= seg; i++) {
+      const a = (a0 + ((a1 - a0) * i) / seg) * Math.PI / 180;
+      pts.push([cx + r * Math.cos(a), cy + r * Math.sin(a)]);
+    }
+    return pts;
+  }
+  // A rectangle with a semicircular top, inset by d from a W x H door.
+  function archShape(W, H, d) {
+    const r = W / 2 - d, cx = W / 2, cy = W / 2;
+    return [[d, H - d], [d, cy]].concat(arc(cx, cy, r, 180, 360).slice(1, -1), [[W - d, cy], [W - d, H - d]]);
   }
   class DesignError extends Error {}
   const fail = (msg) => { throw new DesignError(msg); };
@@ -204,8 +224,133 @@
         }
         return { outline: rect(0, 0, W, H), paths, info: `${N} × ${M} diamonds` };
       }
+    },
+
+    /* ----- draft designs for the first test cuts ----- */
+    {
+      id: "bevelled", name: "Bevelled shaker", family: "Shaker family", adjustable: true, draft: true,
+      blurb: "A shaker with an angled edge where the frame meets the panel.",
+      opts: [num("border", "Frame width", 70, 40, 120, 5)],
+      build(W, H, o) {
+        const [p] = shakerPanels(W, H, o.border, 0);
+        return { outline: rect(0, 0, W, H), paths: [{ tool: "pocket8", pts: rect(...p), closed: true }, { tool: "bevel", pts: rect(...p), closed: true }] };
+      }
+    },
+    {
+      id: "beaded", name: "Beaded shaker", family: "Shaker family", adjustable: true, draft: true,
+      blurb: "A shaker with a small bead round the inside of the frame.",
+      opts: [num("border", "Frame width", 70, 40, 120, 5)],
+      build(W, H, o) {
+        const [p] = shakerPanels(W, H, o.border, 0);
+        const bead = 6;
+        return { outline: rect(0, 0, W, H), paths: [{ tool: "pocket8", pts: rect(...p), closed: true }, { tool: "bead6", pts: rect(p[0] - bead, p[1] - bead, p[2] + bead, p[3] + bead), closed: true }] };
+      }
+    },
+    {
+      id: "newcountry", name: "New Country", family: "Shaker family", adjustable: true, draft: true,
+      blurb: "A shaker with V-grooved boards in the panel.",
+      opts: [num("border", "Frame width", 70, 40, 120, 5), num("spacing", "Board width (approx.)", 80, 50, 150, 5, "Boards are made equal across the panel.")],
+      build(W, H, o) {
+        const [p] = shakerPanels(W, H, o.border, 0);
+        const pw = p[2] - p[0], boards = Math.max(2, Math.round(pw / o.spacing));
+        const paths = [{ tool: "pocket8", pts: rect(...p), closed: true }];
+        for (let k = 1; k < boards; k++) { const x = p[0] + (k * pw) / boards; paths.push({ tool: "v90d4", pts: [[x, p[1]], [x, p[3]]] }); }
+        return { outline: rect(0, 0, W, H), paths, info: `${boards} boards in the panel` };
+      }
+    },
+    {
+      id: "mouldedflute", name: "Moulded frame, fluted", family: "Frame with pattern", adjustable: true, draft: true,
+      blurb: "A moulded frame round a finely fluted centre.",
+      opts: [num("spacing", "Flute spacing", 12, 10, 20, 0.5, "Centre to centre. The flutes are 8 mm wide.")],
+      build(W, H, o) {
+        const b = 75, step = 22;
+        if (W - 2 * (b + step) < 60 || H - 2 * (b + step) < 100) fail("This door is too small for the moulded frame. Make it bigger.");
+        const rail = rect(b, b, W - b, H - b), p = [b + step, b + step, W - b - step, H - b - step];
+        const flutes = stoppedFlutes(p[0] + 4, p[1] + 4, p[2] - 4, p[3] - 4, o.spacing, TOOLS.flute8.width);
+        return { outline: rect(0, 0, W, H), paths: [{ tool: "mould", pts: rail, closed: true }, { tool: "pocket6", pts: rect(...p), closed: true }].concat(flutes.map((pts) => ({ tool: "flute8", pts }))) };
+      }
+    },
+    {
+      id: "victorian", name: "Victorian", family: "Frame with pattern", adjustable: false, draft: true,
+      blurb: "A shaker with a decorative moulding inside the panel.",
+      opts: [],
+      build(W, H) {
+        const [p] = shakerPanels(W, H, 70, 0), m = 20;
+        if (p[2] - p[0] < 2 * m + 60 || p[3] - p[1] < 2 * m + 80) fail("This door is too small for the inner moulding. Make it bigger.");
+        return { outline: rect(0, 0, W, H), paths: [{ tool: "pocket8", pts: rect(...p), closed: true }, { tool: "mould", pts: rect(p[0] + m, p[1] + m, p[2] - m, p[3] - m), closed: true }] };
+      }
+    },
+    {
+      id: "georgian", name: "Georgian", family: "Frame with pattern", adjustable: false, draft: true,
+      blurb: "A frame that steps down twice to the panel.",
+      opts: [],
+      build(W, H) {
+        const [outer] = shakerPanels(W, H, 55, 0), [inner] = shakerPanels(W, H, 75, 0);
+        return { outline: rect(0, 0, W, H), paths: [{ tool: "pocket4", pts: rect(...outer), closed: true }, { tool: "pocket8", pts: rect(...inner), closed: true }] };
+      }
+    },
+    {
+      id: "tbgroove", name: "Tongue & bead groove", family: "Grooved slab", adjustable: true, draft: true,
+      blurb: "Equal boards, each groove with a bead beside it.",
+      opts: [num("spacing", "Board width (approx.)", 100, 50, 200, 5, "Boards are made equal, so the actual width is the nearest even split.")],
+      build(W, H, o) {
+        const boards = Math.max(2, Math.round(W / o.spacing));
+        const paths = [];
+        for (let k = 1; k < boards; k++) {
+          const x = (k * W) / boards;
+          paths.push({ tool: "v90d4", pts: fullHeight(x, H) }, { tool: "bead6", pts: fullHeight(x + 9, H) });
+        }
+        return { outline: rect(0, 0, W, H), paths, info: `${boards} boards, ${Math.round((W / boards) * 10) / 10} mm each` };
+      }
+    },
+    {
+      id: "arched", name: "Arched", family: "Your current range", adjustable: false, draft: true,
+      blurb: "Concentric arches rising from the bottom edge.",
+      opts: [],
+      build(W, H) {
+        const R = Math.min(W * 0.38, H * 0.42), gap = R / 4.5, cx = W / 2, cy = H * 0.16 + R;
+        if (cy > H - 40) fail("This door is too short for the arches. Make it taller.");
+        const paths = [];
+        for (let i = 0; i < 4; i++) {
+          const r = R - i * gap;
+          paths.push({ tool: "reed13", pts: [[cx - r, H + OVERCUT]].concat(arc(cx, cy, r, 180, 360), [[cx + r, H + OVERCUT]]) });
+        }
+        return { outline: rect(0, 0, W, H), paths, info: "4 arches" };
+      }
+    },
+    {
+      id: "archtop", name: "Arch-top beaded door", family: "Statement", adjustable: false, draft: true,
+      blurb: "A round-topped door with three beads following its shape.",
+      opts: [],
+      build(W, H) {
+        if (H < W / 2 + 200) fail("An arch-top door must be at least half its width plus 200 mm tall.");
+        const paths = [30, 55, 80].map((d) => ({ tool: "reed13", pts: archShape(W, H, d), closed: true }));
+        return { outline: archShape(W, H, 0), paths, info: `Arch radius ${W / 2} mm` };
+      }
+    },
+    {
+      id: "ringpanel", name: "Ring and arc panel", family: "Statement", adjustable: false, draft: true,
+      blurb: "Two panels shaped round a large circle, with a ring at the centre.",
+      opts: [],
+      build(W, H) {
+        const b = 40, cx = W / 2, cy = H / 2, R = W / 2 - b;
+        if (cy - R < b + 60) fail("This design needs the door at least 120 mm taller than it is wide.");
+        const top = [[b, b], [W - b, b], [W - b, cy]].concat(arc(cx, cy, R, 0, -180).slice(1, -1), [[b, cy]]);
+        const bottom = [[b, H - b], [W - b, H - b], [W - b, cy]].concat(arc(cx, cy, R, 0, 180).slice(1, -1), [[b, cy]]);
+        const ring = arc(cx, cy, R * 0.32, 0, 360, 72).slice(0, -1);
+        return {
+          outline: rect(0, 0, W, H),
+          paths: [
+            { tool: "pocket6", pts: top, closed: true }, { tool: "pocket6", pts: bottom, closed: true },
+            { tool: "mould", pts: top, closed: true }, { tool: "mould", pts: bottom, closed: true }, { tool: "mould", pts: ring, closed: true }
+          ],
+          info: `Circle ${Math.round(2 * R)} mm across`
+        };
+      }
     }
   ];
+  const ORDER = ["slab", "shaker", "skinny", "bevelled", "beaded", "newcountry", "flutedshaker", "mouldedflute", "victorian", "georgian", "tvgroove", "tbgroove", "fluted", "reeded", "lattice", "arched", "archtop", "ringpanel"];
+  DESIGNS.sort((a, b) => ORDER.indexOf(a.id) - ORDER.indexOf(b.id));
   const designById = (id) => DESIGNS.find((d) => d.id === id);
 
   /* ---------- validation ---------- */
@@ -257,10 +402,11 @@
   /* ---------- geometry ---------- */
   function hingePositions(door) {
     if (door.hingeSide === "none" || !door.hingeCount) return [];
-    const H = door.height, n = door.hingeCount, ends = 100;
+    const H = door.height, n = door.hingeCount, bottom = 100;
+    const top = door.design === "archtop" ? door.width / 2 + 50 : 100; // keep the top hinge below the arch
     const x = door.hingeSide === "left" ? 22.5 : door.width - 22.5;
     const ys = [];
-    for (let i = 0; i < n; i++) ys.push(ends + ((H - 2 * ends) * i) / (n - 1));
+    for (let i = 0; i < n; i++) ys.push(top + ((H - top - bottom) * i) / (n - 1));
     return ys.map((y) => [x, y]);
   }
   function buildDoor(door) {
@@ -314,13 +460,13 @@
       if (p.tool === "cutout") continue;
       if (t.pocket) {
         s += `<polygon points="${ptsAttr(p.pts)}" fill="#000" fill-opacity=".10" stroke="#000" stroke-opacity=".35" stroke-width="2"/>`;
-        s += `<polyline points="${ptsAttr([p.pts[3], p.pts[0], p.pts[1]])}" fill="none" stroke="#000" stroke-opacity=".25" stroke-width="4"/>`;
+        if (p.pts.length === 4) s += `<polyline points="${ptsAttr([p.pts[3], p.pts[0], p.pts[1]])}" fill="none" stroke="#000" stroke-opacity=".25" stroke-width="4"/>`;
       } else if (p.tool === "chamfer") {
         s += `<polygon points="${ptsAttr(p.pts)}" fill="none" stroke="#fff" stroke-opacity=".45" stroke-width="5"/>`;
       } else {
-        const w = t.width;
-        s += `<polyline points="${ptsAttr(p.pts)}" fill="none" stroke="#000" stroke-opacity=".24" stroke-width="${w}" stroke-linecap="round"/>`;
-        s += `<polyline points="${ptsAttr(p.pts.map((q) => [q[0] + w * 0.22, q[1]]))}" fill="none" stroke="#fff" stroke-opacity=".28" stroke-width="${f1(w * 0.28)}" stroke-linecap="round"/>`;
+        const w = t.width, el = p.closed ? "polygon" : "polyline";
+        s += `<${el} points="${ptsAttr(p.pts)}" fill="none" stroke="#000" stroke-opacity="${p.tool === "mould" || p.tool === "bevel" ? ".14" : ".24"}" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round"/>`;
+        s += `<${el} points="${ptsAttr(p.pts.map((q) => [q[0] + w * 0.22, q[1] + w * 0.22]))}" fill="none" stroke="#fff" stroke-opacity=".28" stroke-width="${f1(w * 0.28)}" stroke-linecap="round" stroke-linejoin="round"/>`;
       }
     }
     s += `</g>`;

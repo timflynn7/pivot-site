@@ -9,7 +9,7 @@ The website for pivotdesigns.co.uk: Home, Our story and Contact, plus a test ver
 | `server.js` | The web server: pages, order requests (`/api/orders`) and the orders page (`/admin`). |
 | `public/js/engine.js` | The door engine. Every design's recipe, size limits, prices, preview drawing and DXF output. |
 | `public/configurator.html` | The configurator page. Not linked from the menu while it's being tested. |
-| `scripts/sample-dxf.js` | Makes a sample DXF with every design: `npm run sample-dxf`. |
+| `scripts/sample-dxf.js` | Makes a test DXF for each design, one with all designs, and a README: `npm run sample-dxf`. |
 | `public/` | The pages, styles and photos people see. |
 | `public/img/` | Product photos, taken from the Etsy listings. Replace them with your original photos for sharper images (same file names). |
 | `render.yaml` | Tells Render how to build and run the site. |
@@ -59,7 +59,8 @@ In Render, open the `pivot-site` service → **Environment** → **Add Environme
 
 - One part per door copy, spread apart in rows up to 2440 mm wide, ready for VCarve to nest.
 - `CUTOUT_EM6`: the door outline, to profile outside with tabs.
-- One layer per toolpath, named by tool and depth, e.g. `POCKET_EM6_D8`, `FLUTE_CORE16_D5`, `REED_FORM13_D4`, `GROOVE_V90_D4`, `GROOVE_V90_D5`, `EDGE_CHAMFER_V90_D3`.
+- One layer per toolpath, named by tool and depth, e.g. `POCKET_EM6_D8`, `FLUTE_CORE16_D5`, `REED_FORM13_D4`, `GROOVE_V90_D4`, `BEAD_FORM6_D3`, `BEVEL_V90_D8`.
+- `MOULD_TBN_RAIL`: drive rails for VCarve's moulding toolpath (Moulded frame, Victorian, Ring and arc). Draw the moulding profile in VCarve.
 - Grooves that run the full height go 10 mm past the door edge.
 - `LABELS`: door number and name, size and design, hinge side and count (for hand drilling), and the order reference.
 - Units are millimetres. Set the VCarve job to mm before importing.
