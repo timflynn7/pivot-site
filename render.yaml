@@ -1,0 +1,15 @@
+# Render Blueprint: tells Render how to build and run the site.
+# Render reads this when you create the service from this repository.
+services:
+  - type: web
+    name: pivot-site
+    runtime: node
+    region: frankfurt
+    plan: starter
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: "20"

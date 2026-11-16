@@ -1,0 +1,17 @@
+{
+  "name": "pivot-designs",
+  "version": "0.1.0",
+  "private": true,
+  "description": "pivotdesigns.co.uk - website and door configurator",
+  "main": "server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "express": "4.21.2"
+  }
+}
