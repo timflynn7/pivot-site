@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Design your door | Pivot Designs</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jost:wght@400;500&family=Inter:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="/css/site.css">
+<link rel="stylesheet" href="/css/configurator.css">
+</head>
+<body>
+<header class="site-head">
+  <div class="inner">
+    <a class="brand" href="/" aria-label="Pivot Designs home"><span class="word">PIVOT</span><span class="sub">DESIGNS</span></a>
+    <nav class="nav" aria-label="Main">
+      <a href="/">Home</a>
+      <a href="/story">Our story</a>
+      <a href="/contact">Contact</a>
+    </nav>
+  </div>
+</header>
+
+<div class="testbar"><div class="inner">Test version. Prices are provisional and order requests are not yet final.</div></div>
+
+<main class="cfg inner">
+  <header class="cfg-head">
+    <span class="eyebrow">Made to measure</span>
+    <h1>Design your door</h1>
+    <p class="lede">Choose a design, enter your sizes and add each door to your list. When the list is ready, send it to us and we'll confirm the price and lead time.</p>
+  </header>
+
+  <div class="bench">
+    <section class="preview" aria-label="Door preview">
+      <div class="stage" id="stage"></div>
+      <div class="pv-meta">
+        <div><span class="pv-name" id="pvName"></span><span class="pv-info" id="pvInfo"></span></div>
+        <span class="pv-price" id="pvPrice"></span>
+      </div>
+      <p class="pv-note">Dashed circles show hinge holes on the back. We drill these by hand.</p>
+    </section>
+
+    <form class="cfg-steps" id="doorForm" novalidate>
+      <fieldset class="step">
+        <legend><span class="n">01</span> Design</legend>
+        <div class="designs" id="designs"></div>
+      </fieldset>
+
+      <fieldset class="step">
+        <legend><span class="n">02</span> Size</legend>
+        <div class="pair">
+          <div class="field"><label for="width">Width</label><div class="mm"><input id="width" type="number" inputmode="numeric" min="300" max="600" step="1" value="450"></div><span class="hint" id="widthMsg"></span></div>
+          <div class="field"><label for="height">Height</label><div class="mm"><input id="height" type="number" inputmode="numeric" min="300" max="1150" step="1" value="700"></div><span class="hint" id="heightMsg"></span></div>
+        </div>
+        <p class="hint">Measure the existing door, not the cabinet opening. Doors are 18 mm MDF.</p>
+      </fieldset>
+
+      <fieldset class="step" id="optStep">
+        <legend><span class="n">03</span> Options</legend>
+        <div id="opts" class="opts"></div>
+        <p class="err" id="geomMsg" role="alert"></p>
+      </fieldset>
+
+      <fieldset class="step">
+        <legend><span class="n">04</span> Hinge holes</legend>
+        <div class="seg" role="group" aria-label="Hinge side" id="hingeSide">
+          <button type="button" data-v="none">None</button><button type="button" data-v="left">Left</button><button type="button" data-v="right">Right</button>
+        </div>
+        <div class="field" id="hingeCountField"><label for="hingeCount">Number of hinges</label>
+          <select id="hingeCount"><option value="2">2</option><option value="3">3</option><option value="4">4</option></select>
+        </div>
+      </fieldset>
+
+      <fieldset class="step">
+        <legend><span class="n">05</span> Name and quantity</legend>
+        <div class="pair">
+          <div class="field"><label for="doorName">Door name (optional)</label><input id="doorName" type="text" maxlength="40" placeholder="e.g. Under sink"></div>
+          <div class="field"><label for="qty">How many</label><input id="qty" type="number" inputmode="numeric" min="1" max="50" value="1"></div>
+        </div>
+      </fieldset>
+
+      <div class="addbar">
+        <button class="btn" type="submit" id="addBtn">Add to door list</button>
+        <span class="hint" id="addMsg" role="status"></span>
+      </div>
+    </form>
+  </div>
+
+  <section class="list" aria-labelledby="listH">
+    <div class="list-head"><h2 id="listH">Your door list</h2><button type="button" class="btn line small" id="testDxf" hidden>Download test DXF</button></div>
+    <div class="list-grid">
+      <div id="items"></div>
+      <div class="summary">
+        <div class="row"><span>Doors (<span id="sCount">0</span>)</span><span id="sSub">£0.00</span></div>
+        <div class="row"><span>Delivery</span><span id="sShip">£0.00</span></div>
+        <div class="row total"><span>Estimated total</span><span id="sTotal">£0.00</span></div>
+        <p class="hint">Provisional prices. We confirm the final price before you pay.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="send" aria-labelledby="sendH" id="sendSection">
+    <h2 id="sendH">Send your order request</h2>
+    <form id="orderForm" class="order-form" novalidate>
+      <div class="field"><label for="cName">Your name</label><input id="cName" autocomplete="name" required></div>
+      <div class="field"><label for="cEmail">Email</label><input id="cEmail" type="email" autocomplete="email" required></div>
+      <div class="field"><label for="cPhone">Phone (optional)</label><input id="cPhone" type="tel" autocomplete="tel"></div>
+      <div class="field"><label for="cPostcode">Delivery postcode</label><input id="cPostcode" autocomplete="postal-code" required></div>
+      <div class="field wide"><label for="cAddress">Delivery address</label><textarea id="cAddress" autocomplete="street-address" rows="3" required></textarea></div>
+      <div class="field wide"><label for="cNotes">Notes for the maker (optional)</label><textarea id="cNotes" rows="3" placeholder="e.g. Pair for a wall unit, grooves to line up"></textarea></div>
+      <div class="hp" aria-hidden="true"><label for="cWebsite">Leave this empty</label><input id="cWebsite" tabindex="-1" autocomplete="off"></div>
+      <div class="field wide">
+        <p class="hint">We use these details only to quote and deliver your order.</p>
+        <div class="actions"><button class="btn" type="submit" id="sendBtn">Send order request</button></div>
+        <p id="sendMsg" role="status" class="send-msg"></p>
+      </div>
+    </form>
+  </section>
+</main>
+
+<footer class="site-foot">
+  <div class="inner">
+    <a class="brand" href="/"><span class="word">PIVOT</span><span class="sub">DESIGNS</span></a>
+    <span>tim@pivotdesigns.co.uk</span>
+    <span>© 2026 Pivot Designs</span>
+  </div>
+</footer>
+<script src="/js/engine.js"></script>
+<script src="/js/configurator.js"></script>
+</body>
+</html>

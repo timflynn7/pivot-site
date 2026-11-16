@@ -6,7 +6,8 @@
   "main": "server.js",
   "type": "commonjs",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "sample-dxf": "node scripts/sample-dxf.js"
   },
   "engines": {
     "node": ">=20"

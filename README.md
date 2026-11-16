@@ -1,12 +1,15 @@
 # Pivot Designs website
 
-The website for pivotdesigns.co.uk. It has three pages so far: Home, Our story and Contact. The door configurator, order requests and DXF downloads will be added to this same app.
+The website for pivotdesigns.co.uk: Home, Our story and Contact, plus a test version of the door configurator at `/configurator` that takes order requests and makes one DXF per order.
 
 ## What's in here
 
 | Path | What it is |
 | --- | --- |
-| `server.js` | The small web server. The configurator and order routes go here later. |
+| `server.js` | The web server: pages, order requests (`/api/orders`) and the orders page (`/admin`). |
+| `public/js/engine.js` | The door engine. Every design's recipe, size limits, prices, preview drawing and DXF output. |
+| `public/configurator.html` | The configurator page. Not linked from the menu while it's being tested. |
+| `scripts/sample-dxf.js` | Makes a sample DXF with every design: `npm run sample-dxf`. |
 | `public/` | The pages, styles and photos people see. |
 | `public/img/` | Product photos, taken from the Etsy listings. Replace them with your original photos for sharper images (same file names). |
 | `render.yaml` | Tells Render how to build and run the site. |
@@ -35,3 +38,28 @@ The server sends visitors from www.pivotdesigns.co.uk to pivotdesigns.co.uk, so 
 ## Editing the pages
 
 Each page is a plain HTML file in `public/`. The header and footer appear on every page, so change all three files when you change them.
+
+## The configurator (test version)
+
+- **Customers:** https://pivotdesigns.co.uk/configurator. It isn't in the menu or search results yet.
+- **Test DXF without ordering:** https://pivotdesigns.co.uk/configurator?test shows a **Download test DXF** button under the door list.
+- **Your orders page:** https://pivotdesigns.co.uk/admin lists order requests with a **DXF** and **Spec** button for each.
+
+### Turn on the orders page
+
+In Render, open the `pivot-site` service → **Environment** → **Add Environment Variable**. Name it `ADMIN_PASSWORD` and give it a long password of your own. Save, and Render restarts the site. Sign in to `/admin` with any username and that password.
+
+### Limits of this test version
+
+- Order requests are saved on Render's temporary disk, so they **disappear on every deploy**. Use it for testing only, until orders move into a database.
+- There's no email yet. Check `/admin` for new requests.
+- All tooling is placeholder. Each design's bits, depths and DXF layer names are in the `TOOLS` table at the top of `public/js/engine.js`.
+
+### What's in each DXF
+
+- One part per door copy, spread apart in rows up to 2440 mm wide, ready for VCarve to nest.
+- `CUTOUT_EM6`: the door outline, to profile outside with tabs.
+- One layer per toolpath, named by tool and depth, e.g. `POCKET_EM6_D8`, `FLUTE_CORE16_D5`, `REED_FORM13_D4`, `GROOVE_V90_D4`, `GROOVE_V90_D5`, `EDGE_CHAMFER_V90_D3`.
+- Grooves that run the full height go 10 mm past the door edge.
+- `LABELS`: door number and name, size and design, hinge side and count (for hand drilling), and the order reference.
+- Units are millimetres. Set the VCarve job to mm before importing.
