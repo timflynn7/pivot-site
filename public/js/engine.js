@@ -487,8 +487,8 @@
   const n3 = (v) => (Math.round(v * 1000) / 1000).toFixed(3);
   function dxfText(s) { return String(s).replace(/[^\x20-\x7E]/g, "").slice(0, 60); }
 
-  // order: { ref, doors: [normalized door] }. Each door copy becomes its own part,
-  // spread out in rows for VCarve to nest.
+  // order: { ref, doors: [normalized door], sheetWidth? }. Each door copy becomes its
+  // own part, spread out in rows no wider than sheetWidth (default 2440 mm) for VCarve to nest.
   function orderDXF(order) {
     const parts = [];
     order.doors.forEach((door, i) => {
@@ -498,7 +498,7 @@
       }
     });
     parts.sort((a, b) => b.g.H - a.g.H);
-    const SHEET = 2440, GAP = 50 + 2 * OVERCUT;
+    const SHEET = order.sheetWidth || 2440, GAP = 50 + 2 * OVERCUT;
     let x = 0, y = 0, rowH = 0;
     for (const p of parts) {
       if (x > 0 && x + p.g.W > SHEET) { y += rowH + GAP; x = 0; rowH = 0; }
