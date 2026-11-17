@@ -9,7 +9,7 @@ The website for pivotdesigns.co.uk: Home, Our story and Contact, plus a test ver
 | `server.js` | The web server: pages, order requests (`/api/orders`) and the orders page (`/admin`). |
 | `public/js/engine.js` | The door engine. Every design's recipe, size limits, prices, preview drawing and DXF output. |
 | `public/configurator.html` | The configurator page. Not linked from the menu while it's being tested. |
-| `scripts/test-board-dxf.js` | Makes test-cut DXFs sized for a 1220 x 500 mm board, one per design plus combined boards: `node scripts/test-board-dxf.js`. |
+| `scripts/test-board-dxf.js` | Makes one 1220 x 500 mm test board with every design still being worked out, small doors with full-size details, plus a file per design: `node scripts/test-board-dxf.js`. |
 | `scripts/sample-dxf.js` | Makes a test DXF for each design, one with all designs, and a README: `npm run sample-dxf`. |
 | `public/` | The pages, styles and photos people see. |
 | `public/img/` | Product photos, taken from the Etsy listings. Replace them with your original photos for sharper images (same file names). |

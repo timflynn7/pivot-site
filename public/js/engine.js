@@ -263,7 +263,8 @@
       blurb: "A moulded frame round a finely fluted centre.",
       opts: [num("spacing", "Flute spacing", 12, 10, 20, 0.5, "Centre to centre. The flutes are 8 mm wide.")],
       build(W, H, o) {
-        const b = 75, step = 22;
+        // Fixed for customers; the test-board script may narrow them (o.border, o.step).
+        const b = o.border || 75, step = o.step || 22;
         if (W - 2 * (b + step) < 60 || H - 2 * (b + step) < 100) fail("This door is too small for the moulded frame. Make it bigger.");
         const rail = rect(b, b, W - b, H - b), p = [b + step, b + step, W - b - step, H - b - step];
         const flutes = stoppedFlutes(p[0] + 4, p[1] + 4, p[2] - 4, p[3] - 4, o.spacing, TOOLS.flute8.width);
@@ -274,8 +275,8 @@
       id: "victorian", name: "Victorian", family: "Frame with pattern", adjustable: false, draft: true,
       blurb: "A shaker with a decorative moulding inside the panel.",
       opts: [],
-      build(W, H) {
-        const [p] = shakerPanels(W, H, 70, 0), m = 20;
+      build(W, H, o) {
+        const [p] = shakerPanels(W, H, o.border || 70, 0), m = o.inset || 20;
         if (p[2] - p[0] < 2 * m + 60 || p[3] - p[1] < 2 * m + 80) fail("This door is too small for the inner moulding. Make it bigger.");
         return { outline: rect(0, 0, W, H), paths: [{ tool: "pocket8", pts: rect(...p), closed: true }, { tool: "mould", pts: rect(p[0] + m, p[1] + m, p[2] - m, p[3] - m), closed: true }] };
       }
@@ -284,8 +285,8 @@
       id: "georgian", name: "Georgian", family: "Frame with pattern", adjustable: false, draft: true,
       blurb: "A frame that steps down twice to the panel.",
       opts: [],
-      build(W, H) {
-        const [outer] = shakerPanels(W, H, 55, 0), [inner] = shakerPanels(W, H, 75, 0);
+      build(W, H, o) {
+        const [outer] = shakerPanels(W, H, o.outer || 55, 0), [inner] = shakerPanels(W, H, o.inner || 75, 0);
         return { outline: rect(0, 0, W, H), paths: [{ tool: "pocket4", pts: rect(...outer), closed: true }, { tool: "pocket8", pts: rect(...inner), closed: true }] };
       }
     },
@@ -323,7 +324,8 @@
       blurb: "A round-topped door with three beads following its shape.",
       opts: [],
       build(W, H) {
-        if (H < W / 2 + 200) fail("An arch-top door must be at least half its width plus 200 mm tall.");
+        if (W < 200) fail("An arch-top door must be at least 200 mm wide.");
+        if (H < W / 2 + 120) fail("An arch-top door must be at least half its width plus 120 mm tall.");
         const paths = [30, 55, 80].map((d) => ({ tool: "reed13", pts: archShape(W, H, d), closed: true }));
         return { outline: archShape(W, H, 0), paths, info: `Arch radius ${W / 2} mm` };
       }
@@ -332,8 +334,8 @@
       id: "ringpanel", name: "Ring and arc panel", family: "Statement", adjustable: false, draft: true,
       blurb: "Two panels shaped round a large circle, with a ring at the centre.",
       opts: [],
-      build(W, H) {
-        const b = 40, cx = W / 2, cy = H / 2, R = W / 2 - b;
+      build(W, H, o) {
+        const b = o.frame || 40, cx = W / 2, cy = H / 2, R = W / 2 - b;
         if (cy - R < b + 60) fail("This design needs the door at least 120 mm taller than it is wide.");
         const top = [[b, b], [W - b, b], [W - b, cy]].concat(arc(cx, cy, R, 0, -180).slice(1, -1), [[b, cy]]);
         const bottom = [[b, H - b], [W - b, H - b], [W - b, cy]].concat(arc(cx, cy, R, 0, 180).slice(1, -1), [[b, cy]]);
@@ -498,11 +500,16 @@
       }
     });
     parts.sort((a, b) => b.g.H - a.g.H);
-    const SHEET = order.sheetWidth || 2440, GAP = 50 + 2 * OVERCUT;
-    let x = 0, y = 0, rowH = 0;
-    for (const p of parts) {
-      if (x > 0 && x + p.g.W > SHEET) { y += rowH + GAP; x = 0; rowH = 0; }
-      p.ox = x; p.oy = y; x += p.g.W + GAP; rowH = Math.max(rowH, p.g.H);
+    const SHEET = order.sheetWidth || 2440, GAP = order.gap != null ? order.gap : 50 + 2 * OVERCUT;
+    if (parts.every((p) => Array.isArray(p.door.pos))) {
+      // Placed by hand (test boards): pos is [x, y] of the part's bottom-left corner.
+      for (const p of parts) { p.ox = p.door.pos[0]; p.oy = p.door.pos[1]; }
+    } else {
+      let x = 0, y = 0, rowH = 0;
+      for (const p of parts) {
+        if (x > 0 && x + p.g.W > SHEET) { y += rowH + GAP; x = 0; rowH = 0; }
+        p.ox = x; p.oy = y; x += p.g.W + GAP; rowH = Math.max(rowH, p.g.H);
+      }
     }
     const used = new Set([LABEL_LAYER]);
     const ents = [];
@@ -516,11 +523,15 @@
     for (const p of parts) {
       const tx = (q) => [p.ox + q[0], p.oy + (p.g.H - q[1])];
       for (const path of p.g.paths) poly(TOOLS[path.tool].layer, path.pts.map(tx), !!path.closed);
-      const d = p.door, lh = 10, lx = p.ox + 12;
+      const d = p.door, lx = p.ox + 12;
+      const named = d.name && d.name !== p.g.design.name;
+      const lines0 = `${p.tag} ${named ? d.name : p.g.design.name}`;
+      // Text about 0.75 x its height per character; keep the longest line inside the door.
+      const lh = Math.max(4, Math.min(10, (p.g.W - 24) / (0.75 * Math.max(lines0.length, 22))));
       let ly = p.oy + p.g.H / 2 + lh * 2;
       const lines = [
-        `${p.tag} ${d.name || p.g.design.name}`,
-        `${d.width} x ${d.height} ${p.g.design.name}`,
+        lines0,
+        `${d.width} x ${d.height}${named ? " " + p.g.design.name : ""}`,
         d.hingeSide === "none" ? "NO HINGES" : `HINGES ${d.hingeSide.toUpperCase()} x${d.hingeCount} (hand drill)`,
         order.ref || ""
       ];
