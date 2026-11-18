@@ -98,6 +98,12 @@ How to get the moulding toolpath to work correctly with Tim's round-over bits, a
 - The calibration strip is updated: depth ladder 4-6.5 including 5.16, and a spacing ladder at 5.16 with the lines 11-12.7 apart. **Still worth cutting**, to confirm the real height (5.16 vs Tim's 4.7) before setting it in stone.
 - Cross-sections were re-checked against the exported tool shape (separate maths from the engine's): `test-boards/beads/cross-sections.png`.
 
+### Bit model v4: 1.5 mm flat at the tip (2026-11-18)
+- Tim measured that the bit **does not cut to a point: it leaves a flat about 1.5 mm wide** at the bottom of a profile cut.
+- With that flat, a true R6.35 arc to the full diameter can't blend into the face (the bead top came out as a ridge in the cross-section check). The drawing's "R6.35" is most likely just half the 12.7 diameter. So the edge is now modelled as a **quarter round that blends at both ends**: upright where it leaves the tip flat, level where it meets the face. That is a quarter ellipse 5.6 across by 5.16 tall.
+- `ROUNDOVER = { dia: 12.7, height: 5.16, tipFlat: 1.5, head: 9 }`. The v3 notes above about the "pointed tip" and the "R6.35 arc" are superseded. The beads are round with no flat or ridge, and the grooves have a 1.5 mm flat bottom.
+- Still to confirm from the calibration strip: the real height (5.16 or about 4.7), the tip flat, and whether the curve really blends into the face.
+
 ### Next
 1. Tim cuts the beads board. For each corner leg length, check whether the moulding blends into the form-tool cut, and whether there's a witness line at the leg ends. Then set `CORNER_LEG`.
 2. Check in VCarve: does the profile hang on the correct side with the first vertex as start? Can the Vector Selector pick rails and profile by layer for a toolpath template? Is "Sharp Internal Corner (3D)" offered with the form tool?

@@ -103,7 +103,7 @@ if (planName === "beads") {
   for (const [x, y] of pts) out.push("0", "VERTEX", "8", L, "10", x.toFixed(4), "20", y.toFixed(4), "30", "0.0");
   out.push("0", "SEQEND", "8", L, "0", "ENDSEC", "0", "EOF");
   fs.writeFileSync(path.join(outDir, "form-tool-roundover-12.7.dxf"), out.join("\r\n") + "\r\n");
-  rows.push("", `form-tool-roundover-12.7.dxf: right-hand half of the round-over bit (${E.ROUNDOVER.dia} mm across, R${E.ROUNDOVER.arcRadius} arc ${E.ROUNDOVER.height} mm tall from a pointed tip, head ${E.ROUNDOVER.head} mm), to scale. Select it in VCarve, then Tool Database > new tool > type Form Tool.`);
+  rows.push("", `form-tool-roundover-12.7.dxf: right-hand half of the round-over bit (${E.ROUNDOVER.dia} mm across, quarter round ${E.ROUNDOVER.height} mm tall, ${E.ROUNDOVER.tipFlat} mm flat at the tip, head ${E.ROUNDOVER.head} mm), to scale. Select it in VCarve, then Tool Database > new tool > type Form Tool.`);
 }
 fs.writeFileSync(path.join(outDir, "README.txt"), rows.join("\r\n") + "\r\n");
 console.log(rows.join("\n"));

@@ -171,23 +171,27 @@
   // Cross-section profiles for the Moulding toolpath, in mm: x = distance from the rail
   // (the first point is the start point, which sits on the rail), y = height, with the
   // door face at 0 and depths negative. Drawn once per order on their own layer.
-  // The 12.7 mm round-over form tool, from the maker's drawing: 1/2" (12.7 mm) across, an
-  // R6.35 concave arc 13/64" (5.16 mm) tall running from a POINTED tip out to the full
-  // diameter, then straight sides (head 23/64", 9 mm). Tim measured about 4.7 mm of cutting
-  // height; the calibration strip (scripts/calibration-dxf.js) is to settle the real numbers.
-  // Change these and every bead, profile and the VCarve tool shape follow.
-  const ROUNDOVER = { dia: 12.7, arcRadius: 6.35, height: 5.16, head: 9 };
-  const RO_OUT = ROUNDOVER.dia / 2, RO_ARC = ROUNDOVER.arcRadius, RO_H = ROUNDOVER.height;
-  // Centre of the arc through the tip (0,0) and the outer corner (RO_OUT, RO_H), on the
-  // far side of the chord from the bit's axis (so the cutting edge is hollow, as drawn).
-  const RO_C = (() => {
-    const L = Math.hypot(RO_OUT, RO_H), d = Math.sqrt(Math.max(0, RO_ARC * RO_ARC - L * L / 4));
-    return [RO_OUT / 2 + d * RO_H / L, RO_H / 2 - d * RO_OUT / L];
-  })();
+  // The 12.7 mm round-over form tool. Maker's drawing: 1/2" (12.7 mm) across, cutting
+  // height 13/64" (5.16 mm), head 23/64" (9 mm). The drawing shows a point, but Tim measured
+  // a flat about 1.5 mm wide at the bottom of the cut (tipFlat). Its "R6.35" looks like just
+  // half the diameter: a true R6.35 arc from the edge of that flat could not blend into the
+  // face. So the cutting edge is modelled as a quarter round that is upright where it leaves
+  // the tip flat and level where it meets the full diameter (a quarter ellipse,
+  // (12.7 - 1.5) / 2 = 5.6 mm across by 5.16 mm tall), as a round-over is meant to blend.
+  // Tim also measured about 4.7 mm of cutting height. The calibration strip
+  // (scripts/calibration-dxf.js) is to settle the real numbers. Change these and every
+  // bead, profile and the VCarve tool shape follow.
+  const ROUNDOVER = { dia: 12.7, height: 5.16, tipFlat: 1.5, head: 9 };
+  const RO_OUT = ROUNDOVER.dia / 2, RO_H = ROUNDOVER.height, RO_TIP = ROUNDOVER.tipFlat / 2, RO_A = RO_OUT - RO_TIP;
   // Height above the tip at which the cutting edge is dx from the axis (0 <= dx <= RO_OUT).
-  const roHeight = (dx) => Math.min(RO_H, RO_C[1] + Math.sqrt(Math.max(0, RO_ARC * RO_ARC - (dx - RO_C[0]) ** 2)));
+  const roHeight = (dx) => {
+    if (dx <= RO_TIP) return 0;
+    if (dx >= RO_OUT) return RO_H;
+    const u = (RO_OUT - dx) / RO_A;
+    return RO_H * Math.sqrt(Math.max(0, 1 - u * u));
+  };
   // How far the cut reaches either side of its line at the door face.
-  const roReach = (depth) => depth >= RO_H ? RO_OUT : RO_C[0] - Math.sqrt(RO_ARC * RO_ARC - (depth - RO_C[1]) ** 2);
+  const roReach = (depth) => depth >= RO_H ? RO_OUT : RO_OUT - RO_A * Math.sqrt(1 - (depth / RO_H) ** 2);
   // Height of the cut surface (face = 0) at distance dx from a line cut `depth` deep.
   // Deeper than RO_H, the bit's straight side leaves an upright step at the face.
   function roSurface(dx, depth) {
@@ -195,11 +199,11 @@
     if (dx > RO_OUT) return 0;
     return Math.min(0, -depth + roHeight(dx));
   }
-  // Points along the cutting edge from the tip to the outer corner (x = from the axis, y = up).
+  // Points along the cutting edge from the centre of the tip to the outer corner
+  // (x = from the axis, y = up): the tip flat, then the quarter round in even angle steps.
   function roEdge(n) {
-    const a0 = Math.atan2(0 - RO_C[1], 0 - RO_C[0]), a1 = Math.atan2(RO_H - RO_C[1], RO_OUT - RO_C[0]), pts = [];
-    for (let i = 0; i <= n; i++) { const a = a0 + (a1 - a0) * i / n; pts.push([RO_C[0] + RO_ARC * Math.cos(a), RO_C[1] + RO_ARC * Math.sin(a)]); }
-    pts[0] = [0, 0]; pts[n] = [RO_OUT, RO_H];
+    const pts = RO_TIP > 0 ? [[0, 0]] : [];
+    for (let i = 0; i <= n; i++) { const a = Math.PI / 2 * i / n; pts.push([RO_OUT - RO_A * Math.cos(a), RO_H * Math.sin(a)]); }
     return pts;
   }
   // The right-hand half of the cutter, for VCarve's tool database (tip at 0,0).
@@ -230,7 +234,7 @@
   // Round-over form tool ON a line, `depth` deep. Returns the TOOLS key.
   function roTool(depth) {
     const key = "roundover12_d" + tagOf(depth);
-    if (!TOOLS[key]) TOOLS[key] = { layer: `ROUNDOVER_FORM12_D${tagOf(depth)}`, label: `12.7 mm round-over form tool (R${RO_ARC} arc, ${RO_H} mm tall, pointed tip), 2D Profile ON the line, ${depth} mm deep`, width: 2 * roReach(depth), color: 4 };
+    if (!TOOLS[key]) TOOLS[key] = { layer: `ROUNDOVER_FORM12_D${tagOf(depth)}`, label: `12.7 mm round-over form tool (${RO_H} mm tall, ${ROUNDOVER.tipFlat} mm flat at the tip), 2D Profile ON the line, ${depth} mm deep`, width: 2 * roReach(depth), color: 4 };
     return key;
   }
   // 6 mm end mill pocket `depth` deep. Returns the TOOLS key.
