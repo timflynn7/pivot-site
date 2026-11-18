@@ -12,7 +12,9 @@ const GAP = 20;
 
 // pos = bottom-left corner on the board, in mm.
 // "all": every draft design. Rows: top 255-490, bottom 0-235.
-// "beads": the two beaded shakers, with corner-rail leg lengths and bead heights to compare.
+// "beads": the two beaded shakers, with corner-rail leg lengths (3, 5, 10 mm), the bead
+// at 4.7 mm (the bit radius) and at 5 mm deep, and single-bead heights to compare.
+// Also writes the round-over bit's shape for VCarve's tool database.
 const PLANS = {
   all: [
     { design: "ringpanel",    width: 260, height: 490, pos: [0, 0],     opts: { frame: 40 } },
@@ -28,6 +30,7 @@ const PLANS = {
     { design: "beaded",     width: 200, height: 235, pos: [0, 255],   opts: { border: 50, leg: 3 } },
     { design: "beaded",     width: 200, height: 235, pos: [220, 255], opts: { border: 50, leg: 5 } },
     { design: "beaded",     width: 200, height: 235, pos: [440, 255], opts: { border: 50, leg: 10 } },
+    { design: "beaded",     width: 200, height: 235, pos: [660, 255], opts: { border: 50, leg: 5, depth: 5 } },
     { design: "singlebead", width: 200, height: 235, pos: [0, 0],     opts: { border: 50, top: 0 } },
     { design: "singlebead", width: 200, height: 235, pos: [220, 0],   opts: { border: 50, top: 1 } },
     { design: "singlebead", width: 200, height: 235, pos: [440, 0],   opts: { border: 50, top: 1.65 } }
@@ -85,5 +88,19 @@ doors.forEach((door, i) => {
   rows.push(`${i + 1} | ${E.designById(door.design).name} | ${door.width} x ${door.height} | ${door.pos.join(", ")} | ${settings} | ${E.layerList([door]).map((l) => l.layer).join(", ")}`);
 });
 rows.push("", "Layers", ...E.layerList(doors).map((l) => `${l.layer}: ${l.label}`));
+
+if (planName === "beads") {
+  // Right-hand half of the round-over bit, drawn to scale (tip at 0,0, y up), so it can be
+  // selected in VCarve and made into a Form Tool in the tool database.
+  const pts = E.roundoverToolShape();
+  const L = "FORM_TOOL_SHAPE";
+  const out = ["0", "SECTION", "2", "HEADER", "9", "$ACADVER", "1", "AC1009", "0", "ENDSEC",
+    "0", "SECTION", "2", "TABLES", "0", "TABLE", "2", "LAYER", "70", "1", "0", "LAYER", "2", L, "70", "0", "62", "4", "6", "CONTINUOUS", "0", "ENDTAB", "0", "ENDSEC",
+    "0", "SECTION", "2", "ENTITIES", "0", "POLYLINE", "8", L, "66", "1", "10", "0.0", "20", "0.0", "30", "0.0", "70", "0"];
+  for (const [x, y] of pts) out.push("0", "VERTEX", "8", L, "10", x.toFixed(4), "20", y.toFixed(4), "30", "0.0");
+  out.push("0", "SEQEND", "8", L, "0", "ENDSEC", "0", "EOF");
+  fs.writeFileSync(path.join(outDir, "form-tool-roundover-12.7-R4.7.dxf"), out.join("\r\n") + "\r\n");
+  rows.push("", `form-tool-roundover-12.7-R4.7.dxf: right-hand half of the round-over bit (${E.ROUNDOVER.dia} mm across, ${E.ROUNDOVER.radius} mm radius, flat tip ${(E.ROUNDOVER.dia - 2 * E.ROUNDOVER.radius).toFixed(1)} mm across), to scale. Select it in VCarve, then Tool Database > new tool > type Form Tool.`);
+}
 fs.writeFileSync(path.join(outDir, "README.txt"), rows.join("\r\n") + "\r\n");
 console.log(rows.join("\n"));

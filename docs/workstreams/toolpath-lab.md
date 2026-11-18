@@ -16,7 +16,7 @@ How to get the moulding toolpath to work correctly with Tim's round-over bits, a
 
 ## Things to establish (fill in as they're found)
 - **Tim's VCarve version** (affects which moulding options exist): **VCarve Pro 12** (has the Moulding toolpath, and Form Tool entries in the tool database).
-- **Round-over bits:** **CNC style, no bearing** (can plunge into the face). In VCarve as **Form Tool 1/2 (12.7 mm)**, tool no. 54: 12.7 mm diameter, profile is two quarter-round arcs meeting at a point (so about 6.35 mm radius), 2 flutes, pass depth 3.175, stepover 2.54 (20%), 20000 rpm, feed 5000, plunge 800 mm/min.
+- **Round-over bits:** **CNC style, no bearing** (can plunge into the face). **Measured by Tim (2026-11-18): 12.7 mm across, 4.7 mm cutting height** (about 3/16" radius). The engine takes it as a 4.7 mm radius arc with a flat tip 3.3 mm across (`ROUNDOVER` in engine.js; tip shape to confirm by eye). **The VCarve tool database entry is wrong:** "Form Tool 1/2 (12.7 mm)", tool no. 54, is drawn as two 6.35 mm quarter circles meeting at a point. Redraw it from `form-tool-roundover-12.7-R4.7.dxf` (written by the beads test board). Its settings: 2 flutes, pass depth 3.175, stepover 2.54 (20%), 20000 rpm, feed 5000, plunge 800 mm/min.
 - **Each effect wanted:** a photo or sketch of the cross-section, with the profile width and depth: _
 - **The route for each design:** VCarve's Moulding toolpath (a profile swept along a drive rail and cut with raster passes, usually with a ball nose or tapered ball nose), **or** a 2D Profile toolpath with the round-over defined as a form tool in the tool database (the bit cuts its own shape in one pass). These are two different approaches. Which suits each design is the first thing to settle. _
 - **Vectors VCarve needs:** a drive rail only, or a rail plus a profile vector, or two rails, and which side of the line the profile sits on: _
@@ -57,21 +57,23 @@ How to get the moulding toolpath to work correctly with Tim's round-over bits, a
 
 ### Built in the engine (2026-11-18, branch `claude/fervent-ride-vmspcn`, engine VERSION 2). Not yet cut.
 - `cornerRails(pts, closed, side, leg)` in engine.js: works on any path, straight or curved, at any angle. It finds corners turning more than 10° where the profile hangs on the outside of the turn, and returns open rails `leg` mm each way (default `CORNER_LEG` = 5), drawn clockwise as seen in VCarve so the profile hangs on the left of travel. On the ring panel it finds 4 corners per arc panel (2 square, 2 where the arc meets the side) and none on the ring.
-- **Beaded shaker:** 8 mm pocket; round-over lines **6 mm and 18.7 mm** out from the pocket on `ROUNDOVER_FORM12_D5`; 4 corner rails on the pocket edge on `MOULD_RAIL_BEAD12_D5`; profile `MOULD_PROFILE_BEAD12_D5`, which starts at the pocket edge, on the face, and covers both cuts.
+- **Beaded shaker:** 8 mm pocket; round-over lines **6.35 and 19.05 mm** out from the pocket on `ROUNDOVER_FORM12_D4_7`; 4 corner rails on the pocket edge on `MOULD_RAIL_BEAD12_D4_7`; profile `MOULD_PROFILE_BEAD12_D4_7`, which starts at the pocket edge and covers both cuts. Layer names carry the depth (`beadTools(depth)`).
 - **Single bead shaker** (new draft, `singlebead`): one closed rail at the pocket edge on `MOULD_RAIL_SBEAD12` (full-length Moulding toolpath, no form tool); profile `MOULD_PROFILE_SBEAD12`: field at 8 mm, a 1 mm flat, a step up to the bead's foot, a 12.7 mm half-round bead with its top `top` below the face (default 1), then a vertical wall up to the frame face. The rest of the panel is the 8 mm pocket. The floor is fixed at 8 to match `POCKET_EM6_D8`, so the step under the bead is 8 - 6.35 - top (0 to 1.65 mm), and top can be 0 to 1.65.
   - **Assumption to confirm:** I read Tim's "step" as the small drop from the bead's foot down to the panel field.
 - **Profiles** are drawn once per order, below the parts (y = -40 and down, off the board), with notes on LABELS. The first vertex is the start point and sits on the rail. If VCarve hangs it the wrong way: right-click > Reverse Profile, and tell Claude so the engine can be flipped.
 - Rails and profiles are not shown in the website preview.
-- `node scripts/test-board-dxf.js <folder> beads` writes a beads test board: Beaded at legs 3, 5 and 10 mm (top row); Single bead with top 0, 1 and 1.65 (bottom row). `... <folder>` alone still writes the original all-drafts board.
+- `node scripts/test-board-dxf.js <folder> beads` writes a beads test board: Beaded at 4.7 deep with legs 3, 5 and 10 mm, plus one at 5 deep (top row); Single bead with top 0, 1 and 1.65 (bottom row). It also writes `form-tool-roundover-12.7-R4.7.dxf` (the bit's right half for the tool database). `... <folder>` alone still writes the original all-drafts board.
 - Checked: read back with ezdxf (no errors), drawn, and the rail direction confirmed.
 
 ### Found while building
-- With the round-over drawn as two 6.35 mm quarter circles meeting at a point (as in VCarve), a cut **5 mm** deep is only **4.9 mm wide at the face** (2.44 each side). So with lines 12.7 apart, the "bead" between them is flat-topped (about 7.8 mm flat) with rounded shoulders, not a full round. A full round needs 6.35 deep (the cuts then meet tangent at the top), which may be why 6 mm looked different. To decide on a cut: keep 5 mm, go to 6.35 mm, or bring the lines closer.
+- First version assumed the bit was 6.35 mm deep (half its width); Tim measured 4.7. Now fixed: the engine models the bit with `ROUNDOVER = { dia: 12.7, radius: 4.7 }`.
+- With the real bit, **4.7 mm deep (the radius)** is the natural depth: the round blends tangent into the face, and with lines 12.7 apart the two cuts meet at the face, so the bead between them is a full 4.7 mm half-round, with 3.3 mm flat-bottomed grooves either side. Any deeper and the bit's straight side leaves an upright step at the face (0.3 mm at 5 mm deep; 1.3 mm at 6 mm, which may be why 6 looked worse). **Default depth is now 4.7** (layers `..._D4_7`); the beads board has one door at 5 mm to compare.
+- The first line is now 6.35 mm out from the pocket (was 6), so the inner quarter round finishes exactly at the pocket edge.
 
 ### Next
 1. Tim cuts the beads board. For each corner leg length, check whether the moulding blends into the form-tool cut, and whether there's a witness line at the leg ends. Then set `CORNER_LEG`.
 2. Check in VCarve: does the profile hang on the correct side with the first vertex as start? Can the Vector Selector pick rails and profile by layer for a toolpath template? Is "Sharp Internal Corner (3D)" offered with the form tool?
-3. Decide the bead depth (see above). Then confirm the single-bead dimensions.
+3. Fix the VCarve form tool from the shape file. Check the bit's tip: flat about 3.3 mm across, or a point? Pick 4.7 or 5 deep from the board. Confirm the single-bead dimensions (should the single bead also be sized to the round-over, R4.7?).
 4. Apply `cornerRails` to Ring and arc panel, Victorian, Moulded frame fluted and Arch-top once their profiles are known.
 
 ## Proven settings
