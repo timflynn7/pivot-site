@@ -36,8 +36,8 @@
     v90d5:    { layer: "GROOVE_V90_D5",       label: "90 degree V-bit, 5 mm deep",                width: 10,   color: 1 },
     bevel:    { layer: "BEVEL_V90_D8",        label: "90 degree V-bit bevel along the panel edge, 8 mm deep", width: 16, color: 6 },
     // Moulding toolpath rails. rail: true = never drawn in the preview. The matching profile is in PROFILES.
-    // (The round-over form tool and the beaded rails are added by beadTools(depth) below.)
-    railSbead: { layer: "MOULD_RAIL_SBEAD_R4_7", label: "Moulding toolpath closed rail, full length (tapered ball nose finish, 6 mm end mill as Larger Area Clearance Tool, Create Sharp Corners on, Gap Above 0). Profile on MOULD_PROFILE_SBEAD_R4_7", width: 0, color: 30, rail: true, profile: "sbead" },
+    // (Round-over layers, extra pocket depths, moulding rails and profiles are added by the
+    // helpers roTool, pocketTool and mouldTools below, as the designs need them.)
     sbeadView: { layer: null, label: "preview only", width: 9.4, color: 0, previewOnly: true },
     mould:    { layer: "MOULD_TBN_RAIL",      label: "Moulding toolpath drive rail (tapered ball nose). Draw the profile in VCarve.", width: 18, color: 30 },
     chamfer:  { layer: "EDGE_CHAMFER_V90_D3", label: "90 degree V-bit edge chamfer, 3 mm",        width: 6,    color: 6 }
@@ -214,49 +214,81 @@
       return Math.abs((q[0] - a[0]) * (b[1] - a[1]) - (q[1] - a[1]) * (b[0] - a[0])) > 1e-9;
     });
   }
-  // Beaded shaker: two round-over lines one bit-width apart. The first sits one bit-radius
-  // out from the pocket, so its inner quarter round runs down into the pocket edge.
-  const BEAD = { depth: 4.7, first: RO_OUT };
-  // Single bead: a half-round the same radius as the round-over bit, so every bead matches.
-  const SB_R = RO_R;
-  const PROFILES = {
-    sbead: {
-      layer: "MOULD_PROFILE_SBEAD_R4_7",
-      label: "Single bead profile: 4.7 mm radius half-round bead, its top and the field depth as noted beside it. Start point on the rail (pocket edge).",
-      pts(o) {
-        o = o || {};
-        const t = o.top != null ? o.top : SBEAD.top, g = SBEAD.gap, foot = -(t + SB_R), floor = -(o.floor || SBEAD.floor);
-        const p = [[0, floor], [g, floor]];
-        if (foot - floor > 1e-6) p.push([g, foot]);
-        for (let i = 0; i <= 36; i++) { const th = Math.PI * i / 36; p.push([g + SB_R - SB_R * Math.cos(th), foot + SB_R * Math.sin(th)]); }
-        p.push([g + 2 * SB_R, 0]);
-        return p;
-      }
+  // Layer-name tag for a depth: _ for the decimal point (4.7 -> 4_7).
+  const tagOf = (v) => String(Math.round(v * 100) / 100).replace(".", "_");
+  // Round-over form tool ON a line, `depth` deep. Returns the TOOLS key.
+  function roTool(depth) {
+    const key = "roundover12_d" + tagOf(depth);
+    if (!TOOLS[key]) TOOLS[key] = { layer: `ROUNDOVER_FORM12_D${tagOf(depth)}`, label: `12.7 mm round-over form tool (${RO_R} mm radius), 2D Profile ON the line, ${depth} mm deep`, width: 2 * roReach(depth), color: 4 };
+    return key;
+  }
+  // 6 mm end mill pocket `depth` deep. Returns the TOOLS key.
+  function pocketTool(depth) {
+    if (depth === 6) return "pocket6";
+    if (depth === 8) return "pocket8";
+    const key = "pocket_d" + tagOf(depth);
+    if (!TOOLS[key]) TOOLS[key] = { layer: `POCKET_EM6_D${tagOf(depth)}`, label: `6 mm end mill pocket, ${depth} mm deep`, width: 6, color: 5, pocket: true };
+    return key;
+  }
+  // A Moulding toolpath: a rail layer plus its profile. pts(): the profile, x = mm from the
+  // rail, y = height (face = 0); the first point is the start point that sits on the rail.
+  // Every profile reaches the face, so Gap Above Toolpath is always 0.
+  const PROFILES = {};
+  function mouldTools(name, how, profileLabel, pts) {
+    const key = "rail_" + name;
+    if (!TOOLS[key]) {
+      PROFILES[key] = { layer: `MOULD_PROFILE_${name}`, label: profileLabel, pts };
+      TOOLS[key] = { layer: `MOULD_RAIL_${name}`, label: `Moulding toolpath ${how} (tapered ball nose, Create Sharp Corners on, Gap Above 0). Profile on MOULD_PROFILE_${name}`, width: 0, color: 30, rail: true, profile: key };
     }
-  };
-  // Single bead with a hard step: wall down from the frame face, a 4.7 mm radius half-round
-  // bead whose top is `top` below the face, a small step down to the field.
-  // floor = the panel depth, 6 or 8 to match POCKET_EM6_D6 / D8. The step from the bead's foot
-  // down to the panel is what's left: floor - top - 4.7 (default 6 - 1 - 4.7 = 0.3 mm).
-  const SBEAD = { top: 1, gap: 1, floor: 6 };
+    return key;
+  }
 
-  // Form-tool layer, corner-rail layer and profile for a beaded shaker cut `depth` deep.
-  // Layer names carry the depth, with _ for the decimal point (D4_7 = 4.7 mm).
+  // Beaded shaker: round-over ON the pocket edge and on a line one bit-width further out,
+  // both BEAD.depth deep: a full round bead between them, a quarter round up into the frame.
+  // The pocket is at least as deep as the round-over, so the panel runs into the groove
+  // floor (level when they match, a step down when the pocket is deeper).
+  const BEAD = { depth: 4.7, pocket: 6 };
   function beadTools(depth) {
-    const tag = String(depth).replace(".", "_"), form = "roundover12_d" + tag, rail = "railBead12_d" + tag, prof = "bead12_d" + tag;
-    if (!TOOLS[form]) {
-      const first = BEAD.first, second = Math.round((first + ROUNDOVER.dia) * 100) / 100;
-      PROFILES[prof] = {
-        layer: `MOULD_PROFILE_BEAD12_D${tag}`,
-        label: `Beaded shaker profile: round-over lines ${first} and ${second} mm out from the pocket, ${depth} mm deep. Start point on the rail (pocket edge).`,
-        pts: () => roundoverSection([first, second], depth, second + roReach(depth) + 0.5)
-      };
-      TOOLS[form] = { layer: `ROUNDOVER_FORM12_D${tag}`, label: `12.7 mm round-over form tool (${RO_R} mm radius), 2D Profile ON the line, ${depth} mm deep`, width: 2 * roReach(depth), color: 4 };
-      TOOLS[rail] = { layer: `MOULD_RAIL_BEAD12_D${tag}`, label: `Moulding toolpath corner rails (tapered ball nose, Create Sharp Corners on, Gap Above 0). Profile on MOULD_PROFILE_BEAD12_D${tag}`, width: 0, color: 30, rail: true, profile: prof };
-    }
-    return { form, rail };
+    const second = ROUNDOVER.dia;
+    return {
+      form: roTool(depth),
+      rail: mouldTools(`BEAD12_D${tagOf(depth)}`, "corner rails",
+        `Beaded shaker profile: round-over on the pocket edge and ${second} mm out, ${depth} mm deep. Start point on the rail (pocket edge).`,
+        () => roundoverSection([0, second], depth, second + roReach(depth) + 0.5))
+    };
   }
   beadTools(BEAD.depth);
+
+  // Single bead with a hard step. From the panel out: the pocket, the round-over ON the pocket
+  // edge cut (top + 4.7) deep so its curve makes the panel side of a 4.7 mm radius bead whose
+  // top is `top` below the face; then the Moulding toolpath cuts the frame side of the bead,
+  // a 1 mm flat at its foot, and the upright wall to the frame face.
+  //   - a closed rail at the bead's centre line (full length), profile = the frame side;
+  //   - corner rails on the pocket edge, profile = the whole bead strip, so the corners of
+  //     the round-over half come out sharp too.
+  // The pocket is at least as deep as the round-over: level with the bead's foot or a step down.
+  const SBEAD = { top: 1, gap: 1, pocket: 6 };
+  const SB_R = RO_R;   // the bead is the round-over's own radius, so every bead matches
+  function sbeadTools(top) {
+    const D = top + RO_R, g = SBEAD.gap, tg = tagOf(top);
+    const frameHalf = (x0) => {
+      // from the bead top at x0 down the frame side, the flat, then the wall
+      const p = [];
+      for (let i = 0; i <= 24; i++) { const a = Math.PI / 2 * i / 24; p.push([x0 + SB_R * Math.sin(a), -top - SB_R + SB_R * Math.cos(a)]); }
+      p.push([x0 + SB_R + g, -D], [x0 + SB_R + g, 0]);
+      return p;
+    };
+    return {
+      depth: D,
+      form: roTool(D),
+      frame: mouldTools(`SBEAD_FRAME_T${tg}`, "closed rail along the bead's centre, full length",
+        `Single bead, frame side: bead top ${top} below the face, 4.7 radius, ${g} mm flat, wall. Start point on the rail (bead centre).`,
+        () => frameHalf(0)),
+      corner: mouldTools(`SBEAD_CORNER_T${tg}`, "corner rails on the pocket edge",
+        `Single bead, whole strip for the corners: round-over half ${D} deep, then the frame side. Start point on the rail (pocket edge).`,
+        () => roundoverSection([0], D, RO_OUT).filter((q) => q[0] < RO_OUT - 1e-6 || Math.abs(q[1] + top) < 1e-6).concat(frameHalf(RO_OUT).slice(1)))
+    };
+  }
 
   // Frame-and-panel: returns the recessed panel rectangles.
   function shakerPanels(W, H, border, rails) {
@@ -392,17 +424,17 @@
       blurb: "A shaker with a rounded bead round the inside of the frame.",
       opts: [num("border", "Frame width", 70, 40, 120, 5)],
       build(W, H, o) {
-        // Round-over form tool ON two lines, 12.7 mm apart, outside the pocket: a round bead
-        // between them, a quarter round either side. Corner rails make the corners crisp.
+        // See BEAD. o.depth, o.pocket and o.leg are for test boards only.
         const [p] = shakerPanels(W, H, o.border, 0);
-        // o.depth is for test boards only; customers get BEAD.depth.
         const depth = o.depth != null ? o.depth : BEAD.depth, t = beadTools(depth);
-        const a = BEAD.first, b = a + ROUNDOVER.dia;
+        const pd = o.pocket === "level" ? depth : (o.pocket != null ? o.pocket : BEAD.pocket);
+        if (pd < depth) fail("The pocket must be at least as deep as the bead.");
+        const b = ROUNDOVER.dia;
         if (o.border < b + roReach(depth) + 10) fail("The frame is too narrow for the bead. Make the frame wider.");
         const pocket = rect(...p);
         const paths = [
-          { tool: "pocket8", pts: pocket, closed: true },
-          { tool: t.form, pts: rect(p[0] - a, p[1] - a, p[2] + a, p[3] + a), closed: true },
+          { tool: pocketTool(pd), pts: pocket, closed: true },
+          { tool: t.form, pts: pocket, closed: true },
           { tool: t.form, pts: rect(p[0] - b, p[1] - b, p[2] + b, p[3] + b), closed: true }
         ];
         for (const r of cornerRails(pocket, true, "outside", o.leg)) paths.push({ tool: t.rail, pts: r });
@@ -414,25 +446,26 @@
       blurb: "A shaker with one crisp bead set down beside the frame.",
       opts: [num("border", "Frame width", 70, 40, 120, 5)],
       build(W, H, o) {
-        // Frame inner edge = shakerPanels rectangle. The bead strip (gap + 9.4 mm) inside it
-        // is cut by one full-length Moulding toolpath on a closed rail at the pocket edge;
-        // the rest of the panel is a plain pocket. o.top and o.floor are for test boards only.
+        // See SBEAD. Frame inner edge (the wall) = the shakerPanels rectangle.
+        // o.top, o.pocket and o.leg are for test boards only.
         const [f] = shakerPanels(W, H, o.border, 0);
-        const top = o.top != null ? o.top : SBEAD.top, floor = o.floor || SBEAD.floor;
-        if (floor !== 6 && floor !== 8) fail("The panel depth must be 6 or 8 mm.");
-        if (top < 0 || top > floor - SB_R) fail("The bead top must be between 0 and " + (floor - SB_R).toFixed(1) + " mm below the face.");
-        const pk = floor === 8 ? "pocket8" : "pocket6";
-        const s = SBEAD.gap + 2 * SB_R, p = [f[0] + s, f[1] + s, f[2] - s, f[3] - s];
+        const top = o.top != null ? o.top : SBEAD.top;
+        if (top < 0 || top > 2) fail("The bead top must be between 0 and 2 mm below the face.");
+        const t = sbeadTools(top);
+        const pd = o.pocket === "level" ? t.depth : (o.pocket != null ? o.pocket : SBEAD.pocket);
+        if (pd < t.depth - 1e-9) fail("The pocket must be at least as deep as the bead's foot.");
+        const inset = (r, d) => [r[0] + d, r[1] + d, r[2] - d, r[3] - d];
+        const c = inset(f, SBEAD.gap + SB_R), p = inset(f, SBEAD.gap + SB_R + RO_OUT);
         const pocket = rect(...p);
-        return {
-          outline: rect(0, 0, W, H),
-          paths: [
-            { tool: pk, pts: rect(...f), closed: true, previewOnly: true },
-            { tool: pk, pts: pocket, closed: true },
-            { tool: "railSbead", pts: pocket, closed: true, profileOpts: { top, floor } },
-            { tool: "sbeadView", pts: rect(f[0] + s / 2, f[1] + s / 2, f[2] - s / 2, f[3] - s / 2), closed: true }
-          ]
-        };
+        const paths = [
+          { tool: pocketTool(pd), pts: rect(...f), closed: true, previewOnly: true },
+          { tool: pocketTool(pd), pts: pocket, closed: true },
+          { tool: t.form, pts: pocket, closed: true },
+          { tool: t.frame, pts: rect(...c), closed: true },
+          { tool: "sbeadView", pts: rect(...c), closed: true }
+        ];
+        for (const r of cornerRails(pocket, true, "outside", o.leg)) paths.push({ tool: t.corner, pts: r });
+        return { outline: rect(0, 0, W, H), paths };
       }
     },
     {
@@ -717,8 +750,7 @@
         if (t.previewOnly || path.previewOnly) continue;
         poly(t.layer, path.pts.map(tx), !!path.closed);
         if (t.profile) {
-          const key = t.profile + JSON.stringify(path.profileOpts || {});
-          if (!profiles.has(key)) profiles.set(key, { prof: PROFILES[t.profile], opts: path.profileOpts || {}, rail: t.layer });
+          if (!profiles.has(t.profile)) profiles.set(t.profile, { prof: PROFILES[t.profile], rail: t.layer });
         }
       }
       const d = p.door, lx = p.ox + 12;
@@ -738,12 +770,11 @@
     // Moulding profiles: one of each, below the parts (off the board), each with a note.
     // The first vertex is the start point and is the end that sits on the rail.
     let py = -40;
-    for (const { prof, opts, rail } of profiles.values()) {
-      const pts = prof.pts(opts);
+    for (const { prof, rail } of profiles.values()) {
+      const pts = prof.pts();
       const minY = Math.min(...pts.map((q) => q[1]));
       poly(prof.layer, pts.map(([x, y]) => [x, py + y - minY]), false);
-      const notes = [`PROFILE ${prof.layer}`, `FOR RAILS ON ${rail}`, "START POINT (1ST VERTEX) SITS ON THE RAIL"];
-      if (opts.top != null) notes.push(`BEAD TOP ${opts.top} MM BELOW FACE, PANEL ${opts.floor} MM DEEP`);
+      const notes = [`PROFILE ${prof.layer}`, `FOR RAILS ON ${rail}`, "START POINT (1ST VERTEX) SITS ON THE RAIL", "GAP ABOVE TOOLPATH 0"];
       notes.forEach((l, i) => text(l, 40, py + 6 - i * 5, 3));
       py -= 40;
     }
