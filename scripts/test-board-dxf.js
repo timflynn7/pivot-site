@@ -13,7 +13,8 @@ const GAP = 20;
 // pos = bottom-left corner on the board, in mm.
 // "all": every draft design. Rows: top 255-490, bottom 0-235.
 // "beads": the two beaded shakers, with corner-rail leg lengths (3, 5, 10 mm), the bead
-// at 4.7 mm (the bit radius) and at 5 mm deep, and single-bead heights to compare.
+// at 4.7 mm (the bit radius) and at 5 mm deep, and single beads (bead top 0 and 1 mm
+// below the face on a 6 mm panel, 1.3 mm on an 8 mm panel) to compare.
 // Also writes the round-over bit's shape for VCarve's tool database.
 const PLANS = {
   all: [
@@ -31,9 +32,9 @@ const PLANS = {
     { design: "beaded",     width: 200, height: 235, pos: [220, 255], opts: { border: 50, leg: 5 } },
     { design: "beaded",     width: 200, height: 235, pos: [440, 255], opts: { border: 50, leg: 10 } },
     { design: "beaded",     width: 200, height: 235, pos: [660, 255], opts: { border: 50, leg: 5, depth: 5 } },
-    { design: "singlebead", width: 200, height: 235, pos: [0, 0],     opts: { border: 50, top: 0 } },
-    { design: "singlebead", width: 200, height: 235, pos: [220, 0],   opts: { border: 50, top: 1 } },
-    { design: "singlebead", width: 200, height: 235, pos: [440, 0],   opts: { border: 50, top: 1.65 } }
+    { design: "singlebead", width: 200, height: 235, pos: [0, 0],     opts: { border: 50, top: 0, floor: 6 } },
+    { design: "singlebead", width: 200, height: 235, pos: [220, 0],   opts: { border: 50, top: 1, floor: 6 } },
+    { design: "singlebead", width: 200, height: 235, pos: [440, 0],   opts: { border: 50, top: 1.3, floor: 8 } }
   ]
 };
 const planName = process.argv[3] || "all";

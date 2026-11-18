@@ -37,8 +37,8 @@
     bevel:    { layer: "BEVEL_V90_D8",        label: "90 degree V-bit bevel along the panel edge, 8 mm deep", width: 16, color: 6 },
     // Moulding toolpath rails. rail: true = never drawn in the preview. The matching profile is in PROFILES.
     // (The round-over form tool and the beaded rails are added by beadTools(depth) below.)
-    railSbead12: { layer: "MOULD_RAIL_SBEAD12", label: "Moulding toolpath closed rail, full length (tapered ball nose finish, 6 mm end mill as Larger Area Clearance Tool, Create Sharp Corners on, Gap Above 0). Profile on MOULD_PROFILE_SBEAD12", width: 0, color: 30, rail: true, profile: "sbead12" },
-    sbeadView: { layer: null, label: "preview only", width: 12.7, color: 0, previewOnly: true },
+    railSbead: { layer: "MOULD_RAIL_SBEAD_R4_7", label: "Moulding toolpath closed rail, full length (tapered ball nose finish, 6 mm end mill as Larger Area Clearance Tool, Create Sharp Corners on, Gap Above 0). Profile on MOULD_PROFILE_SBEAD_R4_7", width: 0, color: 30, rail: true, profile: "sbead" },
+    sbeadView: { layer: null, label: "preview only", width: 9.4, color: 0, previewOnly: true },
     mould:    { layer: "MOULD_TBN_RAIL",      label: "Moulding toolpath drive rail (tapered ball nose). Draw the profile in VCarve.", width: 18, color: 30 },
     chamfer:  { layer: "EDGE_CHAMFER_V90_D3", label: "90 degree V-bit edge chamfer, 3 mm",        width: 6,    color: 6 }
   };
@@ -214,13 +214,15 @@
   // Beaded shaker: two round-over lines one bit-width apart. The first sits one bit-radius
   // out from the pocket, so its inner quarter round runs down into the pocket edge.
   const BEAD = { depth: 4.7, first: RO_OUT };
-  const SB_R = 12.7 / 2;   // single bead: a 12.7 mm wide half-round bead
+  // Single bead: a half-round the same radius as the round-over bit, so every bead matches.
+  const SB_R = RO_R;
   const PROFILES = {
-    sbead12: {
-      layer: "MOULD_PROFILE_SBEAD12",
-      label: "Single bead profile: 12.7 bead, its top below the face as noted beside it, field 8 deep. Start point on the rail (pocket edge).",
+    sbead: {
+      layer: "MOULD_PROFILE_SBEAD_R4_7",
+      label: "Single bead profile: 4.7 mm radius half-round bead, its top and the field depth as noted beside it. Start point on the rail (pocket edge).",
       pts(o) {
-        const t = o && o.top != null ? o.top : SBEAD.top, g = SBEAD.gap, foot = -(t + SB_R), floor = -SBEAD.floor;
+        o = o || {};
+        const t = o.top != null ? o.top : SBEAD.top, g = SBEAD.gap, foot = -(t + SB_R), floor = -(o.floor || SBEAD.floor);
         const p = [[0, floor], [g, floor]];
         if (foot - floor > 1e-6) p.push([g, foot]);
         for (let i = 0; i <= 36; i++) { const th = Math.PI * i / 36; p.push([g + SB_R - SB_R * Math.cos(th), foot + SB_R * Math.sin(th)]); }
@@ -229,9 +231,11 @@
       }
     }
   };
-  // Single bead with a hard step: wall down from the frame face, a 12.7 mm half-round
+  // Single bead with a hard step: wall down from the frame face, a 4.7 mm radius half-round
   // bead whose top is `top` below the face, a small step down to the field.
-  const SBEAD = { top: 1, gap: 1, floor: 8 };   // floor matches POCKET_EM6_D8
+  // floor = the panel depth, 6 or 8 to match POCKET_EM6_D6 / D8. The step from the bead's foot
+  // down to the panel is what's left: floor - top - 4.7 (default 6 - 1 - 4.7 = 0.3 mm).
+  const SBEAD = { top: 1, gap: 1, floor: 6 };
 
   // Form-tool layer, corner-rail layer and profile for a beaded shaker cut `depth` deep.
   // Layer names carry the depth, with _ for the decimal point (D4_7 = 4.7 mm).
@@ -407,20 +411,22 @@
       blurb: "A shaker with one crisp bead set down beside the frame.",
       opts: [num("border", "Frame width", 70, 40, 120, 5)],
       build(W, H, o) {
-        // Frame inner edge = shakerPanels rectangle. The bead strip (gap + 12.7 mm) inside it
+        // Frame inner edge = shakerPanels rectangle. The bead strip (gap + 9.4 mm) inside it
         // is cut by one full-length Moulding toolpath on a closed rail at the pocket edge;
-        // the rest of the panel is a plain 8 mm pocket.
+        // the rest of the panel is a plain pocket. o.top and o.floor are for test boards only.
         const [f] = shakerPanels(W, H, o.border, 0);
-        const top = o.top != null ? o.top : SBEAD.top;
-        if (top < 0 || top > SBEAD.floor - SB_R) fail("The bead top must be between 0 and " + (SBEAD.floor - SB_R).toFixed(2) + " mm below the face.");
+        const top = o.top != null ? o.top : SBEAD.top, floor = o.floor || SBEAD.floor;
+        if (floor !== 6 && floor !== 8) fail("The panel depth must be 6 or 8 mm.");
+        if (top < 0 || top > floor - SB_R) fail("The bead top must be between 0 and " + (floor - SB_R).toFixed(1) + " mm below the face.");
+        const pk = floor === 8 ? "pocket8" : "pocket6";
         const s = SBEAD.gap + 2 * SB_R, p = [f[0] + s, f[1] + s, f[2] - s, f[3] - s];
         const pocket = rect(...p);
         return {
           outline: rect(0, 0, W, H),
           paths: [
-            { tool: "pocket8", pts: rect(...f), closed: true, previewOnly: true },
-            { tool: "pocket8", pts: pocket, closed: true },
-            { tool: "railSbead12", pts: pocket, closed: true, profileOpts: { top } },
+            { tool: pk, pts: rect(...f), closed: true, previewOnly: true },
+            { tool: pk, pts: pocket, closed: true },
+            { tool: "railSbead", pts: pocket, closed: true, profileOpts: { top, floor } },
             { tool: "sbeadView", pts: rect(f[0] + s / 2, f[1] + s / 2, f[2] - s / 2, f[3] - s / 2), closed: true }
           ]
         };
@@ -734,7 +740,7 @@
       const minY = Math.min(...pts.map((q) => q[1]));
       poly(prof.layer, pts.map(([x, y]) => [x, py + y - minY]), false);
       const notes = [`PROFILE ${prof.layer}`, `FOR RAILS ON ${rail}`, "START POINT (1ST VERTEX) SITS ON THE RAIL"];
-      if (opts.top != null) notes.push(`BEAD TOP ${opts.top} MM BELOW FACE`);
+      if (opts.top != null) notes.push(`BEAD TOP ${opts.top} MM BELOW FACE, PANEL ${opts.floor} MM DEEP`);
       notes.forEach((l, i) => text(l, 40, py + 6 - i * 5, 3));
       py -= 40;
     }
