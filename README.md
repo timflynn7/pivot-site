@@ -2,6 +2,8 @@
 
 The website for pivotdesigns.co.uk: Home, Our story and Contact, plus a test version of the door configurator at `/configurator` that takes order requests and makes one DXF per order.
 
+Planning and session briefs: start with [`docs/workstreams/README.md`](docs/workstreams/README.md). Links to everything are in [`docs/LINKS.md`](docs/LINKS.md).
+
 ## What's in here
 
 | Path | What it is |
