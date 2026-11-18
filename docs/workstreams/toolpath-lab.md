@@ -65,6 +65,7 @@ How to get the moulding toolpath to work correctly with Tim's round-over bits, a
 - Rails and profiles are not shown in the website preview.
 - `node scripts/test-board-dxf.js <folder> beads` writes a beads test board: Beaded at 4.7 deep with legs 3, 5 and 10 mm, plus one at 5 deep (top row); Single bead: top 0 / panel 6, top 1 / panel 6, top 1.3 / panel 8 (bottom row). It also writes `form-tool-roundover-12.7-R4.7.dxf` (the bit's right half for the tool database). `... <folder>` alone still writes the original all-drafts board.
 - Checked: read back with ezdxf (no errors), drawn, and the rail direction confirmed.
+- **Files for Tim:** `test-boards/beads/` (one file each, on branch `claude/fervent-ride-vmspcn`) and `test-boards/beads-test-board.zip`. Regenerate them with the script after engine changes.
 
 ### Found while building
 - First version assumed the bit was 6.35 mm deep (half its width); Tim measured 4.7. Now fixed: the engine models the bit with `ROUNDOVER = { dia: 12.7, radius: 4.7 }`.
