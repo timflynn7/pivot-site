@@ -114,9 +114,10 @@
   /* ---------- moulding toolpath helpers ---------- */
   // VCarve's Moulding toolpath sweeps a profile along a drive rail. From Vectric's help:
   // the profile's START point hangs on the rail's start point, and the profile is swept
-  // to one side of the rail (on a closed rail, always the outside). Tim's tests: rails
-  // drawn clockwise (as seen in VCarve, y up) put the profile on the correct (outer) side,
-  // i.e. on the LEFT of the direction of travel.
+  // to one side of the rail (on a closed rail, always the outside). On an OPEN rail VCarve
+  // hangs the profile on the RIGHT of the direction of travel (as seen in VCarve, y up):
+  // Tim's test 2026-11-18 showed clockwise corner rails hanging it inside the corner, so
+  // corner rails round a pocket run anticlockwise.
   //
   // A round form tool run ON a line leaves a sharp mitre on the inside of a turn and a
   // rounded corner on the outside. So only corners where the profile hangs on the
@@ -143,6 +144,7 @@
   }
   // pts: a path in door coordinates (y down). side: for a closed path "outside" or
   // "inside"; for an open path "left" or "right" of its direction as seen in VCarve.
+  // Returned rails run so that VCarve hangs the profile on that side.
   // Returns open rails (door coordinates) for the corners the form tool can't make sharp.
   function cornerRails(pts, closed, side, leg) {
     leg = leg || CORNER_LEG;
@@ -160,7 +162,8 @@
       const turn = Math.atan2(Math.abs(cross), dot) * 180 / Math.PI;
       if (cross >= 0 || turn < CORNER_MIN_TURN) continue;       // left turns are already sharp
       const back = walk(q, i, -1, leg, closed).reverse(), fwd = walk(q, i, 1, leg, closed);
-      rails.push(back.concat([b], fwd).map(([x, y]) => [x, -y]));
+      // Worked out with the profile on the left; reversed so it hangs on VCarve's right.
+      rails.push(back.concat([b], fwd).reverse().map(([x, y]) => [x, -y]));
     }
     return rails;
   }
