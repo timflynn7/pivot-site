@@ -31,7 +31,36 @@ How to get the moulding toolpath to work correctly with Tim's round-over bits, a
 - **The real problem: crisp corners.** A 12.7 mm round-over can't reach into an inside corner, so it leaves a rounded corner (extra material within about 6.35 mm of each corner). Tim cleans the corners up with VCarve's **Moulding toolpath**: he drew a short **L-shaped open rail at each corner** plus a profile vector, with these settings: Tapered Ball Nose 20°, 0.5 mm tip; Gap Above Toolpath 0; cut depth 5.002 (from the profile); Vary Stepover on; Machining allowance 0; **Create Sharp Corners on**; automatic boundary offset on. Preview shows mitre lines into each corner.
 - **Plan to bake into the engine** (waiting on Tim's answers): for every round-over rectangle, add (a) the form-tool line on its own layer, (b) four L-shaped corner rails on a `MOULD_CORNER_RAIL`-type layer, all drawn the same direction so the profile lands on the same side at every corner, legs about 15 mm, and (c) the round-over cross-section drawn once per door, off the door, on a `MOULD_PROFILE`-type layer, sized to match the form-tool cut exactly.
 - **Open questions to Tim:** which line the form tool runs on (pocket edge or the 6 mm bead line) and at what depth/side; the exact profile he drew and which end sits on the rail; leg length; whether the preview/cut blends into the form-tool cut.
-- Could not read Vectric's online help from this cloud session (docs.vectric.com is blocked by the network settings), so rail-direction and profile-anchor rules come from Tim's tests, not the manual.
+- **Tim's current beaded shaker (test, 2026-11-18):** two concentric form-tool lines about 12.7 mm apart (one bit width), giving a full bead between them and a half bead (quarter round) into the rest of the door, plus a small Moulding toolpath at each corner with the matching profile drawn in the panel.
+
+### What Vectric's help says (VCarve Pro 12.5 docs, Moulding Toolpath page, read 2026-11-18)
+- Select the rail(s) first, the profile **last**. The profile must be an **open** vector.
+- **The profile's start point is attached to the rail's start point.** Right-click > Reverse Profile swaps which end hangs on the rail.
+- Red lines on the rail show which side the profile is swept to; **Reverse Rail** flips it. On a **closed** rail the profile always hangs on the **outside**, so the rail should be the inside edge of the frame.
+- At the end of an open rail the tool lifts, steps over and comes back the other way.
+- **Create Sharp Corners** forces mitred corners instead of rolling round them.
+- **Use automatic boundary offset** pushes the tool far enough past the profile's ends to finish steep or vertical ends.
+- **Use Larger Area Clearance Tool** (with Machine Flat Regions and Skip Flat Regions) roughs with a bigger bit first, cuts flats with it, and makes a separate `[Clear]` toolpath to run first.
+- **Automatic vector selection:** the Moulding toolpath has **two selectors, one for the rail and one for the profile**, and they are saved in toolpath templates. So once the DXF puts rails and profiles on fixed layers, one saved template should pick them up with no clicking (to confirm in VCarve: that the selector can pick by layer).
+- 2D Profile toolpath, Corners tab: **Sharp Internal Corner (3D)** runs the tip of a V-bit up into the corner. The help only mentions V-bits; worth checking whether it's offered with the form tool, because if it is it might replace the corner mouldings.
+- Custom form tools: draw the right-hand half of the cutter to scale, select it, then create a Form Tool in the tool database.
+- Not read yet (the site started refusing after a few pages): Vector Selector, Toolpath Templates, Create Fillets, Chamfer, and a "Create Rounding Toolpath" page that may be relevant.
+
+### Corner geometry (worked out 2026-11-18, to prove on a test cut)
+- Running "On" a line, a round cutter leaves a **sharp mitre on the inside of a turn** and a **rounded corner on the outside of a turn**. So corner mouldings are only needed where the profile hangs on the **outside of the turn** (e.g. the frame side of a pocket corner). Corners where the profile hangs on the inside need nothing.
+- The leftover material sits entirely in the wedge **beyond** the corner, not along the legs. In theory the legs only need to be long enough for the moulding tool to blend in: about the moulding tool's radius at full depth plus a margin (the 20° TBN with a 0.5 mm tip is about 1.1 mm radius at 5 mm deep). So **about 5 mm legs** should do, in place of about 25 mm, and that holds for any angle and for curved legs (measure along the curve). Test 3, 5 and 10 mm legs side by side.
+- The moulding profile must match the form-tool cut exactly (same shape, depth and position), or there'll be a step where they meet.
+
+### Engine plan (not built yet)
+- A general function: give it a path (open or closed, straight or curved), the side the profile hangs on, and a leg length. It finds the real corners (turn over about 10°, so arc facets don't count), keeps only those where the profile is on the outside of the turn, and writes an open rail along the path from leg-before to leg-after, all in the same direction, so the profile always lands on the same side.
+- Layers (names to agree): form-tool lines e.g. `ROUNDOVER_FORM12_D6`; corner rails `MOULD_CORNER_RAIL`; the matching profile once per door `MOULD_PROFILE`, drawn with its start point at the end that must sit on the rail.
+- Use it for Beaded shaker first, then Victorian, Moulded frame fluted, Ring and arc panel (angled and curved corners), and Arch-top.
+
+### New idea: single bead with a hard step (Tim's sketch, 2026-11-18)
+- Profile: the frame surface, a vertical step down, a half-round bead whose top sits a little below the frame face, then flat into the panel.
+- A round-over form tool can't make this. The cutter can only shape the bead's left half from the left, where the frame wall is, so it would round the frame edge over too. So this one is a **full-length Moulding toolpath**, not form tool plus corners.
+- To save time: pocket the panel with the 6 mm end mill first (or use the Larger Area Clearance Tool with Machine Flat Regions), then finish the step and bead with the tapered ball nose. A 20° TBN leaves about 10° of draft on the "vertical" step.
+- Needs from Tim: the bead radius, the step height, and how far below the frame face the bead top sits.
 
 ## Proven settings
 (None yet. For each, record: design, toolpath type, bit, depths, passes, stepover, the vectors and layer names the DXF must contain, and a photo of the result.)
