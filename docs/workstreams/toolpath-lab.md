@@ -74,10 +74,16 @@ How to get the moulding toolpath to work correctly with Tim's round-over bits, a
 - With the real bit, **4.7 mm deep (the radius)** is the natural depth: the round blends tangent into the face, and with lines 12.7 apart the two cuts meet at the face, so the bead between them is a full 4.7 mm half-round, with 3.3 mm flat-bottomed grooves either side. Any deeper and the bit's straight side leaves an upright step at the face (0.3 mm at 5 mm deep; 1.3 mm at 6 mm, which may be why 6 looked worse). **Default depth is now 4.7** (layers `..._D4_7`); the beads board has one door at 5 mm to compare.
 - The first line is now 6.35 mm out from the pocket (was 6), so the inner quarter round finishes exactly at the pocket edge.
 
+### Test cut finding: the panel step (2026-11-18, parked by Tim)
+- All round-over toolpaths are **2D Profile, ON the line** (the line is the bit's centre). Cut the pocket first.
+- On a test cut, the step from the groove floor down to a deeper pocket "looked more like a machining error". Why: the pocket wall sits on the round-over line, so the ledge is only 1.65 mm wide (half the bit's flat tip). The drop is 1.3 mm on the beaded shaker with a 6 mm pocket, and 0.3 mm on the single bead. The end mill's 3 mm pocket corners also make the line wobble at the corners.
+- Options put to Tim: (1) **no step**: pocket depth = round-over depth (`pocket: "level"`; 4.7 beaded, 5.7 single bead). Claude's suggested default. (2) **a deliberate step**: a second, deeper pocket set in from the round-over line (e.g. an 8 mm ledge and a 2 mm drop), like the Georgian door. **Tim: leave it for now.** The defaults are still a 6 mm pocket; revisit before these designs go live.
+- Single bead needs two Moulding toolpaths (frame side full length + corners). Same tapered ball nose, so they can be merged in VCarve (Create Merged Toolpath, not yet checked) or saved as a template. A one-toolpath version (whole strip on a pocket-edge rail) is possible but roughly doubles the passes.
+
 ### Next
 1. Tim cuts the beads board. For each corner leg length, check whether the moulding blends into the form-tool cut, and whether there's a witness line at the leg ends. Then set `CORNER_LEG`.
 2. Check in VCarve: does the profile hang on the correct side with the first vertex as start? Can the Vector Selector pick rails and profile by layer for a toolpath template? Is "Sharp Internal Corner (3D)" offered with the form tool?
-3. Fix the VCarve form tool from the shape file. From the board, pick: 4.7 or 5 deep; the pocket depth (level, 6 or 8) for each design; and the single bead's top.
+3. Fix the VCarve form tool from the shape file. From the board, pick: 4.7 or 5 deep; the pocket treatment (level, or a deliberate step: see above) for each design; and the single bead's top.
 4. Apply `cornerRails` to Ring and arc panel, Victorian, Moulded frame fluted and Arch-top once their profiles are known.
 
 ## Proven settings
