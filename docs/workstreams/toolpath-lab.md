@@ -23,7 +23,7 @@ How to get the moulding toolpath to work correctly with Tim's round-over bits, a
 - **What went wrong on the first test board,** for each design: board **partly cut** (2026-11-18); details per design: _
 
 ## Order of work
-1. **Beaded shaker** (Tim's choice, 2026-11-18). In progress.
+1. **Beaded shaker** and the new **Single bead shaker** (Tim's choice, 2026-11-18). Built; waiting on a test cut.
 2. Then the others in the table.
 
 ### Beaded shaker: working notes
@@ -51,16 +51,28 @@ How to get the moulding toolpath to work correctly with Tim's round-over bits, a
 - The leftover material sits entirely in the wedge **beyond** the corner, not along the legs. In theory the legs only need to be long enough for the moulding tool to blend in: about the moulding tool's radius at full depth plus a margin (the 20° TBN with a 0.5 mm tip is about 1.1 mm radius at 5 mm deep). So **about 5 mm legs** should do, in place of about 25 mm, and that holds for any angle and for curved legs (measure along the curve). Test 3, 5 and 10 mm legs side by side.
 - The moulding profile must match the form-tool cut exactly (same shape, depth and position), or there'll be a step where they meet.
 
-### Engine plan (not built yet)
-- A general function: give it a path (open or closed, straight or curved), the side the profile hangs on, and a leg length. It finds the real corners (turn over about 10°, so arc facets don't count), keeps only those where the profile is on the outside of the turn, and writes an open rail along the path from leg-before to leg-after, all in the same direction, so the profile always lands on the same side.
-- Layers (names to agree): form-tool lines e.g. `ROUNDOVER_FORM12_D6`; corner rails `MOULD_CORNER_RAIL`; the matching profile once per door `MOULD_PROFILE`, drawn with its start point at the end that must sit on the rail.
-- Use it for Beaded shaker first, then Victorian, Moulded frame fluted, Ring and arc panel (angled and curved corners), and Arch-top.
+### Tim's answers (2026-11-18)
+- Beaded shaker: two form-tool lines, **no pocket between them**, the pocket is in the centre. Tested at 6 mm deep, but **5 mm has worked better** before. 2D Profile set to **On**. Corner rails **work clockwise**.
+- Single bead: use the 12.7 mm size. Step 0-2 mm, bead top 0-2 mm below the face; defaults are fine for now.
 
-### New idea: single bead with a hard step (Tim's sketch, 2026-11-18)
-- Profile: the frame surface, a vertical step down, a half-round bead whose top sits a little below the frame face, then flat into the panel.
-- A round-over form tool can't make this. The cutter can only shape the bead's left half from the left, where the frame wall is, so it would round the frame edge over too. So this one is a **full-length Moulding toolpath**, not form tool plus corners.
-- To save time: pocket the panel with the 6 mm end mill first (or use the Larger Area Clearance Tool with Machine Flat Regions), then finish the step and bead with the tapered ball nose. A 20° TBN leaves about 10° of draft on the "vertical" step.
-- Needs from Tim: the bead radius, the step height, and how far below the frame face the bead top sits.
+### Built in the engine (2026-11-18, branch `claude/fervent-ride-vmspcn`, engine VERSION 2). Not yet cut.
+- `cornerRails(pts, closed, side, leg)` in engine.js: works on any path, straight or curved, at any angle. It finds corners turning more than 10° where the profile hangs on the outside of the turn, and returns open rails `leg` mm each way (default `CORNER_LEG` = 5), drawn clockwise as seen in VCarve so the profile hangs on the left of travel. On the ring panel it finds 4 corners per arc panel (2 square, 2 where the arc meets the side) and none on the ring.
+- **Beaded shaker:** 8 mm pocket; round-over lines **6 mm and 18.7 mm** out from the pocket on `ROUNDOVER_FORM12_D5`; 4 corner rails on the pocket edge on `MOULD_RAIL_BEAD12_D5`; profile `MOULD_PROFILE_BEAD12_D5`, which starts at the pocket edge, on the face, and covers both cuts.
+- **Single bead shaker** (new draft, `singlebead`): one closed rail at the pocket edge on `MOULD_RAIL_SBEAD12` (full-length Moulding toolpath, no form tool); profile `MOULD_PROFILE_SBEAD12`: field at 8 mm, a 1 mm flat, a step up to the bead's foot, a 12.7 mm half-round bead with its top `top` below the face (default 1), then a vertical wall up to the frame face. The rest of the panel is the 8 mm pocket. The floor is fixed at 8 to match `POCKET_EM6_D8`, so the step under the bead is 8 - 6.35 - top (0 to 1.65 mm), and top can be 0 to 1.65.
+  - **Assumption to confirm:** I read Tim's "step" as the small drop from the bead's foot down to the panel field.
+- **Profiles** are drawn once per order, below the parts (y = -40 and down, off the board), with notes on LABELS. The first vertex is the start point and sits on the rail. If VCarve hangs it the wrong way: right-click > Reverse Profile, and tell Claude so the engine can be flipped.
+- Rails and profiles are not shown in the website preview.
+- `node scripts/test-board-dxf.js <folder> beads` writes a beads test board: Beaded at legs 3, 5 and 10 mm (top row); Single bead with top 0, 1 and 1.65 (bottom row). `... <folder>` alone still writes the original all-drafts board.
+- Checked: read back with ezdxf (no errors), drawn, and the rail direction confirmed.
+
+### Found while building
+- With the round-over drawn as two 6.35 mm quarter circles meeting at a point (as in VCarve), a cut **5 mm** deep is only **4.9 mm wide at the face** (2.44 each side). So with lines 12.7 apart, the "bead" between them is flat-topped (about 7.8 mm flat) with rounded shoulders, not a full round. A full round needs 6.35 deep (the cuts then meet tangent at the top), which may be why 6 mm looked different. To decide on a cut: keep 5 mm, go to 6.35 mm, or bring the lines closer.
+
+### Next
+1. Tim cuts the beads board. For each corner leg length, check whether the moulding blends into the form-tool cut, and whether there's a witness line at the leg ends. Then set `CORNER_LEG`.
+2. Check in VCarve: does the profile hang on the correct side with the first vertex as start? Can the Vector Selector pick rails and profile by layer for a toolpath template? Is "Sharp Internal Corner (3D)" offered with the form tool?
+3. Decide the bead depth (see above). Then confirm the single-bead dimensions.
+4. Apply `cornerRails` to Ring and arc panel, Victorian, Moulded frame fluted and Arch-top once their profiles are known.
 
 ## Proven settings
 (None yet. For each, record: design, toolpath type, bit, depths, passes, stepover, the vectors and layer names the DXF must contain, and a photo of the result.)

@@ -16,7 +16,7 @@
 })(typeof self !== "undefined" ? self : this, function () {
   "use strict";
 
-  const VERSION = 1;
+  const VERSION = 2;
   const LIMITS = { wMin: 300, wMax: 600, hMin: 300, hMax: 1150 };
   const OVERCUT = 10;            // grooves that run off the door go this far past the edge
   const LABEL_LAYER = "LABELS";
@@ -35,6 +35,11 @@
     v90d4:    { layer: "GROOVE_V90_D4",       label: "90 degree V-bit, 4 mm deep",                width: 8,    color: 1 },
     v90d5:    { layer: "GROOVE_V90_D5",       label: "90 degree V-bit, 5 mm deep",                width: 10,   color: 1 },
     bevel:    { layer: "BEVEL_V90_D8",        label: "90 degree V-bit bevel along the panel edge, 8 mm deep", width: 16, color: 6 },
+    roundover12d5: { layer: "ROUNDOVER_FORM12_D5", label: "12.7 mm round-over form tool, 2D Profile ON the line, 5 mm deep", width: 4.9, color: 4 },
+    // Moulding toolpath rails. rail: true = never drawn in the preview. The matching profile is in PROFILES.
+    railBead12: { layer: "MOULD_RAIL_BEAD12_D5", label: "Moulding toolpath corner rails (tapered ball nose, Create Sharp Corners on, Gap Above 0). Profile on MOULD_PROFILE_BEAD12_D5", width: 0, color: 30, rail: true, profile: "bead12" },
+    railSbead12: { layer: "MOULD_RAIL_SBEAD12", label: "Moulding toolpath closed rail, full length (tapered ball nose finish, 6 mm end mill as Larger Area Clearance Tool, Create Sharp Corners on, Gap Above 0). Profile on MOULD_PROFILE_SBEAD12", width: 0, color: 30, rail: true, profile: "sbead12" },
+    sbeadView: { layer: null, label: "preview only", width: 12.7, color: 0, previewOnly: true },
     mould:    { layer: "MOULD_TBN_RAIL",      label: "Moulding toolpath drive rail (tapered ball nose). Draw the profile in VCarve.", width: 18, color: 30 },
     chamfer:  { layer: "EDGE_CHAMFER_V90_D3", label: "90 degree V-bit edge chamfer, 3 mm",        width: 6,    color: 6 }
   };
@@ -106,6 +111,103 @@
     return lines;
   }
   const fullHeight = (x, H) => [[x, -OVERCUT], [x, H + OVERCUT]];
+
+  /* ---------- moulding toolpath helpers ---------- */
+  // VCarve's Moulding toolpath sweeps a profile along a drive rail. From Vectric's help:
+  // the profile's START point hangs on the rail's start point, and the profile is swept
+  // to one side of the rail (on a closed rail, always the outside). Tim's tests: rails
+  // drawn clockwise (as seen in VCarve, y up) put the profile on the correct (outer) side,
+  // i.e. on the LEFT of the direction of travel.
+  //
+  // A round form tool run ON a line leaves a sharp mitre on the inside of a turn and a
+  // rounded corner on the outside. So only corners where the profile hangs on the
+  // outside of the turn need a corner rail, and the leftover material sits beyond the
+  // corner, so the legs only need to be long enough for the moulding bit to blend in.
+  const CORNER_LEG = 5;        // mm along the path each side of the corner (to prove on a test cut)
+  const CORNER_MIN_TURN = 10;  // degrees; smaller turns (arc facets) are not corners
+
+  const signedArea = (q) => { let a = 0; for (let i = 0; i < q.length; i++) { const [x0, y0] = q[i], [x1, y1] = q[(i + 1) % q.length]; a += x0 * y1 - x1 * y0; } return a / 2; };
+  const dist = (a, b) => Math.hypot(b[0] - a[0], b[1] - a[1]);
+  // Walk `len` mm along the polyline q from vertex i, forwards (dir 1) or backwards (-1).
+  // Returns the vertices passed, ending at the interpolated point.
+  function walk(q, i, dir, len, closed) {
+    const out = [];
+    let cur = q[i], k = i, left = len;
+    for (let guard = 0; guard < q.length; guard++) {
+      let nk = k + dir;
+      if (closed) nk = (nk + q.length) % q.length; else if (nk < 0 || nk >= q.length) break;
+      const nxt = q[nk], d = dist(cur, nxt);
+      if (d >= left) { const t = left / d; out.push([cur[0] + (nxt[0] - cur[0]) * t, cur[1] + (nxt[1] - cur[1]) * t]); return out; }
+      out.push(nxt); left -= d; cur = nxt; k = nk;
+    }
+    return out;
+  }
+  // pts: a path in door coordinates (y down). side: for a closed path "outside" or
+  // "inside"; for an open path "left" or "right" of its direction as seen in VCarve.
+  // Returns open rails (door coordinates) for the corners the form tool can't make sharp.
+  function cornerRails(pts, closed, side, leg) {
+    leg = leg || CORNER_LEG;
+    let q = pts.map(([x, y]) => [x, -y]);                       // to VCarve's y-up view
+    if (closed && q.length > 2 && dist(q[0], q[q.length - 1]) < 1e-9) q = q.slice(0, -1);
+    const wantLeft = closed ? (side === "outside" ? signedArea(q) > 0 : signedArea(q) < 0) : side === "right";
+    if (wantLeft) q = q.slice().reverse();                      // now the profile is on the left of travel
+    const rails = [];
+    const n = q.length;
+    for (let i = 0; i < n; i++) {
+      if (!closed && (i === 0 || i === n - 1)) continue;
+      const a = q[(i - 1 + n) % n], b = q[i], c = q[(i + 1) % n];
+      const u = [b[0] - a[0], b[1] - a[1]], v = [c[0] - b[0], c[1] - b[1]];
+      const cross = u[0] * v[1] - u[1] * v[0], dot = u[0] * v[0] + u[1] * v[1];
+      const turn = Math.atan2(Math.abs(cross), dot) * 180 / Math.PI;
+      if (cross >= 0 || turn < CORNER_MIN_TURN) continue;       // left turns are already sharp
+      const back = walk(q, i, -1, leg, closed).reverse(), fwd = walk(q, i, 1, leg, closed);
+      rails.push(back.concat([b], fwd).map(([x, y]) => [x, -y]));
+    }
+    return rails;
+  }
+
+  // Cross-section profiles for the Moulding toolpath, in mm: x = distance from the rail
+  // (the first point is the start point, which sits on the rail), y = height, with the
+  // door face at 0 and depths negative. Drawn once per order on their own layer.
+  const R12 = 12.7 / 2;
+  // Material left by the 12.7 mm round-over ON a line, cut `depth` deep, at distance dx.
+  const roundoverReach = (depth) => R12 - Math.sqrt(R12 * R12 - depth * depth);
+  function roundoverFlank(c, depth, dir) {
+    // From the cut bottom at x=c up to the face, going in direction dir (+1 / -1).
+    const pts = [];
+    for (let i = 0; i <= 20; i++) { const h = depth * i / 20; pts.push([c + dir * (R12 - Math.sqrt(R12 * R12 - h * h)), -depth + h]); }
+    return pts;
+  }
+  const BEAD = { depth: 5, first: 6 };   // two round-over lines: 6 mm and 6 + 12.7 mm out from the pocket edge
+  const PROFILES = {
+    bead12: {
+      layer: "MOULD_PROFILE_BEAD12_D5",
+      label: "Beaded shaker profile: 2 round-over lines 12.7 apart, 5 deep. Start point on the rail (pocket edge).",
+      pts() {
+        const D = BEAD.depth, a = BEAD.first, b = a + 2 * R12, xs = roundoverReach(D);
+        let p = [[0, 0]];
+        p = p.concat(roundoverFlank(a, D, -1).reverse(), roundoverFlank(a, D, 1).slice(1));
+        p = p.concat(roundoverFlank(b, D, -1).reverse(), roundoverFlank(b, D, 1).slice(1));
+        p.push([b + xs + 0.5, 0]);
+        return p.filter((q, i) => i === 0 || dist(q, p[i - 1]) > 1e-6);
+      }
+    },
+    sbead12: {
+      layer: "MOULD_PROFILE_SBEAD12",
+      label: "Single bead profile: 12.7 bead, its top below the face as noted beside it, field 8 deep. Start point on the rail (pocket edge).",
+      pts(o) {
+        const t = o && o.top != null ? o.top : SBEAD.top, g = SBEAD.gap, foot = -(t + R12), floor = -SBEAD.floor;
+        const p = [[0, floor], [g, floor]];
+        if (foot - floor > 1e-6) p.push([g, foot]);
+        for (let i = 0; i <= 36; i++) { const th = Math.PI * i / 36; p.push([g + R12 - R12 * Math.cos(th), foot + R12 * Math.sin(th)]); }
+        p.push([g + 2 * R12, 0]);
+        return p;
+      }
+    }
+  };
+  // Single bead with a hard step: wall down from the frame face, a 12.7 mm half-round
+  // bead whose top is `top` below the face, a small step down to the field.
+  const SBEAD = { top: 1, gap: 1, floor: 8 };   // floor matches POCKET_EM6_D8
 
   // Frame-and-panel: returns the recessed panel rectangles.
   function shakerPanels(W, H, border, rails) {
@@ -238,12 +340,46 @@
     },
     {
       id: "beaded", name: "Beaded shaker", family: "Shaker family", adjustable: true, draft: true,
-      blurb: "A shaker with a small bead round the inside of the frame.",
+      blurb: "A shaker with a rounded bead round the inside of the frame.",
       opts: [num("border", "Frame width", 70, 40, 120, 5)],
       build(W, H, o) {
+        // Round-over form tool ON two lines, 12.7 mm apart, outside the pocket: a full bead
+        // between them, a quarter round either side. Corner rails make the corners crisp.
         const [p] = shakerPanels(W, H, o.border, 0);
-        const bead = 6;
-        return { outline: rect(0, 0, W, H), paths: [{ tool: "pocket8", pts: rect(...p), closed: true }, { tool: "bead6", pts: rect(p[0] - bead, p[1] - bead, p[2] + bead, p[3] + bead), closed: true }] };
+        const a = BEAD.first, b = a + 2 * R12;
+        if (o.border < b + roundoverReach(BEAD.depth) + 10) fail("The frame is too narrow for the bead. Make the frame wider.");
+        const pocket = rect(...p);
+        const paths = [
+          { tool: "pocket8", pts: pocket, closed: true },
+          { tool: "roundover12d5", pts: rect(p[0] - a, p[1] - a, p[2] + a, p[3] + a), closed: true },
+          { tool: "roundover12d5", pts: rect(p[0] - b, p[1] - b, p[2] + b, p[3] + b), closed: true }
+        ];
+        for (const r of cornerRails(pocket, true, "outside", o.leg)) paths.push({ tool: "railBead12", pts: r });
+        return { outline: rect(0, 0, W, H), paths };
+      }
+    },
+    {
+      id: "singlebead", name: "Single bead shaker", family: "Shaker family", adjustable: true, draft: true,
+      blurb: "A shaker with one crisp bead set down beside the frame.",
+      opts: [num("border", "Frame width", 70, 40, 120, 5)],
+      build(W, H, o) {
+        // Frame inner edge = shakerPanels rectangle. The bead strip (gap + 12.7 mm) inside it
+        // is cut by one full-length Moulding toolpath on a closed rail at the pocket edge;
+        // the rest of the panel is a plain 8 mm pocket.
+        const [f] = shakerPanels(W, H, o.border, 0);
+        const top = o.top != null ? o.top : SBEAD.top;
+        if (top < 0 || top > SBEAD.floor - R12) fail("The bead top must be between 0 and " + (SBEAD.floor - R12).toFixed(2) + " mm below the face.");
+        const s = SBEAD.gap + 2 * R12, p = [f[0] + s, f[1] + s, f[2] - s, f[3] - s];
+        const pocket = rect(...p);
+        return {
+          outline: rect(0, 0, W, H),
+          paths: [
+            { tool: "pocket8", pts: rect(...f), closed: true, previewOnly: true },
+            { tool: "pocket8", pts: pocket, closed: true },
+            { tool: "railSbead12", pts: pocket, closed: true, profileOpts: { top } },
+            { tool: "sbeadView", pts: rect(f[0] + s / 2, f[1] + s / 2, f[2] - s / 2, f[3] - s / 2), closed: true }
+          ]
+        };
       }
     },
     {
@@ -351,7 +487,7 @@
       }
     }
   ];
-  const ORDER = ["slab", "shaker", "skinny", "bevelled", "beaded", "newcountry", "flutedshaker", "mouldedflute", "victorian", "georgian", "tvgroove", "tbgroove", "fluted", "reeded", "lattice", "arched", "archtop", "ringpanel"];
+  const ORDER = ["slab", "shaker", "skinny", "bevelled", "beaded", "singlebead", "newcountry", "flutedshaker", "mouldedflute", "victorian", "georgian", "tvgroove", "tbgroove", "fluted", "reeded", "lattice", "arched", "archtop", "ringpanel"];
   DESIGNS.sort((a, b) => ORDER.indexOf(a.id) - ORDER.indexOf(b.id));
   const designById = (id) => DESIGNS.find((d) => d.id === id);
 
@@ -459,7 +595,7 @@
     s += `<g clip-path="url(#${id}c)">`;
     for (const p of g.paths) {
       const t = TOOLS[p.tool];
-      if (p.tool === "cutout") continue;
+      if (p.tool === "cutout" || t.rail) continue;
       if (t.pocket) {
         s += `<polygon points="${ptsAttr(p.pts)}" fill="#000" fill-opacity=".10" stroke="#000" stroke-opacity=".35" stroke-width="2"/>`;
         if (p.pts.length === 4) s += `<polyline points="${ptsAttr([p.pts[3], p.pts[0], p.pts[1]])}" fill="none" stroke="#000" stroke-opacity=".25" stroke-width="4"/>`;
@@ -513,6 +649,7 @@
     }
     const used = new Set([LABEL_LAYER]);
     const ents = [];
+    const profiles = new Map();
     const poly = (layer, pts, closed) => {
       used.add(layer);
       ents.push("0", "POLYLINE", "8", layer, "66", "1", "10", "0.0", "20", "0.0", "30", "0.0", "70", closed ? "1" : "0");
@@ -522,7 +659,15 @@
     const text = (str, px, py, h) => ents.push("0", "TEXT", "8", LABEL_LAYER, "10", n3(px), "20", n3(py), "30", "0.0", "40", n3(h), "1", dxfText(str));
     for (const p of parts) {
       const tx = (q) => [p.ox + q[0], p.oy + (p.g.H - q[1])];
-      for (const path of p.g.paths) poly(TOOLS[path.tool].layer, path.pts.map(tx), !!path.closed);
+      for (const path of p.g.paths) {
+        const t = TOOLS[path.tool];
+        if (t.previewOnly || path.previewOnly) continue;
+        poly(t.layer, path.pts.map(tx), !!path.closed);
+        if (t.profile) {
+          const key = t.profile + JSON.stringify(path.profileOpts || {});
+          if (!profiles.has(key)) profiles.set(key, { prof: PROFILES[t.profile], opts: path.profileOpts || {}, rail: t.layer });
+        }
+      }
       const d = p.door, lx = p.ox + 12;
       const named = d.name && d.name !== p.g.design.name;
       const lines0 = `${p.tag} ${named ? d.name : p.g.design.name}`;
@@ -537,7 +682,19 @@
       ];
       for (const l of lines) { if (l) text(l, lx, ly, lh); ly -= lh * 1.6; }
     }
-    const layerColor = (name) => { const t = Object.values(TOOLS).find((t) => t.layer === name); return t ? t.color : 2; };
+    // Moulding profiles: one of each, below the parts (off the board), each with a note.
+    // The first vertex is the start point and is the end that sits on the rail.
+    let py = -40;
+    for (const { prof, opts, rail } of profiles.values()) {
+      const pts = prof.pts(opts);
+      const minY = Math.min(...pts.map((q) => q[1]));
+      poly(prof.layer, pts.map(([x, y]) => [x, py + y - minY]), false);
+      const notes = [`PROFILE ${prof.layer}`, `FOR RAILS ON ${rail}`, "START POINT (1ST VERTEX) SITS ON THE RAIL"];
+      if (opts.top != null) notes.push(`BEAD TOP ${opts.top} MM BELOW FACE`);
+      notes.forEach((l, i) => text(l, 40, py + 6 - i * 5, 3));
+      py -= 40;
+    }
+    const layerColor = (name) => { const t = Object.values(TOOLS).find((t) => t.layer === name); return t ? t.color : Object.values(PROFILES).some((p) => p.layer === name) ? 30 : 2; };
     const out = [
       "0", "SECTION", "2", "HEADER", "9", "$ACADVER", "1", "AC1009", "0", "ENDSEC",
       "0", "SECTION", "2", "TABLES",
@@ -554,9 +711,14 @@
   // The toolpath list for an order: one row per layer used.
   function layerList(doors) {
     const seen = new Map();
-    for (const door of doors) for (const p of buildDoor(door).paths) { const t = TOOLS[p.tool]; seen.set(t.layer, t.label); }
+    for (const door of doors) for (const p of buildDoor(door).paths) {
+      const t = TOOLS[p.tool];
+      if (t.previewOnly || p.previewOnly) continue;
+      seen.set(t.layer, t.label);
+      if (t.profile) seen.set(PROFILES[t.profile].layer, PROFILES[t.profile].label);
+    }
     return Array.from(seen, ([layer, label]) => ({ layer, label }));
   }
 
-  return { VERSION, LIMITS, TOOLS, BANDS, DELIVERY, DESIGNS, designById, normalizeDoor, buildDoor, hingeDefault, priceDoor, priceOrder, bandFor, describe, doorSVG, orderDXF, layerList };
+  return { VERSION, LIMITS, TOOLS, PROFILES, cornerRails, BANDS, DELIVERY, DESIGNS, designById, normalizeDoor, buildDoor, hingeDefault, priceDoor, priceOrder, bandFor, describe, doorSVG, orderDXF, layerList };
 });
