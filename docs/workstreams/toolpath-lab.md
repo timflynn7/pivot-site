@@ -80,6 +80,15 @@ How to get the moulding toolpath to work correctly with Tim's round-over bits, a
 - Options put to Tim: (1) **no step**: pocket depth = round-over depth (`pocket: "level"`; 4.7 beaded, 5.7 single bead). Claude's suggested default. (2) **a deliberate step**: a second, deeper pocket set in from the round-over line (e.g. an 8 mm ledge and a 2 mm drop), like the Georgian door. **Tim: leave it for now.** The defaults are still a 6 mm pocket; revisit before these designs go live.
 - Single bead needs two Moulding toolpaths (frame side full length + corners). Same tapered ball nose, so they can be merged in VCarve (Create Merged Toolpath, not yet checked) or saved as a template. A one-toolpath version (whole strip on a pocket-edge rail) is possible but roughly doubles the passes.
 
+### Test cuts vs simulation (2026-11-18): the bit model needs calibrating
+- Tim's test cuts: the simulations looked perfect, but **the moulding profiles don't match what the tools actually cut**, and the two-line bead came out with a **flat on top**. So the real round-over is narrower at the face than the model (12.7 x R4.7 with a 3.3 mm flat tip), and/or the real depth differs from what was programmed (Z zero, MDF thickness).
+- **Calibration procedure:** `node scripts/calibration-dxf.js <folder>` writes a 300 x 200 strip (also in `test-boards/calibration/`):
+  - a **depth ladder**: single grooves at 3.5, 4, 4.5, 4.7, 5, 5.5, 6, 6.5 mm;
+  - a **spacing ladder**: pairs at 4.7 deep with the lines 10-12.7 mm apart.
+
+  Tim measures each groove's real depth, saws across at the marked lines, scans the cut faces (600 dpi, with a rule) or photographs them square-on, and measures the face width, the bottom flat and the depth of each groove. He also measures the bit (widest diameter, cutting height, tip) with calipers.
+- **Then:** replace the assumed arc in `ROUNDOVER` with the **measured** profile: a table of (depth → half-width at the face), interpolated, so every profile and the VCarve form-tool shape come from real cuts. Set the bead line spacing from the spacing ladder. Rebuild the form tool in VCarve from the new shape file. Then re-check the moulding toolpath on one corner. Also check that the tapered ball nose in VCarve's tool database (20°, 0.5 mm tip) matches the real bit.
+
 ### Next
 1. Tim cuts the beads board. For each corner leg length, check whether the moulding blends into the form-tool cut, and whether there's a witness line at the leg ends. Then set `CORNER_LEG`.
 2. Check in VCarve: does the profile hang on the correct side with the first vertex as start? Can the Vector Selector pick rails and profile by layer for a toolpath template? Is "Sharp Internal Corner (3D)" offered with the form tool?
