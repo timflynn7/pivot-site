@@ -24,7 +24,7 @@ For each moulding or round-over design:
 Also: real layer names and depths for the settled designs, to replace the placeholders in `TOOLS`.
 
 ## Next tasks
-1. Get Tim's notes on the moulding and round-over designs, and fix those recipes.
+1. Moulding and round-over designs: being worked out in [toolpath-lab.md](toolpath-lab.md). Bring the proven settings back here and into the recipes.
 2. Replace the placeholder `TOOLS` with Tim's real bits, depths and layer names.
 3. Apply the "minor edits" Tim lists for the settled designs.
 4. Pairs and runs: lay a pattern across several doors with a set gap (the Panel Pattern Engine already does this).
