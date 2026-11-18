@@ -89,6 +89,15 @@ How to get the moulding toolpath to work correctly with Tim's round-over bits, a
   Tim measures each groove's real depth, saws across at the marked lines, scans the cut faces (600 dpi, with a rule) or photographs them square-on, and measures the face width, the bottom flat and the depth of each groove. He also measures the bit (widest diameter, cutting height, tip) with calipers.
 - **Then:** replace the assumed arc in `ROUNDOVER` with the **measured** profile: a table of (depth → half-width at the face), interpolated, so every profile and the VCarve form-tool shape come from real cuts. Set the bead line spacing from the spacing ladder. Rebuild the form tool in VCarve from the new shape file. Then re-check the moulding toolpath on one corner. Also check that the tapered ball nose in VCarve's tool database (20°, 0.5 mm tip) matches the real bit.
 
+### Bit model v3: from the maker's drawing (2026-11-18)
+- The maker's drawing (sent by Tim): **1/2" (12.7 mm) across, R6.35 arc, 13/64" (5.16 mm) cutting height, head 23/64" (9 mm), pointed tip.** The earlier models (an R6.35 quarter circle; then R4.7 with a 3.3 mm flat tip) were wrong. Tim's 4.7 mm caliper reading and "1.7 mm at the tip" (the thickness of the carbide) are explained by this shape.
+- The arc runs from the pointed tip (0,0) to the outer corner (6.35, 5.16), with its centre at about (6.24, -1.19), so it is almost flat where it meets the face. `ROUNDOVER = { dia: 12.7, arcRadius: 6.35, height: 5.16, head: 9 }` in engine.js; everything follows from it (`roEdge`, `roHeight`, `roReach`, `roSurface`, the profiles, the tool shape).
+- **This explains the flat on the bead:** cut 4.7 deep, this bit reaches only about 3.9 mm either side of the line at the face, so two lines 12.7 apart leave about a 5 mm flat. Cut to the full **5.16**, the cuts meet at the face.
+- New defaults: beaded round-over **5.16 deep** (`..._D5_16`); single bead round-over top + 5.16 (6.16 for top 1); the bead is the round-over's shape mirrored, 12.7 wide. **Pocket default is now "level"** with the bottom of the round-over (the 6 mm default was impossible for the single bead, and the step is parked anyway). Grooves are V-bottomed (pointed tip).
+- `form-tool-roundover-12.7.dxf` (beads board) is the new right-half shape for the VCarve tool database.
+- The calibration strip is updated: depth ladder 4-6.5 including 5.16, and a spacing ladder at 5.16 with the lines 11-12.7 apart. **Still worth cutting**, to confirm the real height (5.16 vs Tim's 4.7) before setting it in stone.
+- Cross-sections were re-checked against the exported tool shape (separate maths from the engine's): `test-boards/beads/cross-sections.png`.
+
 ### Next
 1. Tim cuts the beads board. For each corner leg length, check whether the moulding blends into the form-tool cut, and whether there's a witness line at the leg ends. Then set `CORNER_LEG`.
 2. Check in VCarve: does the profile hang on the correct side with the first vertex as start? Can the Vector Selector pick rails and profile by layer for a toolpath template? Is "Sharp Internal Corner (3D)" offered with the form tool?

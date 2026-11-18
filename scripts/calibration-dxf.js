@@ -3,9 +3,9 @@
 // built from measurements instead of assumptions.
 //
 // Top row: a depth ladder. Single grooves, 2D Profile ON the line, each on its own layer
-//   (ROUNDOVER_FORM12_D3_5 ... D6_5). Saw across at the SAW line and measure each groove.
-// Bottom row: a spacing ladder. Pairs of grooves at the bead depth (4.7) with the lines
-//   10.0 to 12.7 mm apart, all on ROUNDOVER_FORM12_D4_7. Shows which spacing gives a
+//   (ROUNDOVER_FORM12_D4 ... D6_5). Saw across at the SAW line and measure each groove.
+// Bottom row: a spacing ladder. Pairs of grooves at the bead depth (5.16) with the lines
+//   11 to 12.7 mm apart, all on ROUNDOVER_FORM12_D5_16. Shows which spacing gives a
 //   round bead with no flat on top at this depth.
 // Usage: node scripts/calibration-dxf.js [output-folder]
 const fs = require("fs");
@@ -15,9 +15,9 @@ const outDir = process.argv[2] || "calibration-dxf";
 fs.mkdirSync(outDir, { recursive: true });
 
 const STRIP = { w: 300, h: 200 };
-const DEPTHS = [3.5, 4, 4.5, 4.7, 5, 5.5, 6, 6.5];
-const SPACINGS = [10, 10.5, 11, 11.5, 12, 12.7];
-const BEAD_DEPTH = 4.7;
+const DEPTHS = [4, 4.5, 4.7, 5, 5.16, 5.5, 6, 6.5];
+const SPACINGS = [11, 11.5, 12, 12.3, 12.5, 12.7];
+const BEAD_DEPTH = 5.16;   // the bit's arc height from the maker's drawing (13/64")
 const tag = (v) => String(v).replace(".", "_");
 
 const ents = [];

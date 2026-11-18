@@ -38,7 +38,7 @@
     // Moulding toolpath rails. rail: true = never drawn in the preview. The matching profile is in PROFILES.
     // (Round-over layers, extra pocket depths, moulding rails and profiles are added by the
     // helpers roTool, pocketTool and mouldTools below, as the designs need them.)
-    sbeadView: { layer: null, label: "preview only", width: 9.4, color: 0, previewOnly: true },
+    sbeadView: { layer: null, label: "preview only", width: 12.7, color: 0, previewOnly: true },
     mould:    { layer: "MOULD_TBN_RAIL",      label: "Moulding toolpath drive rail (tapered ball nose). Draw the profile in VCarve.", width: 18, color: 30 },
     chamfer:  { layer: "EDGE_CHAMFER_V90_D3", label: "90 degree V-bit edge chamfer, 3 mm",        width: 6,    color: 6 }
   };
@@ -171,39 +171,50 @@
   // Cross-section profiles for the Moulding toolpath, in mm: x = distance from the rail
   // (the first point is the start point, which sits on the rail), y = height, with the
   // door face at 0 and depths negative. Drawn once per order on their own layer.
-  // The 12.7 mm round-over form tool. Tim measured it: 12.7 mm across, 4.7 mm of cutting
-  // height. Taken as a 4.7 mm radius arc with a flat tip 12.7 - 2 x 4.7 = 3.3 mm across
-  // (to confirm by eye). Change these two numbers if the bit is different.
-  const ROUNDOVER = { dia: 12.7, radius: 4.7 };
-  const RO_OUT = ROUNDOVER.dia / 2, RO_R = ROUNDOVER.radius, RO_TIP = RO_OUT - RO_R;
+  // The 12.7 mm round-over form tool, from the maker's drawing: 1/2" (12.7 mm) across, an
+  // R6.35 concave arc 13/64" (5.16 mm) tall running from a POINTED tip out to the full
+  // diameter, then straight sides (head 23/64", 9 mm). Tim measured about 4.7 mm of cutting
+  // height; the calibration strip (scripts/calibration-dxf.js) is to settle the real numbers.
+  // Change these and every bead, profile and the VCarve tool shape follow.
+  const ROUNDOVER = { dia: 12.7, arcRadius: 6.35, height: 5.16, head: 9 };
+  const RO_OUT = ROUNDOVER.dia / 2, RO_ARC = ROUNDOVER.arcRadius, RO_H = ROUNDOVER.height;
+  // Centre of the arc through the tip (0,0) and the outer corner (RO_OUT, RO_H), on the
+  // far side of the chord from the bit's axis (so the cutting edge is hollow, as drawn).
+  const RO_C = (() => {
+    const L = Math.hypot(RO_OUT, RO_H), d = Math.sqrt(Math.max(0, RO_ARC * RO_ARC - L * L / 4));
+    return [RO_OUT / 2 + d * RO_H / L, RO_H / 2 - d * RO_OUT / L];
+  })();
+  // Height above the tip at which the cutting edge is dx from the axis (0 <= dx <= RO_OUT).
+  const roHeight = (dx) => Math.min(RO_H, RO_C[1] + Math.sqrt(Math.max(0, RO_ARC * RO_ARC - (dx - RO_C[0]) ** 2)));
   // How far the cut reaches either side of its line at the door face.
-  const roReach = (depth) => depth >= RO_R ? RO_OUT : RO_TIP + RO_R - Math.sqrt(RO_R * RO_R - depth * depth);
+  const roReach = (depth) => depth >= RO_H ? RO_OUT : RO_C[0] - Math.sqrt(RO_ARC * RO_ARC - (depth - RO_C[1]) ** 2);
   // Height of the cut surface (face = 0) at distance dx from a line cut `depth` deep.
-  // Deeper than the radius, the bit's straight side leaves a small upright step at the face.
+  // Deeper than RO_H, the bit's straight side leaves an upright step at the face.
   function roSurface(dx, depth) {
     dx = Math.abs(dx);
     if (dx > RO_OUT) return 0;
-    if (dx <= RO_TIP) return -depth;
-    const u = dx - RO_TIP;
-    return Math.min(0, -depth + Math.sqrt(RO_R * RO_R - (RO_R - u) * (RO_R - u)));
+    return Math.min(0, -depth + roHeight(dx));
+  }
+  // Points along the cutting edge from the tip to the outer corner (x = from the axis, y = up).
+  function roEdge(n) {
+    const a0 = Math.atan2(0 - RO_C[1], 0 - RO_C[0]), a1 = Math.atan2(RO_H - RO_C[1], RO_OUT - RO_C[0]), pts = [];
+    for (let i = 0; i <= n; i++) { const a = a0 + (a1 - a0) * i / n; pts.push([RO_C[0] + RO_ARC * Math.cos(a), RO_C[1] + RO_ARC * Math.sin(a)]); }
+    pts[0] = [0, 0]; pts[n] = [RO_OUT, RO_H];
+    return pts;
   }
   // The right-hand half of the cutter, for VCarve's tool database (tip at 0,0).
   function roundoverToolShape() {
-    const pts = [[0, 0], [RO_TIP, 0]];
-    for (let i = 1; i <= 24; i++) { const a = Math.PI / 2 * i / 24; pts.push([RO_TIP + RO_R - RO_R * Math.cos(a), RO_R * Math.sin(a)]); }
-    pts.push([RO_OUT, RO_R + 3]);
-    return pts;
+    return roEdge(32).concat([[RO_OUT, ROUNDOVER.head]]);
   }
   // Cross-section left by round-over cuts ON lines at offsets `lines` (mm from the rail),
   // all `depth` deep, from x = 0 to x = end. Sampled densely on the curves.
   function roundoverSection(lines, depth, end) {
     const xs = new Set([0, end]);
     for (const c of lines) for (const dir of [-1, 1]) {
-      xs.add(c + dir * RO_TIP);
       // even steps round the arc, up to where it reaches the face
-      const top = Math.asin(Math.min(depth, RO_R) / RO_R);
-      for (let i = 0; i <= 24; i++) { const a = top * i / 24; xs.add(c + dir * (RO_TIP + RO_R - RO_R * Math.cos(a))); }
-      if (depth > RO_R) { xs.add(c + dir * RO_OUT); xs.add(c + dir * (RO_OUT + 1e-3)); }   // the bit's upright side
+      for (const [x, h] of roEdge(48)) if (h <= depth + 1e-9) xs.add(c + dir * x);
+      xs.add(c + dir * roReach(depth));
+      if (depth > RO_H) { xs.add(c + dir * RO_OUT); xs.add(c + dir * (RO_OUT + 1e-3)); }   // the bit's upright side
     }
     const z = (x) => Math.min(0, ...lines.map((c) => roSurface(x - c, depth)));
     const pts = Array.from(xs).filter((x) => x >= 0 && x <= end).sort((a, b) => a - b).map((x) => [Math.round(x * 1e4) / 1e4, Math.round(z(x) * 1e4) / 1e4]);
@@ -219,7 +230,7 @@
   // Round-over form tool ON a line, `depth` deep. Returns the TOOLS key.
   function roTool(depth) {
     const key = "roundover12_d" + tagOf(depth);
-    if (!TOOLS[key]) TOOLS[key] = { layer: `ROUNDOVER_FORM12_D${tagOf(depth)}`, label: `12.7 mm round-over form tool (${RO_R} mm radius), 2D Profile ON the line, ${depth} mm deep`, width: 2 * roReach(depth), color: 4 };
+    if (!TOOLS[key]) TOOLS[key] = { layer: `ROUNDOVER_FORM12_D${tagOf(depth)}`, label: `12.7 mm round-over form tool (R${RO_ARC} arc, ${RO_H} mm tall, pointed tip), 2D Profile ON the line, ${depth} mm deep`, width: 2 * roReach(depth), color: 4 };
     return key;
   }
   // 6 mm end mill pocket `depth` deep. Returns the TOOLS key.
@@ -247,7 +258,8 @@
   // both BEAD.depth deep: a full round bead between them, a quarter round up into the frame.
   // The pocket is at least as deep as the round-over, so the panel runs into the groove
   // floor (level when they match, a step down when the pocket is deeper).
-  const BEAD = { depth: 4.7, pocket: 6 };
+  // pocket "level" = the same depth as the round-over, so the panel meets the groove floor.
+  const BEAD = { depth: RO_H, pocket: "level" };
   function beadTools(depth) {
     const second = ROUNDOVER.dia;
     return {
@@ -267,22 +279,22 @@
   //   - corner rails on the pocket edge, profile = the whole bead strip, so the corners of
   //     the round-over half come out sharp too.
   // The pocket is at least as deep as the round-over: level with the bead's foot or a step down.
-  const SBEAD = { top: 1, gap: 1, pocket: 6 };
-  const SB_R = RO_R;   // the bead is the round-over's own radius, so every bead matches
+  // The bead is the round-over's own shape mirrored, 12.7 mm wide, so every bead matches.
+  const SBEAD = { top: 1, gap: 1, pocket: "level" };
+  const SB_HALF = RO_OUT;
   function sbeadTools(top) {
-    const D = top + RO_R, g = SBEAD.gap, tg = tagOf(top);
+    const D = Math.round((top + RO_H) * 100) / 100, g = SBEAD.gap, tg = tagOf(top);
     const frameHalf = (x0) => {
-      // from the bead top at x0 down the frame side, the flat, then the wall
-      const p = [];
-      for (let i = 0; i <= 24; i++) { const a = Math.PI / 2 * i / 24; p.push([x0 + SB_R * Math.sin(a), -top - SB_R + SB_R * Math.cos(a)]); }
-      p.push([x0 + SB_R + g, -D], [x0 + SB_R + g, 0]);
+      // from the bead top at x0 down the frame side (the round-over flank, mirrored), the flat, then the wall
+      const p = roEdge(48).reverse().map(([x, h]) => [x0 + RO_OUT - x, -D + h]);
+      p.push([x0 + SB_HALF + g, -D], [x0 + SB_HALF + g, 0]);
       return p;
     };
     return {
       depth: D,
       form: roTool(D),
       frame: mouldTools(`SBEAD_FRAME_T${tg}`, "closed rail along the bead's centre, full length",
-        `Single bead, frame side: bead top ${top} below the face, 4.7 radius, ${g} mm flat, wall. Start point on the rail (bead centre).`,
+        `Single bead, frame side: bead top ${top} below the face, round-over shape mirrored, ${g} mm flat, wall. Start point on the rail (bead centre).`,
         () => frameHalf(0)),
       corner: mouldTools(`SBEAD_CORNER_T${tg}`, "corner rails on the pocket edge",
         `Single bead, whole strip for the corners: round-over half ${D} deep, then the frame side. Start point on the rail (pocket edge).`,
@@ -427,7 +439,7 @@
         // See BEAD. o.depth, o.pocket and o.leg are for test boards only.
         const [p] = shakerPanels(W, H, o.border, 0);
         const depth = o.depth != null ? o.depth : BEAD.depth, t = beadTools(depth);
-        const pd = o.pocket === "level" ? depth : (o.pocket != null ? o.pocket : BEAD.pocket);
+        const pk = o.pocket != null ? o.pocket : BEAD.pocket, pd = pk === "level" ? depth : pk;
         if (pd < depth) fail("The pocket must be at least as deep as the bead.");
         const b = ROUNDOVER.dia;
         if (o.border < b + roReach(depth) + 10) fail("The frame is too narrow for the bead. Make the frame wider.");
@@ -452,10 +464,10 @@
         const top = o.top != null ? o.top : SBEAD.top;
         if (top < 0 || top > 2) fail("The bead top must be between 0 and 2 mm below the face.");
         const t = sbeadTools(top);
-        const pd = o.pocket === "level" ? t.depth : (o.pocket != null ? o.pocket : SBEAD.pocket);
+        const pk = o.pocket != null ? o.pocket : SBEAD.pocket, pd = pk === "level" ? t.depth : pk;
         if (pd < t.depth - 1e-9) fail("The pocket must be at least as deep as the bead's foot.");
         const inset = (r, d) => [r[0] + d, r[1] + d, r[2] - d, r[3] - d];
-        const c = inset(f, SBEAD.gap + SB_R), p = inset(f, SBEAD.gap + SB_R + RO_OUT);
+        const c = inset(f, SBEAD.gap + SB_HALF), p = inset(f, SBEAD.gap + SB_HALF + RO_OUT);
         const pocket = rect(...p);
         const paths = [
           { tool: pocketTool(pd), pts: rect(...f), closed: true, previewOnly: true },

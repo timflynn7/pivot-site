@@ -5,15 +5,15 @@ Depth ladder (top row): one groove per depth, 2D Profile ON the line.
 Strip 300 x 200 mm of 18 mm MDF. Origin bottom-left.
 
 Toolpaths (round-over form tool, 2D Profile, ON the line, Start Depth 0):
-  ROUNDOVER_FORM12_D3_5: Cut Depth 3.5
   ROUNDOVER_FORM12_D4: Cut Depth 4
   ROUNDOVER_FORM12_D4_5: Cut Depth 4.5
   ROUNDOVER_FORM12_D4_7: Cut Depth 4.7
   ROUNDOVER_FORM12_D5: Cut Depth 5
+  ROUNDOVER_FORM12_D5_16: Cut Depth 5.16
   ROUNDOVER_FORM12_D5_5: Cut Depth 5.5
   ROUNDOVER_FORM12_D6: Cut Depth 6
   ROUNDOVER_FORM12_D6_5: Cut Depth 6.5
-  The spacing ladder is also on ROUNDOVER_FORM12_D4_7.
+  The spacing ladder is also on ROUNDOVER_FORM12_D5_16.
   CUTOUT_EM6: cut the strip out. SAW_LINE_NOT_CUT and LABELS: do not cut.
 
 Before cutting: zero Z on the strip itself, next to the grooves. Measure the MDF thickness at a few points.
