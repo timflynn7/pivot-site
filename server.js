@@ -12,7 +12,8 @@ const PUBLIC = path.join(__dirname, "public");
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, "data");
 const SITE_URL = process.env.SITE_URL || "https://pivotdesigns.co.uk";
 const store = require("./lib/store.js")({ databaseUrl: process.env.DATABASE_URL, dataDir: DATA_DIR });
-const pay = require("./lib/payments.js")({ store, E, siteUrl: SITE_URL });
+const email = require("./lib/email.js")({ E, siteUrl: SITE_URL });
+const pay = require("./lib/payments.js")({ store, E, siteUrl: SITE_URL, onPaid: (o) => mail(o.ref, "Paid notice to Tim", () => email.paidAdmin(o)) });
 
 app.disable("x-powered-by");
 app.use((req, res, next) => {
@@ -48,6 +49,21 @@ const estimatePence = (o) => Math.round(o.totals.total * 100);
 const note = (o, what) => { o.history = (o.history || []).concat({ at: new Date().toISOString(), what }); };
 // Wraps async routes so a database error shows the error page instead of hanging.
 const wrap = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
+
+// Sends one email and notes the result in the order's history.
+// A failed email never stops an order: it shows up on /admin instead.
+async function mail(ref, label, sendFn) {
+  let what;
+  try {
+    const r = await sendFn();
+    what = r.skipped ? `Email not sent (emails switched off): ${label}` : `Email sent: ${label}`;
+  } catch (e) {
+    console.error(`Email failed (${label}) for ${ref}:`, e.message);
+    what = `Email FAILED: ${label} (${clean(e.message, 120)})`;
+  }
+  await store.update(ref, (o) => { note(o, what); return o; }).catch((e) => console.error("Could not note email", e));
+  return !what.startsWith("Email FAILED");
+}
 
 /* ---------- order requests ---------- */
 app.post("/api/orders", express.json({ limit: "200kb" }), wrap(async (req, res) => {
@@ -85,6 +101,9 @@ app.post("/api/orders", express.json({ limit: "200kb" }), wrap(async (req, res) 
   }
   console.log(`Order request ${order.ref}: ${order.totals.count} doors, £${order.totals.total}`);
   res.status(201).json({ ref: order.ref, total: order.totals.total });
+  // After replying, so the customer isn't kept waiting.
+  await mail(order.ref, "New order notice to Tim", () => email.newOrderAdmin(order));
+  await mail(order.ref, "Order received, to customer", () => email.newOrderCustomer(order));
 }));
 
 /* ---------- payments (see lib/payments.js) ---------- */
@@ -123,10 +142,12 @@ function orderRow(o) {
   const priceBox = status === "new" || status === "quoted"
     ? `<form method="post" action="${act}" class="f"><input type="hidden" name="action" value="quote">
         <label>Price £ <input name="price" inputmode="decimal" value="${(price / 100).toFixed(2)}" size="7" aria-label="Price for ${esc(o.ref)} in pounds"></label>
-        <button>${status === "new" ? "Confirm price" : "Change price"}</button></form>`
+        <button>${status === "new" ? "Confirm price" : "Change price"}</button>
+        <label class="m tick"><input type="checkbox" name="email" value="1" checked> Email the payment link to the customer</label></form>`
     : "";
   const link = status === "quoted"
-    ? `<div class="link"><span class="m">Payment link to email:</span><input readonly value="${esc(payLink(o))}" aria-label="Payment link for ${esc(o.ref)}"><button type="button" class="copy">Copy</button></div>`
+    ? `<div class="link"><span class="m">Payment link to email:</span><input readonly value="${esc(payLink(o))}" aria-label="Payment link for ${esc(o.ref)}"><button type="button" class="copy">Copy</button></div>
+       <form method="post" action="${act}" class="f"><input type="hidden" name="action" value="resend"><button class="ghost">Resend payment link</button></form>`
     : "";
   const paid = o.payment ? `<p class="m">Paid ${money(o.payment.amount)} by ${esc(o.payment.method)}, ${esc(new Date(o.payment.at).toLocaleString("en-GB", { timeZone: "Europe/London" }))}</p>` : "";
   const markPaid = status === "new" || status === "quoted"
@@ -135,13 +156,16 @@ function orderRow(o) {
   const statusForm = `<form method="post" action="${act}" class="f"><input type="hidden" name="action" value="status">
       <select name="status" aria-label="Status of ${esc(o.ref)}">${STATUSES.filter((s) => s !== "paid" || status === "paid").map((s) => `<option value="${s}"${s === status ? " selected" : ""}>${STATUS_TEXT[s]}</option>`).join("")}</select>
       <button class="ghost">Save</button></form>`;
+  const history = (o.history || []).length
+    ? `<details class="m"><summary>History (${o.history.length})</summary><ul>${o.history.slice().reverse().map((h) => `<li${/FAILED/.test(h.what) ? ' class="bad"' : ""}>${esc(new Date(h.at).toLocaleString("en-GB", { timeZone: "Europe/London", dateStyle: "short", timeStyle: "short" }))}: ${esc(h.what)}</li>`).join("")}</ul></details>`
+    : "";
   return `<tr id="${esc(o.ref)}" class="s-${status}">
     <td><b>${esc(o.ref)}</b><br><span class="m">${esc(new Date(o.created).toLocaleString("en-GB", { timeZone: "Europe/London" }))}</span><br><span class="tag">${STATUS_TEXT[status]}</span></td>
     <td>${esc(o.customer.name)}<br><span class="m">${esc(o.customer.email)}${o.customer.phone ? " · " + esc(o.customer.phone) : ""}<br>${esc(o.customer.address)}<br>${esc(o.customer.postcode)}</span></td>
     <td>${o.doors.map((d, i) => `${i + 1}. ${d.qty} × ${esc(E.designById(d.design).name)} ${d.width} × ${d.height}${d.name ? " (" + esc(d.name) + ")" : ""}<br><span class="m">${esc(E.describe(d))}</span>`).join("<br>")}${o.customer.notes ? `<p class="m">Notes: ${esc(o.customer.notes)}</p>` : ""}
       <p><a class="b" href="/admin/orders/${ref}.dxf">DXF</a> <a href="/admin/orders/${ref}.json">Spec</a></p></td>
     <td class="n">Estimate ${money(estimatePence(o))}${o.quote != null ? `<br><b>Price ${money(o.quote)}</b>` : ""}</td>
-    <td class="acts">${priceBox}${link}${paid}${markPaid}${statusForm}</td></tr>`;
+    <td class="acts">${priceBox}${link}${paid}${markPaid}${statusForm}${history}</td></tr>`;
 }
 
 app.get("/admin", adminAuth, wrap(async (req, res) => {
@@ -154,10 +178,11 @@ app.get("/admin", adminAuth, wrap(async (req, res) => {
 .tag{display:inline-block;margin-top:4px;font-size:12px;font-weight:600;padding:2px 8px;border-radius:10px;background:#E3E8E2;color:#33443A}.s-new .tag{background:#F3E6C8;color:#6B4E1E}.s-paid .tag{background:#4B5F51;color:#fff}.s-cancelled{opacity:.6}
 .acts{min-width:260px}.f{margin:0 0 8px;display:flex;gap:6px;flex-wrap:wrap;align-items:center}.f input,.f select{font:inherit;padding:4px 6px;border:1px solid #BDB8AC;border-radius:3px}
 button{font:inherit;font-weight:600;padding:5px 10px;border-radius:3px;border:1.5px solid #4B5F51;background:#4B5F51;color:#fff;cursor:pointer}button.ghost,.copy{background:#fff;color:#4B5F51}
-.link{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:0 0 8px}.link input{flex:1 1 200px;font:13px ui-monospace,monospace;padding:4px 6px;border:1px solid #BDB8AC;border-radius:3px}</style></head>
+.tick{display:flex;gap:4px;align-items:center;flex-basis:100%}details ul{margin:4px 0;padding-left:18px}li.bad,p.bad{color:#9B2C1F;font-weight:600}.link{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:0 0 8px}.link input{flex:1 1 200px;font:13px ui-monospace,monospace;padding:4px 6px;border:1px solid #BDB8AC;border-radius:3px}</style></head>
 <body><h1>Orders</h1><p class="m">${orders.length} order${orders.length === 1 ? "" : "s"}, newest first.${counts.length ? " " + counts.map(([s, n]) => `${n} ${STATUS_TEXT[s].toLowerCase()}`).join(" · ") : ""}</p>
-<p class="m">${payState}</p>${storeState}
-<p class="m">To take payment: check the order, confirm the price, then copy the payment link into your email to the customer. It changes to Paid by itself when they pay.</p>
+<p class="m">${payState} ${email.enabled() ? "Order emails are on." : "Order emails are off. Add RESEND_API_KEY in Render's Environment settings to turn them on."}</p>${storeState}
+${typeof req.query.emailfailed === "string" ? `<p class="w bad">The payment link email to ${esc(req.query.emailfailed)} didn't send. See the order's History for why, then use Resend payment link or Copy it into your own email.</p>` : ""}
+<p class="m">To take payment: check the order and click Confirm price. With the box ticked, the customer is emailed the payment link (or untick it and Copy the link into your own email). It changes to Paid by itself when they pay, and you get an email.</p>
 <div class="wrap"><table><thead><tr><th>Order</th><th>Customer</th><th>Doors</th><th>Price</th><th>Actions</th></tr></thead><tbody>${orders.map(orderRow).join("") || '<tr><td colspan="5">No orders yet.</td></tr>'}</tbody></table></div>
 <script>document.addEventListener("click",function(e){if(!e.target.classList.contains("copy"))return;var i=e.target.previousElementSibling;i.select();(navigator.clipboard?navigator.clipboard.writeText(i.value):Promise.reject()).catch(function(){document.execCommand("copy")}).finally(function(){e.target.textContent="Copied";setTimeout(function(){e.target.textContent="Copy"},1500)})});</script>
 </body></html>`);
@@ -166,7 +191,7 @@ button{font:inherit;font-weight:600;padding:5px 10px;border-radius:3px;border:1.
 // The buttons on the orders page.
 app.post("/admin/orders/:ref", adminAuth, sameSite, express.urlencoded({ extended: false, limit: "10kb" }), wrap(async (req, res) => {
   const { action } = req.body;
-  let problem = "";
+  let problem = "", sendLink = false;
   const o = await store.update(req.params.ref, (o) => {
     const status = o.status || "new";
     if (action === "quote") {
@@ -177,7 +202,13 @@ app.post("/admin/orders/:ref", adminAuth, sameSite, express.urlencoded({ extende
       o.status = "quoted";
       o.payToken = o.payToken || newToken();
       note(o, `Price confirmed: ${money(o.quote)}`);
+      sendLink = req.body.email === "1";
       return o;
+    }
+    if (action === "resend") {
+      if (status !== "quoted") { problem = "Only orders awaiting payment have a payment link."; return null; }
+      sendLink = true;
+      return null;
     }
     if (action === "paid") {
       return pay.applyPayment(o, { id: "manual-" + Date.now(), method: "bank transfer or cash", amount: o.quote != null ? o.quote : estimatePence(o), at: new Date().toISOString() });
@@ -196,6 +227,10 @@ app.post("/admin/orders/:ref", adminAuth, sameSite, express.urlencoded({ extende
   });
   if (!o) return res.status(404).type("text").send("No order with that reference.");
   if (problem) return res.status(400).type("html").send(`<p style="font:16px system-ui;padding:24px">${esc(problem)} <a href="/admin">Back to orders</a></p>`);
+  if (sendLink) {
+    const ok = await mail(o.ref, `Payment link (${money(o.quote)}) to ${o.customer.email}`, () => email.payLink(o, payLink(o)));
+    if (!ok) return res.redirect(303, "/admin?emailfailed=" + encodeURIComponent(o.ref) + "#" + encodeURIComponent(o.ref));
+  }
   res.redirect(303, "/admin#" + encodeURIComponent(o.ref));
 }));
 

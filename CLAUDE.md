@@ -7,7 +7,8 @@ The work is split into workstreams. **Read `docs/workstreams/README.md` first, t
 ## How the code fits together
 
 - `server.js`: Express server. Static pages from `public/`, `POST /api/orders` (validates every door again with the engine), and password-protected `/admin` (env `ADMIN_PASSWORD`) with order statuses, price confirmation, payment links and a DXF and JSON download per order. Orders are stored by `lib/store.js`: in Render Postgres when `DATABASE_URL` is set, otherwise in `data/orders.json` (wiped on every Render deploy).
-- `lib/payments.js`: Stripe Checkout payment links (`/pay/<ref>?t=<token>`) and the Stripe webhook. Env `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `SITE_URL`. Test with `node scripts/test-payments.js`.
+- `lib/payments.js`: Stripe Checkout payment links (`/pay/<ref>?t=<token>`) and the Stripe webhook. Env `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `SITE_URL`. Test with `npm test`.
+- `lib/email.js`: order emails through Resend (env `RESEND_API_KEY`, optional `EMAIL_FROM`, `EMAIL_ADMIN`): new order to Tim and to the customer, payment link to the customer, paid notice to Tim. Each send is noted in the order's history; a failed email never blocks an order.
 - `public/js/engine.js`: **the single source of truth for doors.** It works in the browser (`window.PivotEngine`) and in Node. It holds the design recipes, size limits, provisional prices, SVG preview and R12 DXF writer. The configurator, the server and the scripts all use it, so a recipe change shows up everywhere.
 - `public/configurator.html` + `public/js/configurator.js` + `public/css/configurator.css`: the customer configurator. `?test` in the URL shows a Download test DXF button.
 - `public/index.html`, `story.html`, `contact.html`, `404.html` + `public/css/site.css`: site pages. The header and footer are repeated in each page, so change all of them.

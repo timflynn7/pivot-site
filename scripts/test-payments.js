@@ -36,6 +36,20 @@ Object.assign(process.env, {
   SITE_URL: BASE, DATA_DIR: fs.mkdtempSync(path.join(os.tmpdir(), "pivot-test-")), DATABASE_URL: process.env.TEST_DATABASE_URL || ""
 });
 if (!process.env.DATABASE_URL) delete process.env.DATABASE_URL;
+// Catch emails on their way to Resend instead of sending them.
+const emails = [];
+let failNextEmail = false;
+const realFetch = globalThis.fetch;
+globalThis.fetch = async (url, opts = {}) => {
+  if (String(url).startsWith("https://api.resend.com/")) {
+    assert.strictEqual(opts.headers.Authorization, "Bearer re_test_dummy");
+    if (failNextEmail) { failNextEmail = false; return new Response(JSON.stringify({ message: "Domain not verified" }), { status: 403 }); }
+    emails.push({ ...JSON.parse(opts.body), idem: opts.headers["Idempotency-Key"] });
+    return new Response(JSON.stringify({ id: "email_" + emails.length }), { status: 200 });
+  }
+  return realFetch(url, opts);
+};
+process.env.RESEND_API_KEY = "re_test_dummy";
 require("../server.js");
 
 const auth = { Authorization: "Basic " + Buffer.from("tim:pw").toString("base64") };
@@ -139,6 +153,64 @@ async function payPath(ref) {
   assert.strictEqual(dxf.status, 200); assert((await dxf.text()).includes("CUTOUT_EM6"));
   step("DXF still downloads");
 
-  console.log(`\nAll payment tests passed (orders kept in ${process.env.DATABASE_URL ? "Postgres" : "a file"}).`);
+  // ---------- emails ----------
+  const settle = () => new Promise((r) => setTimeout(r, 300));
+  emails.length = 0;
+  const r4 = await req("/api/orders", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({
+    customer: { name: "Mrs <b>Jo</b> Smith", email: "jo@example.com", postcode: "ab1 2cd", address: "1 Test Street", notes: "Line\r\nBreak" },
+    doors: [{ design: "slab", width: 400, height: 700, qty: 1 }]
+  }) });
+  const ref4 = (await r4.json()).ref;
+  await settle();
+  assert.strictEqual(emails.length, 2);
+  const [toTim, toCust] = emails;
+  assert.deepStrictEqual(toTim.to, ["tim@pivotdesigns.co.uk"]);
+  assert(toTim.subject.includes(ref4) && toTim.html.includes("/admin#" + ref4));
+  assert.deepStrictEqual(toCust.to, ["jo@example.com"]);
+  assert.strictEqual(toCust.reply_to, "tim@pivotdesigns.co.uk");
+  assert(toCust.html.includes("&lt;b&gt;Jo&lt;/b&gt;") && !toCust.html.includes("<b>Jo</b>"), "customer text is escaped in emails");
+  assert(!/[\r\n]/.test(toTim.subject) && toTim.text && toCust.text);
+  assert.strictEqual(toCust.idem, "new-customer-" + ref4);
+  step("new order emails Tim and the customer (escaped, with reply-to)");
+
+  emails.length = 0;
+  await admin(ref4, { action: "quote", price: "75" });
+  assert.strictEqual(emails.length, 0);
+  step("Confirm price with the box unticked sends nothing");
+
+  await admin(ref4, { action: "quote", price: "80", email: "1" });
+  assert.strictEqual(emails.length, 1);
+  const pp4 = await payPath(ref4);
+  assert.deepStrictEqual(emails[0].to, ["jo@example.com"]);
+  assert(emails[0].subject.includes("£80.00") && emails[0].html.includes(BASE + pp4.replace(/&/g, "&amp;")) && emails[0].text.includes(BASE + pp4));
+  step("Confirm price with the box ticked emails the payment link");
+
+  await admin(ref4, { action: "resend" });
+  assert.strictEqual(emails.length, 2);
+  failNextEmail = true;
+  const bad = await admin(ref4, { action: "resend" });
+  assert(bad.headers.get("location").includes("emailfailed=" + ref4));
+  o = await spec(ref4);
+  assert(o.history.some((h) => h.what.startsWith("Email FAILED") && h.what.includes("Domain not verified")));
+  assert((await (await req("/admin?emailfailed=" + ref4, { headers: auth })).text()).includes("didn't send"));
+  step("Resend payment link works; a failed email shows on /admin and in History");
+
+  emails.length = 0;
+  const sid4 = (await req(pp4, { method: "POST" })).headers.get("location").split("/").pop();
+  sessions[sid4].payment_status = "paid";
+  await webhook(sessions[sid4]); await webhook(sessions[sid4]);
+  await req(`/pay/${ref4}/done?t=${pp4.split("t=")[1]}&s=${sid4}`);
+  await settle();
+  assert.strictEqual(emails.length, 1, "one paid notice, however many times Stripe reports it");
+  assert(emails[0].subject.startsWith("Paid: " + ref4) && emails[0].to[0] === "tim@pivotdesigns.co.uk");
+  step("paid order emails Tim once");
+
+  emails.length = 0;
+  const ref5 = await newOrder(); await settle(); emails.length = 0;
+  await admin(ref5, { action: "paid" }); await settle();
+  assert.strictEqual(emails.length, 0);
+  step("Mark paid (bank transfer) sends no email");
+
+  console.log(`\nAll payment and email tests passed (orders kept in ${process.env.DATABASE_URL ? "Postgres" : "a file"}).`);
   process.exit(0);
 })().catch((e) => { console.error(e); process.exit(1); });

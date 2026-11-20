@@ -26,6 +26,9 @@ services:
         sync: false
       - key: STRIPE_WEBHOOK_SECRET
         sync: false
+      # Order emails through Resend (resend.com). Without it, emails are switched off.
+      - key: RESEND_API_KEY
+        sync: false
 
 databases:
   # Orders database, about £6 a month. Only the site can reach it (no outside access).
