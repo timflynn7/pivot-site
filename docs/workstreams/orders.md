@@ -4,7 +4,7 @@
 Order requests are stored safely, Tim is emailed for each one, and customers pay online.
 
 ## Status (20 Nov 2026)
-Built on branch `claude/pensive-allen-pw9ud8` and tested locally. **Not merged to `main` and not live yet.**
+**Merged to `main` and live on 20 Nov 2026** (Stripe in test mode). Waiting on Tim: check the Blueprint created the database, add the webhook, make a test payment.
 
 - **Storage** (`lib/store.js`): orders go in Render Postgres when `DATABASE_URL` is set, otherwise in `data/orders.json` as before. Each order is one row, kept whole as JSON (`orders` table: `ref`, `created`, `data`), so new order fields need no database change.
 - **Statuses**: new → quoted → paid → cut → dispatched (or cancelled). Prices are kept in pence: `quote` is the confirmed price, `totals` is the configurator's estimate.
@@ -30,7 +30,7 @@ Built on branch `claude/pensive-allen-pw9ud8` and tested locally. **Not merged t
 ## Going live (Tim's steps; not done yet)
 1. **Create a Stripe account** at stripe.com: Start now, use tim@pivotdesigns.co.uk, then fill in the business details (sole trader or limited company, bank account for payouts). Test mode works before the account is fully verified.
 2. In Stripe (test mode on): **Developers → API keys**, and copy the **Secret key** (`sk_test_…`).
-3. **Merge the branch into `main`.** Render then deploys, and the Blueprint sync creates the database (the £6 starts here). If Render asks for `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET`, paste the test secret key and leave the webhook secret for step 4. If the database doesn't appear, go to Render → Blueprints → pivot-site → **Manual sync**.
+3. **(Done 20 Nov.) Merge the branch into `main`.** Render then deploys, and the Blueprint sync creates the database (the £6 starts here). If Render asks for `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET`, paste the test secret key and leave the webhook secret for step 4. If the database doesn't appear, go to Render → Blueprints → pivot-site → **Manual sync**.
 4. In Stripe: **Developers → Webhooks → Add endpoint**, URL `https://pivotdesigns.co.uk/api/stripe/webhook`, events `checkout.session.completed` and `checkout.session.async_payment_succeeded`. Copy its **Signing secret** (`whsec_…`) into Render → pivot-site → Environment → `STRIPE_WEBHOOK_SECRET`, then save (it redeploys).
 5. Test: send an order from the configurator, confirm the price on `/admin`, open the link, and pay with Stripe's test card `4242 4242 4242 4242` (any future date, any CVC). Check the order turns *Paid*.
 6. Go live: in Stripe, switch off test mode. Create a **restricted key** (Developers → API keys → Create restricted key, Checkout Sessions: Write, everything else None) and a **live** webhook (step 4 again), and replace both values in Render. The admin page says whether payments are in test mode or live.
