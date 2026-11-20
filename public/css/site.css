@@ -132,3 +132,10 @@ section.tight { padding-block: clamp(36px, 6vw, 64px); }
 .legal mark { background: #F3E6C8; color: inherit; padding: 0 3px; border-radius: 2px; }
 .legal .updated { color: var(--muted); font-size: var(--step--1); margin-top: 1rem; }
 .form-terms { color: var(--muted); font-size: var(--step--1); }
+
+/* Home page questions */
+.faq { display: grid; gap: 8px; max-width: 760px; }
+.faq details { background: var(--paper); border: 1px solid var(--line); border-radius: 3px; padding: 14px 18px; }
+.faq summary { cursor: pointer; font-weight: 600; }
+.faq details[open] summary { margin-bottom: 8px; }
+.faq p { color: #333833; }
