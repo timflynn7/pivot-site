@@ -10,9 +10,10 @@ const os = require("os");
 const fs = require("fs");
 const path = require("path");
 
-const realStripe = require("stripe")("sk_test_dummy");
+const RealStripe = require("stripe");
+const realStripe = new RealStripe("sk_test_dummy");
 const sessions = {};
-const fakeStripe = () => ({
+function fakeStripe() { return {
   checkout: {
     sessions: {
       async create(p) {
@@ -24,7 +25,7 @@ const fakeStripe = () => ({
     }
   },
   webhooks: realStripe.webhooks
-});
+}; }
 require.cache[require.resolve("stripe")] = { id: "stripe", filename: "stripe", loaded: true, exports: fakeStripe };
 
 const PORT = 4000 + Math.floor(Math.random() * 1000);
@@ -95,6 +96,7 @@ async function payPath(ref) {
   assert.strictEqual(s.params.line_items[0].price_data.currency, "gbp");
   assert.strictEqual(s.params.metadata.ref, ref);
   assert.strictEqual(s.params.customer_email, "test@example.com");
+  assert.strictEqual(s.params.payment_method_types, undefined); // chosen in the Stripe dashboard
   step("Pay button opens a Stripe Checkout page for £123.45 GBP");
 
   s.payment_status = "paid";

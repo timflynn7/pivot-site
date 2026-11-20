@@ -8,7 +8,7 @@ Built on branch `claude/pensive-allen-pw9ud8` and tested locally. **Not merged t
 
 - **Storage** (`lib/store.js`): orders go in Render Postgres when `DATABASE_URL` is set, otherwise in `data/orders.json` as before. Each order is one row, kept whole as JSON (`orders` table: `ref`, `created`, `data`), so new order fields need no database change.
 - **Statuses**: new → quoted → paid → cut → dispatched (or cancelled). Prices are kept in pence: `quote` is the confirmed price, `totals` is the configurator's estimate.
-- **Payments** (`lib/payments.js`): Stripe Checkout, cards with Apple Pay and Google Pay.
+- **Payments** (`lib/payments.js`): Stripe Checkout (stripe-node 23). Which payment methods appear (card, Apple Pay, Google Pay, PayPal…) is set in the Stripe dashboard, not in code, as Stripe recommends.
   1. The customer sends a request. It's saved as *new* with a secret `payToken`.
   2. On `/admin`, Tim checks it, edits the price if needed and clicks **Confirm price**. The order becomes *quoted* and the page shows the payment link `/pay/<ref>?t=<token>` with a Copy button.
   3. Tim emails the link himself (there's no automatic email yet). The customer sees the order and the price and clicks Pay. Each click makes a fresh 2-hour Checkout Session, so the link never expires.
@@ -21,7 +21,10 @@ Built on branch `claude/pensive-allen-pw9ud8` and tested locally. **Not merged t
 ## Decisions
 - Tim chose **pay link after quote**: no payment at checkout while prices are provisional. Tim confirms every order before the customer can pay.
 - Tim approved the Render Postgres database (about £6 a month).
-- Payment methods: cards, Apple Pay and Google Pay only, for now (`payment_method_types: ["card"]`). No PayPal, Klarna or bank details on the pay page yet.
+- Payment methods: cards, Apple Pay and Google Pay for now. Tim switches them on and off in Stripe → Settings → Payment methods; the code doesn't list them (no `payment_method_types`).
+- **Not VAT-registered (20 Nov 2026), so no VAT is charged and Stripe Tax is off.** If Tim registers later: prices must be shown VAT-inclusive, add `automatic_tax` to the Checkout Session with inclusive prices and a shipping tax code, and add the VAT registration in Stripe Tax first (read the Stripe plugin's tax reference before switching it on). Whether to absorb VAT or raise prices is a business-workstream decision.
+- For live payments, use a **restricted key** (`rk_live_…`) with only Checkout Sessions: Write, instead of the full secret key.
+- Render bills in US dollars: the database is $6 a month (about £4.70), charged to the card on Tim's Render account and worked out by the second.
 - Stripe Connect for trade customers later (see the Trade Portal Plan).
 
 ## Going live (Tim's steps; not done yet)
@@ -30,8 +33,8 @@ Built on branch `claude/pensive-allen-pw9ud8` and tested locally. **Not merged t
 3. **Merge the branch into `main`.** Render then deploys, and the Blueprint sync creates the database (the £6 starts here). If Render asks for `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET`, paste the test secret key and leave the webhook secret for step 4. If the database doesn't appear, go to Render → Blueprints → pivot-site → **Manual sync**.
 4. In Stripe: **Developers → Webhooks → Add endpoint**, URL `https://pivotdesigns.co.uk/api/stripe/webhook`, events `checkout.session.completed` and `checkout.session.async_payment_succeeded`. Copy its **Signing secret** (`whsec_…`) into Render → pivot-site → Environment → `STRIPE_WEBHOOK_SECRET`, then save (it redeploys).
 5. Test: send an order from the configurator, confirm the price on `/admin`, open the link, and pay with Stripe's test card `4242 4242 4242 4242` (any future date, any CVC). Check the order turns *Paid*.
-6. Go live: in Stripe, switch off test mode, then repeat steps 2 and 4 with the **live** key and a **live** webhook, and replace both values in Render. The admin page says whether payments are in test mode or live.
-7. In Stripe **Settings → Payment methods**, check Apple Pay and Google Pay are on. Under **Settings → Emails**, turn on receipts for successful payments.
+6. Go live: in Stripe, switch off test mode. Create a **restricted key** (Developers → API keys → Create restricted key, Checkout Sessions: Write, everything else None) and a **live** webhook (step 4 again), and replace both values in Render. The admin page says whether payments are in test mode or live.
+7. In Stripe **Settings → Payment methods**, leave Cards, Apple Pay and Google Pay on and switch off anything you don't want (Link, Klarna, etc.). Under **Settings → Emails**, turn on receipts for successful payments.
 
 ## Next tasks
 1. Tim: the going-live steps above.
