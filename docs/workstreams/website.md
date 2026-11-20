@@ -26,7 +26,8 @@ A site that makes a visitor want to order: clear about what Pivot makes, shows t
 2. AI render prompts for the designs with no photos, using the engine's preview drawings as reference images. Tim generates them in an image tool (ChatGPT, Gemini, Firefly, Midjourney).
 3. Design pages (one per design, or a gallery) linking into the configurator with that design selected (e.g. `/configurator?design=victorian`, not built yet).
 4. Real story copy once Tim provides the facts.
-5. Privacy policy page, needed because the order form collects names and addresses (see business.md).
+5. **Terms and privacy pages: drafted 20 Nov 2026** (`public/terms.html`, `public/privacy.html`). They're linked from every footer, the order form, the pay page and the emails. They're **on the branch only, not on `main`**, until Tim fills the highlighted `<mark>` facts: legal identity (sole trader or Ltd), business address, finish (bare MDF?), size tolerance, delivery area, damage-report window, refund if cancelled after payment but before cutting, record retention, and the last-updated date. The terms are based on UK law (CCR 2013 reg 28(1)(b) made-to-measure exemption, CRA 2015 remedies) and still need checking against Tim's Etsy shop policies. Etsy blocks automated reading (bot protection), so Tim needs to paste the policies and About text, and upload original photos.
+   Remove all `<mark>` tags before merging.
 6. Basic SEO: page titles and descriptions, Google Business Profile link, a sitemap. Remove `noindex` from the configurator when it's ready.
 
 ## Key files
