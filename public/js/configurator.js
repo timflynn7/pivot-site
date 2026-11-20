@@ -151,7 +151,7 @@
       const data = await r.json().catch(() => ({}));
       if (!r.ok) throw new Error(data.error || "Something went wrong. Please try again, or email tim@pivotdesigns.co.uk.");
       msg.className = "send-msg ok";
-      msg.textContent = `Thank you. Your order request ${data.ref} has been sent. We'll email you to confirm the price and lead time.`;
+      msg.textContent = `Thank you. Your order request ${data.ref} has been sent. We'll email you to confirm the price and lead time, with a link to pay securely online.`;
       list = []; saveList(); renderList();
     } catch (err) {
       msg.className = "send-msg bad"; msg.textContent = err.message;
