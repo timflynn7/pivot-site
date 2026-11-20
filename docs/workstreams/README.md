@@ -8,7 +8,7 @@ Each workstream has its own brief. Work on one per Claude session, and update it
 | 2 | Visualiser | [visualiser.md](visualiser.md) | Not started |
 | 3 | Door designs and DXF engine | [designs.md](designs.md) | **Active.** 18 drafts; moulding and round-over designs need rework |
 | 3a | Toolpath lab: moulding toolpath and round-over bits | [toolpath-lab.md](toolpath-lab.md) | **Active.** Proven settings go back into designs.md |
-| 4 | Orders and payments | [orders.md](orders.md) | Test version only |
+| 4 | Orders and payments | [orders.md](orders.md) | **Active.** Database and Stripe payment links built on a branch; Tim to set up Stripe, then merge |
 | 5 | Business setup | [business.md](business.md) | Open questions |
 | 6 | Trade portal | [trade-portal.md](trade-portal.md) | Later |
 
