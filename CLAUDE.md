@@ -14,17 +14,18 @@ The work is split into workstreams. **Read `docs/workstreams/README.md` first, t
 - `public/index.html`, `story.html`, `contact.html`, `404.html` + `public/css/site.css`: site pages. The header and footer are repeated in each page, so change all of them.
 - `scripts/sample-dxf.js`: writes one full-size test DXF per design plus one combined file.
 - `scripts/test-board-dxf.js`: writes one 1220 x 500 mm offcut board with the draft designs, hand-placed, with full-size details.
-- Hosting: Render web service `pivot-site` (Starter plan) deploys automatically from `main` within about a minute. Domain DNS is at 123-reg: the A record for `@` points to 216.24.57.1, and `www` is a CNAME to `pivot-site.onrender.com`. **Never touch the MX, SPF, DKIM, DMARC or autodiscover records;** they carry Tim's email.
+- Hosting: Render web service `pivot-site` (Starter plan) deploys automatically from `main` within about a minute. Domain DNS is at 123-reg: the A record for `@` points to 216.24.57.1, and `www` is a CNAME to `pivot-site.onrender.com`. **Never touch the MX, SPF, DKIM, DMARC or autodiscover records;** they carry Tim's email. Resend's records (`resend._domainkey`, `rsend`, `send`) were added on 20 Nov 2026 for order emails.
+- Public business address (terms, privacy): 61 Bridge Street, Kington, HR5 3DJ. **Never publish Tim's home address.**
 
 ## Decisions that hold everywhere
 
-- Doors are 18 mm MDF only. Sizes are in mm. Customer limits are 300–600 mm wide and 300–1150 mm tall (the machine works up to 1200 mm).
-- Hinge holes are drilled by hand. The configurator records side and count, which go on the DXF LABELS layer only, with no back-side machining.
+- Doors are 18 mm MDF only. Sizes are in mm. Customer limits are 300–1000 mm wide and 300–1200 mm tall (the machine takes 1200 × 1200 sheets; 1000 × 1200 is the largest that can be held down safely).
+- Hinge holes (35 mm cups, 22.5 mm from the edge, 100 mm from top and bottom) are offered as a service and drilled by hand. The configurator records side and count, which go on the DXF LABELS layer only, with no back-side machining.
 - One DXF per order, in mm, with parts spread apart for VCarve to nest. Each toolpath has its own layer named by tool and depth (e.g. `POCKET_EM6_D8`). Plus `CUTOUT_EM6` (outline), `LABELS`, and grooves overcut 10 mm past the edge where they run off the door.
 - **Tooling in `TOOLS` (top of engine.js) is placeholder** until Tim's test cuts confirm bits, depths and layer names.
 - Customer rules: complex or statement designs are size only; shaker types can adjust borders and rails; flutes, reeds and grooves can adjust spacing but not groove size (set by the bit).
 - Order requests save a door spec (design, version, sizes, options), and the DXF is made from the spec, so it can be made again.
-- Prices are provisional, by size band (£30 / £40 / £60), with delivery £10 for the first door and £5 each extra. The plan is to price by machining time.
+- Prices are provisional, by size band (£30 / £40 / £60, plus Extra large £80 up to 1000 × 1200 mm, a placeholder Tim hasn't set), with delivery £10 for the first door and £5 each extra. The plan is to price by machining time.
 - The trade portal (white-label quoting for fitters) is planned for later. See the Trade Portal Plan.
 
 ## Working style

@@ -21,17 +21,18 @@ A site that makes a visitor want to order: clear about what Pivot makes, shows t
 - Should each design get its own page (photos, description, starting price, "design this door" button)?
 - Customer reviews or testimonials to use (Etsy has 5.0 from 4 reviews).
 
-## Inconsistencies flagged to Tim (20 Nov 2026)
-- **Max sizes differ**: website 300–600 × 300–1150 mm; Etsy listing says "any size up to 700 × 1200 mm" and the Etsy FAQ says "up to 1000 × 1200 mm". The site FAQ uses the website limits plus "ask for bigger".
-- **Hinge holes**: Etsy says hinge holes aren't drilled, but the configurator asks for hinge side and count, and CLAUDE.md says they're drilled by hand. Decide which, then align the configurator, FAQ and Etsy.
-- Etsy photos still needed (originals, and which are real photos vs renders).
+## Decisions (20 Nov 2026, resolved from Etsy differences)
+- Website size limits are now 300–1000 × 300–1200 mm (engine `LIMITS`). The machine takes 1200 × 1200 sheets, and 1000 × 1200 is the largest Tim can hold down. Etsy's 600 × 1150 figures are just his pricing buckets. A provisional **Extra large £80** band covers anything over 600 × 1150; Tim to set the real price.
+- Hinge holes are advertised as a service (FAQ, terms section 2).
+- Business address for the legal pages: 61 Bridge Street, Kington, HR5 3DJ. Never the home address.
+- Etsy photos are still needed (originals, and which are real photos vs renders).
 
 ## Next tasks
 1. Content plan per page: purpose, sections, copy, photos, and where AI renders are needed.
 2. AI render prompts for the designs with no photos, using the engine's preview drawings as reference images. Tim generates them in an image tool (ChatGPT, Gemini, Firefly, Midjourney).
 3. Design pages (one per design, or a gallery) linking into the configurator with that design selected (e.g. `/configurator?design=victorian`, not built yet).
 4. Real story copy once Tim provides the facts.
-5. **Terms and privacy pages: written 20 Nov 2026** (`public/terms.html`, `public/privacy.html`), with Tim's answers: sole trader; bare MDF; ±1 mm; mainland GB (other areas ask first); check on delivery and report transit damage within 48 hours with photos, with no transport-damage claims once doors are painted, cut, drilled or fitted (statutory rights for hidden faults kept); cancel after payment before cutting = refund less reasonable costs, capped at 50%; prices valid 30 days and can be withdrawn before payment; unpaid requests archived after 30 days, deleted after 2 years. Linked from every footer, the order form, the pay page and the emails. **On the branch, waiting for Tim to choose the published address**: his home address is in the pages, but he'd prefer a business address service (the E-Commerce Regulations and CCR require a geographic address; a PO box isn't enough). Swap it in `terms.html` section 1 and `privacy.html` if he gets one.
+5. **Terms and privacy pages: written 20 Nov 2026** (`public/terms.html`, `public/privacy.html`), with Tim's answers: sole trader; bare MDF; ±1 mm; mainland GB (other areas ask first); check on delivery and report transit damage within 48 hours with photos, with no transport-damage claims once doors are painted, cut, drilled or fitted (statutory rights for hidden faults kept); cancel after payment before cutting = refund less reasonable costs, capped at 50%; prices valid 30 days and can be withdrawn before payment; unpaid requests archived after 30 days, deleted after 2 years. Linked from every footer, the order form, the pay page and the emails. Published address: 61 Bridge Street, Kington, HR5 3DJ (a geographic address is legally required; a PO box isn't enough).
 6. Basic SEO: page titles and descriptions, Google Business Profile link, a sitemap. Remove `noindex` from the configurator when it's ready.
 
 ## Key files
