@@ -8,7 +8,7 @@
   "scripts": {
     "start": "node server.js",
     "sample-dxf": "node scripts/sample-dxf.js",
-    "test": "node scripts/test-payments.js"
+    "test": "node scripts/test.js"
   },
   "engines": {
     "node": ">=20"

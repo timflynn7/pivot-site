@@ -15,8 +15,16 @@ Order requests are stored safely, Tim is emailed for each one, and customers pay
   4. The webhook `POST /api/stripe/webhook` (signature checked) marks the order *paid*. The thank-you page `/pay/<ref>/done` also checks with Stripe, in case the webhook is slow. A payment is recorded only once.
   5. **Mark paid (not Stripe)** on `/admin` records a bank transfer or cash payment.
 - **Admin safety**: the buttons only work from the admin page itself (an Origin check), and the Spec download leaves out the pay token.
-- **Tests**: `node scripts/test-payments.js` covers the whole flow with a stand-in for Stripe's servers and Stripe's real signature check. `TEST_DATABASE_URL=postgres://… node scripts/test-payments.js` runs the same tests against Postgres. Both pass.
+- **Tests**: `npm test` (`scripts/test.js`) covers the whole flow, including emails, refunds and the admin pages, with a stand-in for Stripe's servers and Stripe's real signature check. `TEST_DATABASE_URL=postgres://… npm test` runs the same tests against Postgres. Both pass.
 - **`render.yaml`** now declares the `pivot-orders` database (basic-256mb, about £6 a month, Frankfurt, no outside access), plus `DATABASE_URL`, `SITE_URL`, `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET`. The Stripe values are entered in Render, never in the repo.
+
+## Admin workflow (rebuilt 20 Nov 2026)
+- **No admin button emails a customer by itself.** Confirm price, Mark paid, Mark dispatched and Stripe refunds set `pendingEmail` (paylink, paid, dispatched or refunded) and show a red **Action required** flag, plus a **Needs action** list at the top of /admin. Confirm price, Mark paid and Mark dispatched then open `/admin/orders/<ref>/email?kind=…`. There Tim edits the subject and message, presses **Update preview** (a sandboxed iframe shows the exact email), then **Send email**, **Not now** (the flag stays) or **No email needed** (clears the flag). There's also **Email customer…** for a free-form message any time. Each send uses a nonce idempotency key, so a double click doesn't send twice.
+- The automatic emails, all triggered by the customer, are: request received (to customer and Tim) and paid by card (to customer and Tim).
+- **Refund tracking:** the Stripe `charge.refunded` webhook finds the order by payment intent (`store.findByPayment`) and records `refund.amount`. A full refund sets the status to `refunded`; a part refund keeps the status and notes the amount. Either way it flags a refund email. **Tim must add the `charge.refunded` event to the live webhook destination in Stripe.**
+- **Delete:** `/admin/orders/<ref>/delete`. Unpaid orders need one click; paid ones need the reference typed, with a warning about keeping sales records for 6 years.
+- **New order (Tim creates one):** the **+ New order** button opens `/configurator?admin`, which uses a separate saved door list, shows a yellow bar and posts to `/admin/orders` (basic auth plus a same-site check). The order is created with `source: "admin"` and no emails; then Tim continues with Confirm price. A built-in **How this page works** guide on /admin covers all the workflows.
+- Archived = cancelled, refunded, or expired price, unless the order still needs action.
 
 ## Decisions
 - Tim chose **pay link after quote**: no payment at checkout while prices are provisional. Tim confirms every order before the customer can pay.
@@ -48,4 +56,4 @@ Order requests are stored safely, Tim is emailed for each one, and customers pay
 5. Optional: database backups or export from `/admin` (Render basic plans keep daily backups).
 
 ## Key files
-`server.js`, `lib/store.js`, `lib/payments.js`, `scripts/test-payments.js`, `render.yaml`.
+`server.js`, `lib/orders.js`, `lib/admin.js`, `lib/store.js`, `lib/payments.js`, `lib/email.js`, `scripts/test.js`, `render.yaml`.

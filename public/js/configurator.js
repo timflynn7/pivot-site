@@ -11,8 +11,12 @@
   for (const d of E.DESIGNS) { state.opts[d.id] = {}; for (const o of d.opts) state.opts[d.id][o.key] = o.def; }
 
   let list = [];
-  try { const saved = JSON.parse(localStorage.getItem("pivot-door-list") || "[]"); if (Array.isArray(saved)) list = saved.map((d) => E.normalizeDoor(d)).filter((r) => !Object.keys(r.errors).length).map((r) => r.door); } catch (e) { list = []; }
-  const saveList = () => { try { localStorage.setItem("pivot-door-list", JSON.stringify(list)); } catch (e) { /* private window */ } };
+  // /configurator?admin: Tim creating an order for a customer (from /admin → New order).
+  // It posts to the password-protected /admin/orders and sends the customer nothing.
+  const ADMIN = new URLSearchParams(location.search).has("admin");
+  const LIST_KEY = ADMIN ? "pivot-door-list-admin" : "pivot-door-list";
+  try { const saved = JSON.parse(localStorage.getItem(LIST_KEY) || "[]"); if (Array.isArray(saved)) list = saved.map((d) => E.normalizeDoor(d)).filter((r) => !Object.keys(r.errors).length).map((r) => r.door); } catch (e) { list = []; }
+  const saveList = () => { try { localStorage.setItem(LIST_KEY, JSON.stringify(list)); } catch (e) { /* private window */ } };
 
   const current = () => E.normalizeDoor({ design: state.design, width: state.width, height: state.height, opts: state.opts[state.design], hingeSide: state.hingeSide, hingeCount: state.hingeCount, name: state.name, qty: state.qty });
 
@@ -147,9 +151,11 @@
     if (!list.length) { msg.className = "send-msg bad"; msg.textContent = "Add at least one door to your list first."; return; }
     $("sendBtn").disabled = true; msg.className = "send-msg"; msg.textContent = "Sending…";
     try {
-      const r = await fetch("/api/orders", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ customer, doors: list }) });
+      const r = await fetch(ADMIN ? "/admin/orders" : "/api/orders", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ customer, doors: list }) });
+      if (ADMIN && (r.status === 401 || r.status === 403)) throw new Error("You're not signed in to the orders page. Open /admin in this browser, sign in, then try again.");
       const data = await r.json().catch(() => ({}));
       if (!r.ok) throw new Error(data.error || "Something went wrong. Please try again, or email tim@pivotdesigns.co.uk.");
+      if (ADMIN) { list = []; saveList(); location.href = "/admin?created=" + encodeURIComponent(data.ref) + "#" + encodeURIComponent(data.ref); return; }
       msg.className = "send-msg ok";
       msg.textContent = `Thank you. Your order request ${data.ref} has been sent. We'll email you to confirm the price and lead time, with a link to pay securely online.`;
       list = []; saveList(); renderList();
@@ -158,6 +164,15 @@
       $("sendBtn").disabled = false;
     }
   });
+
+  if (ADMIN) {
+    const bar = document.createElement("div");
+    bar.className = "admin-bar";
+    bar.innerHTML = '<b>Creating an order for a customer.</b> Enter their doors and details, then press Create order. It goes straight to your orders page as a new request, and the customer is <b>not</b> emailed. <a href="/admin">Back to orders</a>';
+    document.querySelector("main").prepend(bar);
+    $("sendH").textContent = "Customer details";
+    $("sendBtn").textContent = "Create order";
+  }
 
   renderDesigns(); renderOpts(); update(); renderList();
 })();
