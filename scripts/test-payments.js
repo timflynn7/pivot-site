@@ -217,6 +217,31 @@ async function payPath(ref) {
   assert.strictEqual(emails.length, 1);
   step("Mark paid (bank transfer) emails the customer once, and not Tim");
 
+  // ---------- note to customer, and dispatch ----------
+  const ref6 = await newOrder(); await settle(); emails.length = 0;
+  await admin(ref6, { action: "quote", price: "60", email: "1", note: "Ready within 2 weeks.\r\nCall first: <gate code 12>" });
+  o = await spec(ref6);
+  assert.strictEqual(o.quoteNote, "Ready within 2 weeks.\nCall first: <gate code 12>");
+  assert(emails[0].html.includes("Ready within 2 weeks.\nCall first: &lt;gate code 12&gt;") && emails[0].text.includes("Call first: <gate code 12>"));
+  const pp6 = await payPath(ref6);
+  assert((await (await req(pp6)).text()).includes("Call first: &lt;gate code 12&gt;"));
+  step("note to customer: saved, escaped, in the payment email and on the pay page");
+
+  assert.strictEqual((await admin(ref6, { action: "dispatch" })).status, 400);
+  await admin(ref6, { action: "paid" }); await settle(); emails.length = 0;
+  await admin(ref6, { action: "dispatch", note: "DPD 1550123", email: "1" }); await settle();
+  o = await spec(ref6);
+  assert.strictEqual(o.status, "dispatched"); assert.strictEqual(o.dispatchNote, "DPD 1550123");
+  assert.strictEqual(emails.length, 1);
+  assert(emails[0].subject.includes("on its way") && emails[0].html.includes("DPD 1550123") && emails[0].to[0] === "test@example.com");
+  assert((await (await req("/admin", { headers: auth })).text()).includes("DPD 1550123"));
+  step("Mark dispatched: only once paid, saves the note, emails the customer");
+
+  const ref7 = await newOrder(); await admin(ref7, { action: "paid" }); await settle(); emails.length = 0;
+  await admin(ref7, { action: "dispatch" }); await settle();
+  assert.strictEqual((await spec(ref7)).status, "dispatched"); assert.strictEqual(emails.length, 0);
+  step("Mark dispatched with the box unticked sends nothing");
+
   console.log(`\nAll payment and email tests passed (orders kept in ${process.env.DATABASE_URL ? "Postgres" : "a file"}).`);
   process.exit(0);
 })().catch((e) => { console.error(e); process.exit(1); });

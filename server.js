@@ -146,6 +146,7 @@ function orderRow(o) {
     ? `<form method="post" action="${act}" class="f"><input type="hidden" name="action" value="quote">
         <label>Price £ <input name="price" inputmode="decimal" value="${(price / 100).toFixed(2)}" size="7" aria-label="Price for ${esc(o.ref)} in pounds"></label>
         <button>${status === "new" ? "Confirm price" : "Change price"}</button>
+        <label class="m tick col">Note to customer (optional, goes in the payment email and page)<textarea name="note" rows="2" maxlength="600" placeholder="e.g. Ready to dispatch within 2 weeks of payment.">${esc(o.quoteNote || "")}</textarea></label>
         <label class="m tick"><input type="checkbox" name="email" value="1" checked> Email the payment link to the customer</label></form>`
     : "";
   const link = status === "quoted"
@@ -156,6 +157,13 @@ function orderRow(o) {
   const markPaid = status === "new" || status === "quoted"
     ? `<form method="post" action="${act}" class="f" onsubmit="return confirm('Mark ${esc(o.ref)} as paid by bank transfer or cash?')"><input type="hidden" name="action" value="paid"><button class="ghost">Mark paid (not Stripe)</button></form>`
     : "";
+  const dispatchForm = status === "paid" || status === "cut"
+    ? `<form method="post" action="${act}" class="f"><input type="hidden" name="action" value="dispatch">
+        <label class="m tick col">Delivery note (optional, e.g. courier and tracking number)<textarea name="note" rows="2" maxlength="600" placeholder="e.g. Sent with DPD, tracking 15501234567890."></textarea></label>
+        <button>Mark dispatched</button>
+        <label class="m tick"><input type="checkbox" name="email" value="1" checked> Email the customer that it's on its way</label></form>`
+    : "";
+  const dispatched = o.dispatchedAt ? `<p class="m">Dispatched ${esc(new Date(o.dispatchedAt).toLocaleString("en-GB", { timeZone: "Europe/London", dateStyle: "short", timeStyle: "short" }))}${o.dispatchNote ? ": " + esc(o.dispatchNote) : ""}</p>` : "";
   const statusForm = `<form method="post" action="${act}" class="f"><input type="hidden" name="action" value="status">
       <select name="status" aria-label="Status of ${esc(o.ref)}">${STATUSES.filter((s) => s !== "paid" || status === "paid").map((s) => `<option value="${s}"${s === status ? " selected" : ""}>${STATUS_TEXT[s]}</option>`).join("")}</select>
       <button class="ghost">Save</button></form>`;
@@ -168,7 +176,7 @@ function orderRow(o) {
     <td>${o.doors.map((d, i) => `${i + 1}. ${d.qty} × ${esc(E.designById(d.design).name)} ${d.width} × ${d.height}${d.name ? " (" + esc(d.name) + ")" : ""}<br><span class="m">${esc(E.describe(d))}</span>`).join("<br>")}${o.customer.notes ? `<p class="m">Notes: ${esc(o.customer.notes)}</p>` : ""}
       <p><a class="b" href="/admin/orders/${ref}.dxf">DXF</a> <a href="/admin/orders/${ref}.json">Spec</a></p></td>
     <td class="n">Estimate ${money(estimatePence(o))}${o.quote != null ? `<br><b>Price ${money(o.quote)}</b>` : ""}</td>
-    <td class="acts">${priceBox}${link}${paid}${markPaid}${statusForm}${history}</td></tr>`;
+    <td class="acts">${priceBox}${link}${paid}${markPaid}${dispatchForm}${dispatched}${statusForm}${history}</td></tr>`;
 }
 
 app.get("/admin", adminAuth, wrap(async (req, res) => {
@@ -181,7 +189,7 @@ app.get("/admin", adminAuth, wrap(async (req, res) => {
 .tag{display:inline-block;margin-top:4px;font-size:12px;font-weight:600;padding:2px 8px;border-radius:10px;background:#E3E8E2;color:#33443A}.s-new .tag{background:#F3E6C8;color:#6B4E1E}.s-paid .tag{background:#4B5F51;color:#fff}.s-cancelled{opacity:.6}
 .acts{min-width:260px}.f{margin:0 0 8px;display:flex;gap:6px;flex-wrap:wrap;align-items:center}.f input,.f select{font:inherit;padding:4px 6px;border:1px solid #BDB8AC;border-radius:3px}
 button{font:inherit;font-weight:600;padding:5px 10px;border-radius:3px;border:1.5px solid #4B5F51;background:#4B5F51;color:#fff;cursor:pointer}button.ghost,.copy{background:#fff;color:#4B5F51}
-.tick{display:flex;gap:4px;align-items:center;flex-basis:100%}details ul{margin:4px 0;padding-left:18px}li.bad,p.bad{color:#9B2C1F;font-weight:600}.link{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:0 0 8px}.link input{flex:1 1 200px;font:13px ui-monospace,monospace;padding:4px 6px;border:1px solid #BDB8AC;border-radius:3px}</style></head>
+.tick{display:flex;gap:4px;align-items:center;flex-basis:100%}.tick.col{flex-direction:column;align-items:stretch}.tick textarea{font:inherit;font-size:14px;padding:4px 6px;border:1px solid #BDB8AC;border-radius:3px;resize:vertical}details ul{margin:4px 0;padding-left:18px}li.bad,p.bad{color:#9B2C1F;font-weight:600}.link{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:0 0 8px}.link input{flex:1 1 200px;font:13px ui-monospace,monospace;padding:4px 6px;border:1px solid #BDB8AC;border-radius:3px}</style></head>
 <body><h1>Orders</h1><p class="m">${orders.length} order${orders.length === 1 ? "" : "s"}, newest first.${counts.length ? " " + counts.map(([s, n]) => `${n} ${STATUS_TEXT[s].toLowerCase()}`).join(" · ") : ""}</p>
 <p class="m">${payState} ${email.enabled() ? "Order emails are on." : "Order emails are off. Add RESEND_API_KEY in Render's Environment settings to turn them on."}</p>${storeState}
 ${typeof req.query.emailfailed === "string" ? `<p class="w bad">The payment link email to ${esc(req.query.emailfailed)} didn't send. See the order's History for why, then use Resend payment link or Copy it into your own email.</p>` : ""}
@@ -194,7 +202,8 @@ ${typeof req.query.emailfailed === "string" ? `<p class="w bad">The payment link
 // The buttons on the orders page.
 app.post("/admin/orders/:ref", adminAuth, sameSite, express.urlencoded({ extended: false, limit: "10kb" }), wrap(async (req, res) => {
   const { action } = req.body;
-  let problem = "", sendLink = false, markedPaid = false;
+  let problem = "", sendLink = false, markedPaid = false, sendDispatch = false;
+  const noteText = clean(String(req.body.note || "").replace(/\r\n?/g, "\n").replace(/\n/g, "\u2028"), 600).replace(/\u2028/g, "\n").trim();
   const o = await store.update(req.params.ref, (o) => {
     const status = o.status || "new";
     if (action === "quote") {
@@ -204,8 +213,18 @@ app.post("/admin/orders/:ref", adminAuth, sameSite, express.urlencoded({ extende
       o.quote = Math.round(pounds * 100);
       o.status = "quoted";
       o.payToken = o.payToken || newToken();
-      note(o, `Price confirmed: ${money(o.quote)}`);
+      o.quoteNote = noteText;
+      note(o, `Price confirmed: ${money(o.quote)}${noteText ? " (with note)" : ""}`);
       sendLink = req.body.email === "1";
+      return o;
+    }
+    if (action === "dispatch") {
+      if (status !== "paid" && status !== "cut") { problem = "Only paid orders can be dispatched."; return null; }
+      o.status = "dispatched";
+      o.dispatchedAt = new Date().toISOString();
+      o.dispatchNote = noteText;
+      note(o, `Dispatched${noteText ? ": " + noteText : ""}`);
+      sendDispatch = req.body.email === "1";
       return o;
     }
     if (action === "resend") {
@@ -231,6 +250,7 @@ app.post("/admin/orders/:ref", adminAuth, sameSite, express.urlencoded({ extende
   });
   if (!o) return res.status(404).type("text").send("No order with that reference.");
   if (problem) return res.status(400).type("html").send(`<p style="font:16px system-ui;padding:24px">${esc(problem)} <a href="/admin">Back to orders</a></p>`);
+  if (sendDispatch) await mail(o.ref, "On its way, to customer", () => email.dispatched(o));
   if (markedPaid) await mail(o.ref, "Payment received, to customer", () => email.paidCustomer(o));
   if (sendLink) {
     const ok = await mail(o.ref, `Payment link (${money(o.quote)}) to ${o.customer.email}`, () => email.payLink(o, payLink(o)));
