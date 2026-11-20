@@ -201,15 +201,21 @@ async function payPath(ref) {
   await webhook(sessions[sid4]); await webhook(sessions[sid4]);
   await req(`/pay/${ref4}/done?t=${pp4.split("t=")[1]}&s=${sid4}`);
   await settle();
-  assert.strictEqual(emails.length, 1, "one paid notice, however many times Stripe reports it");
-  assert(emails[0].subject.startsWith("Paid: " + ref4) && emails[0].to[0] === "tim@pivotdesigns.co.uk");
-  step("paid order emails Tim once");
+  assert.strictEqual(emails.length, 2, "one email each, however many times Stripe reports it");
+  const paidCust = emails.find((m) => m.to[0] === "jo@example.com");
+  const paidTim = emails.find((m) => m.to[0] === "tim@pivotdesigns.co.uk");
+  assert(paidCust && paidCust.subject.includes("Payment received") && paidCust.html.includes("£80.00") && !paidCust.html.includes(" by Stripe"));
+  assert(paidTim && paidTim.subject.startsWith("Paid: " + ref4));
+  step("Stripe payment emails the customer and Tim, once each");
 
   emails.length = 0;
   const ref5 = await newOrder(); await settle(); emails.length = 0;
   await admin(ref5, { action: "paid" }); await settle();
-  assert.strictEqual(emails.length, 0);
-  step("Mark paid (bank transfer) sends no email");
+  assert.strictEqual(emails.length, 1);
+  assert(emails[0].to[0] === "test@example.com" && emails[0].text.includes("by bank transfer or cash"));
+  await admin(ref5, { action: "paid" }); await settle();
+  assert.strictEqual(emails.length, 1);
+  step("Mark paid (bank transfer) emails the customer once, and not Tim");
 
   console.log(`\nAll payment and email tests passed (orders kept in ${process.env.DATABASE_URL ? "Postgres" : "a file"}).`);
   process.exit(0);

@@ -13,7 +13,10 @@ const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, "data");
 const SITE_URL = process.env.SITE_URL || "https://pivotdesigns.co.uk";
 const store = require("./lib/store.js")({ databaseUrl: process.env.DATABASE_URL, dataDir: DATA_DIR });
 const email = require("./lib/email.js")({ E, siteUrl: SITE_URL });
-const pay = require("./lib/payments.js")({ store, E, siteUrl: SITE_URL, onPaid: (o) => mail(o.ref, "Paid notice to Tim", () => email.paidAdmin(o)) });
+const pay = require("./lib/payments.js")({ store, E, siteUrl: SITE_URL, onPaid: async (o) => {
+  await mail(o.ref, "Payment received, to customer", () => email.paidCustomer(o));
+  await mail(o.ref, "Paid notice to Tim", () => email.paidAdmin(o));
+} });
 
 app.disable("x-powered-by");
 app.use((req, res, next) => {
@@ -191,7 +194,7 @@ ${typeof req.query.emailfailed === "string" ? `<p class="w bad">The payment link
 // The buttons on the orders page.
 app.post("/admin/orders/:ref", adminAuth, sameSite, express.urlencoded({ extended: false, limit: "10kb" }), wrap(async (req, res) => {
   const { action } = req.body;
-  let problem = "", sendLink = false;
+  let problem = "", sendLink = false, markedPaid = false;
   const o = await store.update(req.params.ref, (o) => {
     const status = o.status || "new";
     if (action === "quote") {
@@ -211,6 +214,7 @@ app.post("/admin/orders/:ref", adminAuth, sameSite, express.urlencoded({ extende
       return null;
     }
     if (action === "paid") {
+      markedPaid = status !== "paid";
       return pay.applyPayment(o, { id: "manual-" + Date.now(), method: "bank transfer or cash", amount: o.quote != null ? o.quote : estimatePence(o), at: new Date().toISOString() });
     }
     if (action === "status") {
@@ -227,6 +231,7 @@ app.post("/admin/orders/:ref", adminAuth, sameSite, express.urlencoded({ extende
   });
   if (!o) return res.status(404).type("text").send("No order with that reference.");
   if (problem) return res.status(400).type("html").send(`<p style="font:16px system-ui;padding:24px">${esc(problem)} <a href="/admin">Back to orders</a></p>`);
+  if (markedPaid) await mail(o.ref, "Payment received, to customer", () => email.paidCustomer(o));
   if (sendLink) {
     const ok = await mail(o.ref, `Payment link (${money(o.quote)}) to ${o.customer.email}`, () => email.payLink(o, payLink(o)));
     if (!ok) return res.redirect(303, "/admin?emailfailed=" + encodeURIComponent(o.ref) + "#" + encodeURIComponent(o.ref));
