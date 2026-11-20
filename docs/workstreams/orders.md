@@ -4,7 +4,7 @@
 Order requests are stored safely, Tim is emailed for each one, and customers pay online.
 
 ## Status (20 Nov 2026)
-**Merged to `main` and live on 20 Nov 2026** (Stripe in test mode). The Blueprint created the `pivot-orders` database and set `DATABASE_URL` itself, but the first deploy started before the variable existed, so it still used the file; the next deploy picked it up. Logs now say "Orders kept in postgres. Payments on (test mode)." Waiting on Tim: webhook, test payment, then a redeploy to prove orders survive.
+**Live on 20 Nov 2026 in Stripe test mode (sandbox "Pivot Designs"), and fully tested by Tim:** payments, webhook (200 OK, order marked paid with the tab closed), and orders surviving a manual redeploy. The first test payments failed to reach the webhook because `STRIPE_SECRET_KEY` came from a different Stripe test area than the webhook; the key and the webhook must come from the same sandbox (and later, both from live). The Blueprint created the database and set `DATABASE_URL`, but the first deploy started before the variable existed; a redeploy fixed it.
 
 - **Storage** (`lib/store.js`): orders go in Render Postgres when `DATABASE_URL` is set, otherwise in `data/orders.json` as before. Each order is one row, kept whole as JSON (`orders` table: `ref`, `created`, `data`), so new order fields need no database change.
 - **Statuses**: new → quoted → paid → cut → dispatched (or cancelled). Prices are kept in pence: `quote` is the confirmed price, `totals` is the configurator's estimate.
@@ -37,7 +37,7 @@ Order requests are stored safely, Tim is emailed for each one, and customers pay
 7. In Stripe **Settings → Payment methods**, leave Cards, Apple Pay and Google Pay on and switch off anything you don't want (Link, Klarna, etc.). Under **Settings → Emails**, turn on receipts for successful payments.
 
 ## Next tasks
-1. Tim: the going-live steps above.
+1. Tim: going-live steps 6 and 7 above, after the terms and refund page (task 4) and Stripe's activation form (Verify your business: business details, bank, two-step sign-in; skip Stripe Tax).
 2. Email Tim at tim@pivotdesigns.co.uk on each order request, and send the customer a confirmation, and later the payment link automatically. Use an email service such as Resend or Postmark, with a key stored in Render Environment, never in the repo.
 3. Refunds: for now these are done in the Stripe dashboard. The order status isn't updated automatically.
 4. Terms of sale and a refunds/cancellation policy page, needed before taking live payments for made-to-measure goods (see business workstream).
