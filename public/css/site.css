@@ -139,3 +139,6 @@ section.tight { padding-block: clamp(36px, 6vw, 64px); }
 .faq summary { cursor: pointer; font-weight: 600; }
 .faq details[open] summary { margin-bottom: 8px; }
 .faq p { color: #333833; }
+
+.range-more { margin-top: 20px; color: var(--muted); }
+.range-more a { color: var(--sage); font-weight: 600; }

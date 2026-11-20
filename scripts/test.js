@@ -39,9 +39,19 @@ Object.assign(process.env, {
 if (!process.env.DATABASE_URL) delete process.env.DATABASE_URL;
 // Catch emails on their way to Resend instead of sending them.
 const emails = [];
+const idealCalls = [];
+process.env.IDEAL_POSTCODES_KEY = "ak_test_dummy";
 let failNextEmail = false;
 const realFetch = globalThis.fetch;
 globalThis.fetch = async (url, opts = {}) => {
+  if (String(url).startsWith("https://api.ideal-postcodes.co.uk/")) {
+    const u = new URL(url);
+    idealCalls.push(u.pathname);
+    assert.strictEqual(u.searchParams.get("api_key"), "ak_test_dummy");
+    if (u.pathname === "/v1/autocomplete/addresses") return new Response(JSON.stringify({ code: 2000, result: { hits: [{ id: "paf_123", suggestion: "61 Bridge Street, Kington, HR5" }, { id: "paf_456", suggestion: "63 Bridge Street, Kington, HR5" }] } }), { status: 200 });
+    if (u.pathname === "/v1/autocomplete/addresses/paf_123/gbr") return new Response(JSON.stringify({ code: 2000, result: { line_1: "61 Bridge Street", line_2: "Flat 2", line_3: "", post_town: "KINGTON", postcode: "HR5 3DJ" } }), { status: 200 });
+    return new Response(JSON.stringify({ message: "Not found" }), { status: 404 });
+  }
   if (String(url).startsWith("https://api.resend.com/")) {
     assert.strictEqual(opts.headers.Authorization, "Bearer re_test_dummy");
     if (failNextEmail) { failNextEmail = false; return new Response(JSON.stringify({ message: "Domain not verified" }), { status: 403 }); }
@@ -283,6 +293,46 @@ async function payPath(ref) {
   assert.strictEqual((await form(`/admin/orders/${ref2}/delete`, { confirm: ref2.toLowerCase() })).status, 303);
   assert.strictEqual((await req(`/admin/orders/${ref2}.json`, { headers: auth })).status, 404);
   step("Delete: blocked from other sites; unpaid deletes after one click; paid needs the reference typed");
+
+  // ---------- designs and hinges ----------
+  const tryOrder = (doors) => req("/api/orders", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ customer: { name: "Hinge Test", email: "h@example.com", postcode: "hr5 3dj", address: "3 Road" }, doors }) });
+  const ar = await tryOrder([{ design: "victorian", width: 450, height: 700 }]);
+  assert(ar.status === 400 && (await ar.json()).error.includes("no longer available"));
+  const hr = await tryOrder([{ design: "bevelled", width: 450, height: 900, hingeSide: "right", hingeCount: 3, hingeTop: 120, hingeBottom: 90, hingeNotes: "Blum soft-close" }]);
+  assert.strictEqual(hr.status, 201);
+  const href = (await hr.json()).ref;
+  o = await spec(href);
+  assert(o.doors[0].hingeTop === 120 && o.doors[0].hingeBottom === 90 && o.doors[0].hingeNotes === "Blum soft-close" && o.doors[0].version === 2);
+  assert((await page("/admin")).includes("120 mm from top, 90 mm from bottom · Hinge notes: Blum soft-close"));
+  const hd = await (await req(`/admin/orders/${href}.dxf`, { headers: auth })).text();
+  assert(hd.includes("HINGES RIGHT x3 TOP 120 BOTTOM 90") && hd.includes("HINGE NOTE: Blum soft-close") && hd.includes("BEVEL_D5") && hd.includes("POCKET_EM6_D5"));
+  assert.strictEqual((await tryOrder([{ design: "shaker", width: 450, height: 400, hingeSide: "left", hingeTop: 20 }])).status, 400);
+  const nh = await tryOrder([{ design: "shaker", width: 450, height: 700 }]);
+  assert.strictEqual((await spec((await nh.json()).ref)).doors[0].hingeSide, "none");
+  step("archived designs refused; hinge distances and notes saved, shown on /admin and in the DXF; no hinges by default");
+
+  // ---------- address lookup and checks ----------
+  assert.deepStrictEqual(await (await req("/api/address/status")).json(), { enabled: true });
+  assert.deepStrictEqual(await (await req("/api/address/suggest?q=ab")).json(), { hits: [] });
+  const sg = await (await req("/api/address/suggest?q=61%20bridge")).text();
+  assert(sg.includes("61 Bridge Street, Kington") && !sg.includes("ak_test"));
+  const rs = await (await req("/api/address/resolve?id=paf_123")).json();
+  assert.deepStrictEqual(rs, { line1: "61 Bridge Street", line2: "Flat 2", town: "Kington", postcode: "HR5 3DJ" });
+  assert.strictEqual((await req("/api/address/resolve?id=../../x")).status, 400);
+  assert.strictEqual((await req("/api/address/resolve?id=paf_999")).status, 502);
+  let limited = 0;
+  for (let i = 0; i < 16; i++) if ((await req("/api/address/resolve?id=paf_123")).status === 429) limited++;
+  assert(limited >= 1, "address picks are rate limited");
+  step("address lookup: key stays on the server, suggestions and full address returned, bad ids refused, picks limited");
+
+  const addrOrder = (c) => req("/api/orders", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ customer: { name: "Addr Test", email: "a@example.com", ...c }, doors: [{ design: "slab", width: 400, height: 500 }] }) });
+  const ao = await addrOrder({ line1: "61 Bridge Street", line2: "Flat 2", town: "Kington", postcode: "hr53dj" });
+  assert.strictEqual(ao.status, 201);
+  o = await spec((await ao.json()).ref);
+  assert(o.customer.address === "61 Bridge Street, Flat 2, Kington" && o.customer.postcode === "HR5 3DJ" && o.customer.addressLines.town === "Kington");
+  assert.strictEqual((await addrOrder({ line1: "1 Road", town: "Leeds", postcode: "NOTAPOSTCODE" })).status, 400);
+  assert.strictEqual((await addrOrder({ line1: "1 Road", postcode: "LS1 4AB" })).status, 400);
+  step("address saved as separate lines; postcode tidied and checked; town required");
 
   const dxf = await req(`/admin/orders/${ref}.dxf`, { headers: auth });
   assert(dxf.status === 200 && (await dxf.text()).includes("CUTOUT_EM6"));

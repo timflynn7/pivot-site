@@ -7,7 +7,7 @@
   const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const TEST = /[?&]test\b/.test(location.search);
 
-  const state = { design: "shaker", width: 450, height: 700, opts: {}, hingeSide: "left", hingeCount: 2, hingeTouched: false, name: "", qty: 1 };
+  const state = { design: "shaker", width: 450, height: 700, opts: {}, hingeSide: "none", hingeCount: 2, hingeTouched: false, hingeTop: 100, hingeBottom: 100, hingeNotes: "", name: "", qty: 1 };
   for (const d of E.DESIGNS) { state.opts[d.id] = {}; for (const o of d.opts) state.opts[d.id][o.key] = o.def; }
 
   let list = [];
@@ -15,14 +15,15 @@
   // It posts to the password-protected /admin/orders and sends the customer nothing.
   const ADMIN = new URLSearchParams(location.search).has("admin");
   const LIST_KEY = ADMIN ? "pivot-door-list-admin" : "pivot-door-list";
-  try { const saved = JSON.parse(localStorage.getItem(LIST_KEY) || "[]"); if (Array.isArray(saved)) list = saved.map((d) => E.normalizeDoor(d)).filter((r) => !Object.keys(r.errors).length).map((r) => r.door); } catch (e) { list = []; }
+  try { const saved = JSON.parse(localStorage.getItem(LIST_KEY) || "[]"); if (Array.isArray(saved)) list = saved.map((d) => E.normalizeDoor(d)).filter((r) => !Object.keys(r.errors).length && !E.designById(r.door.design).archived).map((r) => r.door); } catch (e) { list = []; }
   const saveList = () => { try { localStorage.setItem(LIST_KEY, JSON.stringify(list)); } catch (e) { /* private window */ } };
 
-  const current = () => E.normalizeDoor({ design: state.design, width: state.width, height: state.height, opts: state.opts[state.design], hingeSide: state.hingeSide, hingeCount: state.hingeCount, name: state.name, qty: state.qty });
+  const current = () => E.normalizeDoor({ design: state.design, width: state.width, height: state.height, opts: state.opts[state.design], hingeSide: state.hingeSide, hingeCount: state.hingeCount, hingeTop: state.hingeTop, hingeBottom: state.hingeBottom, hingeNotes: state.hingeNotes, name: state.name, qty: state.qty });
 
   /* ---------- design tiles ---------- */
   function renderDesigns() {
-    $("designs").innerHTML = E.DESIGNS.map((d) => {
+    // Archived designs stay in the engine (so old orders can be cut again) but aren't offered.
+    $("designs").innerHTML = E.DESIGNS.filter((d) => !d.archived).map((d) => {
       const { door } = E.normalizeDoor({ design: d.id, width: 400, height: 600 });
       return `<button type="button" class="dz" data-design="${d.id}" aria-pressed="${d.id === state.design}">${E.doorSVG(door)}<span>${esc(d.name)}</span></button>`;
     }).join("");
@@ -54,7 +55,9 @@
       $(k + "Msg").textContent = errors[k] || `${E.LIMITS[k === "width" ? "wMin" : "hMin"]} to ${E.LIMITS[k === "width" ? "wMax" : "hMax"]} mm`;
       $(k + "Msg").className = errors[k] ? "hint bad" : "hint";
     }
-    const optErr = Object.keys(errors).filter((k) => !["width", "height", "geometry", "qty"].includes(k)).map((k) => errors[k]);
+    const HINGE_KEYS = ["hingeTop", "hingeBottom", "hingeCount"];
+    const optErr = Object.keys(errors).filter((k) => !["width", "height", "geometry", "qty", ...HINGE_KEYS].includes(k)).map((k) => errors[k]);
+    $("hingeMsg").textContent = HINGE_KEYS.map((k) => errors[k]).filter(Boolean).join(" ");
     $("geomMsg").textContent = errors.geometry || optErr.join(" ");
     const ok = !Object.keys(errors).length;
     $("addBtn").disabled = !ok;
@@ -69,7 +72,7 @@
       $("pvInfo").textContent = "Check the sizes and options";
       $("pvPrice").textContent = "";
     }
-    $("hingeCountField").hidden = state.hingeSide === "none";
+    $("hingeFields").hidden = state.hingeSide === "none";
     document.querySelectorAll("#hingeSide button").forEach((b) => b.setAttribute("aria-pressed", b.dataset.v === state.hingeSide));
     $("hingeCount").value = String(state.hingeCount);
   }
@@ -114,6 +117,9 @@
   });
   $("hingeSide").addEventListener("click", (e) => { const b = e.target.closest("[data-v]"); if (!b) return; state.hingeSide = b.dataset.v; update(); });
   $("hingeCount").addEventListener("change", (e) => { state.hingeCount = Number(e.target.value); state.hingeTouched = true; update(); });
+  $("hingeTop").addEventListener("input", (e) => { state.hingeTop = e.target.value; update(); });
+  $("hingeBottom").addEventListener("input", (e) => { state.hingeBottom = e.target.value; update(); });
+  $("hingeNotes").addEventListener("input", (e) => { state.hingeNotes = e.target.value; });
   $("doorName").addEventListener("input", (e) => { state.name = e.target.value; });
   $("qty").addEventListener("input", (e) => { state.qty = Number(e.target.value) || 1; update(); });
 
@@ -141,12 +147,13 @@
   $("orderForm").addEventListener("submit", async (e) => {
     e.preventDefault();
     const msg = $("sendMsg");
-    const customer = { name: $("cName").value.trim(), email: $("cEmail").value.trim(), phone: $("cPhone").value.trim(), postcode: $("cPostcode").value.trim(), address: $("cAddress").value.trim(), notes: $("cNotes").value.trim(), website: $("cWebsite").value };
+    const customer = { name: $("cName").value.trim(), email: $("cEmail").value.trim(), phone: $("cPhone").value.trim(), line1: $("cLine1").value.trim(), line2: $("cLine2").value.trim(), town: $("cTown").value.trim(), postcode: $("cPostcode").value.trim(), notes: $("cNotes").value.trim(), website: $("cWebsite").value };
     const missing = [];
     if (customer.name.length < 2) missing.push("your name");
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(customer.email)) missing.push("a valid email");
+    if (!customer.line1) missing.push("the first line of your address");
+    if (!customer.town) missing.push("your town or city");
     if (!customer.postcode) missing.push("your postcode");
-    if (!customer.address) missing.push("your address");
     if (missing.length) { msg.className = "send-msg bad"; msg.textContent = "Please add " + missing.join(", ") + "."; return; }
     if (!list.length) { msg.className = "send-msg bad"; msg.textContent = "Add at least one door to your list first."; return; }
     $("sendBtn").disabled = true; msg.className = "send-msg"; msg.textContent = "Sending…";
@@ -173,6 +180,54 @@
     $("sendH").textContent = "Customer details";
     $("sendBtn").textContent = "Create order";
   }
+
+  /* ---------- address search (Ideal Postcodes, through our server) ---------- */
+  (function addressSearch() {
+    const box = $("addrSearch"), ul = $("addrList"), hint = $("addrHint");
+    let hits = [], active = -1, timer = 0, seq = 0;
+    const close = () => { ul.hidden = true; box.setAttribute("aria-expanded", "false"); active = -1; };
+    const off = (msg) => { close(); if (msg) hint.textContent = msg; };
+    function show() {
+      ul.innerHTML = hits.map((h, i) => `<li role="option" id="addr${i}" data-i="${i}" aria-selected="${i === active}">${esc(h.text)}</li>`).join("");
+      ul.hidden = !hits.length; box.setAttribute("aria-expanded", String(!!hits.length));
+      if (active >= 0) box.setAttribute("aria-activedescendant", "addr" + active); else box.removeAttribute("aria-activedescendant");
+    }
+    async function search() {
+      const q = box.value.trim(), mine = ++seq;
+      if (q.length < 3) { hits = []; return show(); }
+      try {
+        const r = await fetch("/api/address/suggest?q=" + encodeURIComponent(q));
+        const data = await r.json().catch(() => ({}));
+        if (mine !== seq) return;
+        if (!r.ok) return off(data.error);
+        hits = data.hits || []; active = -1; show();
+        hint.textContent = hits.length ? "Pick your address from the list, or type it in below." : "No matches yet. Keep typing, or type your address in below.";
+      } catch (e) { off("Address search isn't working right now. Please type your address in below."); }
+    }
+    async function pick(i) {
+      const h = hits[i]; if (!h) return;
+      close(); box.value = h.text; hint.textContent = "Filling in your address…";
+      try {
+        const r = await fetch("/api/address/resolve?id=" + encodeURIComponent(h.id));
+        const a = await r.json().catch(() => ({}));
+        if (!r.ok) return off(a.error);
+        $("cLine1").value = a.line1 || ""; $("cLine2").value = a.line2 || ""; $("cTown").value = a.town || ""; $("cPostcode").value = a.postcode || "";
+        hint.textContent = "Done. Check the address below and change anything that's not right.";
+      } catch (e) { off("We couldn't fetch that address. Please type it in below."); }
+    }
+    box.addEventListener("input", () => { clearTimeout(timer); timer = setTimeout(search, 250); });
+    box.addEventListener("keydown", (e) => {
+      if (ul.hidden) return;
+      if (e.key === "ArrowDown") { active = Math.min(hits.length - 1, active + 1); show(); e.preventDefault(); }
+      else if (e.key === "ArrowUp") { active = Math.max(0, active - 1); show(); e.preventDefault(); }
+      else if (e.key === "Enter" && active >= 0) { pick(active); e.preventDefault(); }
+      else if (e.key === "Escape") close();
+    });
+    ul.addEventListener("mousedown", (e) => { const li = e.target.closest("[data-i]"); if (li) { e.preventDefault(); pick(Number(li.dataset.i)); } });
+    box.addEventListener("blur", () => setTimeout(close, 150));
+    // Only show the search box when the lookup is switched on.
+    fetch("/api/address/status").then((r) => r.json()).then((d) => { if (d.enabled) $("addrFind").hidden = false; }).catch(() => {});
+  })();
 
   renderDesigns(); renderOpts(); update(); renderList();
 })();

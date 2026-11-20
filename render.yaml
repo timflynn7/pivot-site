@@ -29,6 +29,9 @@ services:
       # Order emails through Resend (resend.com). Without it, emails are switched off.
       - key: RESEND_API_KEY
         sync: false
+      # Address search on the order form (ideal-postcodes.co.uk). Without it, customers type their address.
+      - key: IDEAL_POSTCODES_KEY
+        sync: false
 
 databases:
   # Orders database, about £6 a month. Only the site can reach it (no outside access).

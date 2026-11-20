@@ -1,6 +1,6 @@
 # Pivot Designs – context for Claude
 
-Pivot Designs (Tim) makes decorative made-to-measure MDF cabinet doors and panels on a CNC router in a UK workshop, cut in VCarve Pro. It sells on Etsy as PivotGB, and this repo is the website pivotdesigns.co.uk: holding pages, a door configurator, and order requests that produce one DXF per order for VCarve.
+Pivot Designs (Tim) makes decorative made-to-measure MDF cabinet doors and panels on a CNC router in a UK workshop, cut in VCarve Pro. It also sells on Etsy as PivotGB, but **the website must never mention or link to Etsy** (Etsy takes a large cut). This repo is the website pivotdesigns.co.uk: holding pages, a door configurator, and order requests that produce one DXF per order for VCarve.
 
 The work is split into workstreams. **Read `docs/workstreams/README.md` first, then the brief for the workstream you've been asked to work on.** Before ending a session, update that brief (status, decisions, next tasks) so the next session can pick up without the chat history. Where everything lives (live site, Render, docs, artifacts) is in `docs/LINKS.md`.
 
@@ -13,7 +13,8 @@ The work is split into workstreams. **Read `docs/workstreams/README.md` first, t
 - `lib/payments.js`: Stripe Checkout payment links (`/pay/<ref>?t=<token>`, prices valid 30 days) and the Stripe webhook (`checkout.session.completed`, `checkout.session.async_payment_succeeded`, and `charge.refunded` for automatic refund tracking). Env `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `SITE_URL`. Test everything with `npm test` (`scripts/test.js`).
 - `lib/email.js`: emails through Resend (env `RESEND_API_KEY`, optional `EMAIL_FROM`, `EMAIL_ADMIN`). The automatic ones are new order (to Tim and the customer) and paid by card (to the customer and Tim). Editable drafts (`KINDS`: paylink, paid, dispatched, refunded, custom) are sent from the admin preview. A failed email never blocks an order.
 - `public/js/engine.js`: **the single source of truth for doors.** It works in the browser (`window.PivotEngine`) and in Node. It holds the design recipes, size limits, provisional prices, SVG preview and R12 DXF writer. The configurator, the server and the scripts all use it, so a recipe change shows up everywhere.
-- `public/configurator.html` + `public/js/configurator.js` + `public/css/configurator.css`: the customer configurator. `?test` in the URL shows a Download test DXF button.
+- `public/configurator.html` + `public/js/configurator.js` + `public/css/configurator.css`: the customer configurator. `?test` in the URL shows a Download test DXF button; `?admin` is Tim creating an order. The address uses separate fields (line 1, line 2, town, postcode, with the postcode checked as UK) and an optional search box.
+- `lib/address.js`: UK address search through Ideal Postcodes, proxied by the server so the key (env `IDEAL_POSTCODES_KEY`) stays private, with limits per visitor. Suggestions are free; each address picked costs a lookup. Without the key the search box is hidden. The API field names (`hits[].id/suggestion`, `line_1..3`, `post_town`, `postcode`) come from memory, because the docs were blocked here; check them on the live site.
 - `public/index.html`, `story.html`, `contact.html`, `404.html` + `public/css/site.css`: site pages. The header and footer are repeated in each page, so change all of them.
 - `scripts/sample-dxf.js`: writes one full-size test DXF per design plus one combined file.
 - `scripts/test-board-dxf.js`: writes one 1220 x 500 mm offcut board with the draft designs, hand-placed, with full-size details.
@@ -23,7 +24,9 @@ The work is split into workstreams. **Read `docs/workstreams/README.md` first, t
 ## Decisions that hold everywhere
 
 - Doors are 18 mm MDF only. Sizes are in mm. Customer limits are 300–1000 mm wide and 300–1200 mm tall (the machine takes 1200 × 1200 sheets; 1000 × 1200 is the largest that can be held down safely).
-- Hinge holes (35 mm cups, 22.5 mm from the edge, 100 mm from top and bottom) are offered as a service and drilled by hand. The configurator records side and count, which go on the DXF LABELS layer only, with no back-side machining.
+- Hinge holes are an optional service (default: none): 35 mm cups, 22.5 mm from the edge. The customer sets the side, count (2 to 4), the top and bottom distances (default 100 mm, minimum 50) and optional hinge notes. All of this goes on the DXF LABELS layer only, with no back-side machining. The site doesn't say how they're drilled.
+- Designs can be **archived** (`archived: true` in engine.js): hidden from the configurator and refused for new orders, but kept so old orders can still produce a DXF. Archived since 20 Nov 2026: Fluted shaker, Moulded frame fluted, Victorian, Arch-top beaded door, Ring and arc panel. Site copy must never state how many designs there are.
+- The bevelled shaker is a flat frame, then a bevel (placeholder 12 mm wide, `BEVEL_W`) down to a flat panel pocketed 5 mm deep. Layers: `BEVEL_D5` (the top edge of the bevel) and `POCKET_EM6_D5` (the panel floor).
 - One DXF per order, in mm, with parts spread apart for VCarve to nest. Each toolpath has its own layer named by tool and depth (e.g. `POCKET_EM6_D8`). Plus `CUTOUT_EM6` (outline), `LABELS`, and grooves overcut 10 mm past the edge where they run off the door.
 - **Tooling in `TOOLS` (top of engine.js) is placeholder** until Tim's test cuts confirm bits, depths and layer names.
 - Customer rules: complex or statement designs are size only; shaker types can adjust borders and rails; flutes, reeds and grooves can adjust spacing but not groove size (set by the bit).

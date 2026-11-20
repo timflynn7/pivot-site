@@ -81,3 +81,9 @@ button.btn { font: inherit; font-weight: 600; cursor: pointer; }
 /* /configurator?admin: Tim creating an order for a customer */
 .admin-bar { background: #F3E6C8; color: #4A3712; padding: 12px max(20px, env(safe-area-inset-left)); font-size: 0.95rem; border-bottom: 1px solid #E2CFA4; }
 .admin-bar a { color: inherit; font-weight: 600; }
+
+/* Address search */
+.addr-find { position: relative; }
+.addr-list { position: absolute; z-index: 20; left: 0; right: 0; top: 74px; margin: 0; padding: 4px 0; list-style: none; background: var(--paper); border: 1.5px solid var(--line); border-radius: 3px; box-shadow: 0 8px 24px rgba(0,0,0,.12); max-height: 280px; overflow-y: auto; }
+.addr-list li { padding: 8px 12px; cursor: pointer; font-size: 0.95rem; }
+.addr-list li:hover, .addr-list li[aria-selected="true"] { background: var(--sage-soft); }

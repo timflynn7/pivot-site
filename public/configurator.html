@@ -41,7 +41,7 @@
         <div><span class="pv-name" id="pvName"></span><span class="pv-info" id="pvInfo"></span></div>
         <span class="pv-price" id="pvPrice"></span>
       </div>
-      <p class="pv-note">Dashed circles show hinge holes on the back. We drill these by hand.</p>
+      <p class="pv-note">Dashed circles show hinge holes on the back.</p>
     </section>
 
     <form class="cfg-steps" id="doorForm" novalidate>
@@ -70,8 +70,17 @@
         <div class="seg" role="group" aria-label="Hinge side" id="hingeSide">
           <button type="button" data-v="none">None</button><button type="button" data-v="left">Left</button><button type="button" data-v="right">Right</button>
         </div>
-        <div class="field" id="hingeCountField"><label for="hingeCount">Number of hinges</label>
-          <select id="hingeCount"><option value="2">2</option><option value="3">3</option><option value="4">4</option></select>
+        <div id="hingeFields" hidden>
+          <p class="hint">35 mm cup holes for standard concealed hinges, 22.5 mm in from the edge. Extra hinges are spaced evenly between the top and bottom ones.</p>
+          <div class="field"><label for="hingeCount">Number of hinges</label>
+            <select id="hingeCount"><option value="2">2</option><option value="3">3</option><option value="4">4</option></select>
+          </div>
+          <div class="pair">
+            <div class="field"><label for="hingeTop">Top hinge from top edge</label><div class="mm"><input id="hingeTop" type="number" inputmode="numeric" min="50" step="1" value="100"></div></div>
+            <div class="field"><label for="hingeBottom">Bottom hinge from bottom edge</label><div class="mm"><input id="hingeBottom" type="number" inputmode="numeric" min="50" step="1" value="100"></div></div>
+          </div>
+          <span class="hint bad" id="hingeMsg" role="status"></span>
+          <div class="field"><label for="hingeNotes">Hinge details (optional)</label><textarea id="hingeNotes" rows="2" maxlength="200" placeholder="e.g. Blum 110° soft-close, full overlay. Anything we should know."></textarea></div>
         </div>
       </fieldset>
 
@@ -109,8 +118,16 @@
       <div class="field"><label for="cName">Your name</label><input id="cName" autocomplete="name" required></div>
       <div class="field"><label for="cEmail">Email</label><input id="cEmail" type="email" autocomplete="email" required></div>
       <div class="field"><label for="cPhone">Phone (optional)</label><input id="cPhone" type="tel" autocomplete="tel"></div>
-      <div class="field"><label for="cPostcode">Delivery postcode</label><input id="cPostcode" autocomplete="postal-code" required></div>
-      <div class="field wide"><label for="cAddress">Delivery address</label><textarea id="cAddress" autocomplete="street-address" rows="3" required></textarea></div>
+      <div class="field wide addr-find" id="addrFind" hidden>
+        <label for="addrSearch">Find your delivery address</label>
+        <input id="addrSearch" type="text" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="addrList" placeholder="Start typing your address or postcode">
+        <ul id="addrList" role="listbox" class="addr-list" hidden></ul>
+        <span class="hint" id="addrHint">Pick your address from the list, or type it in below.</span>
+      </div>
+      <div class="field wide"><label for="cLine1">Address line 1</label><input id="cLine1" autocomplete="address-line1" required></div>
+      <div class="field wide"><label for="cLine2">Address line 2 (optional)</label><input id="cLine2" autocomplete="address-line2"></div>
+      <div class="field"><label for="cTown">Town or city</label><input id="cTown" autocomplete="address-level2" required></div>
+      <div class="field"><label for="cPostcode">Postcode</label><input id="cPostcode" autocomplete="postal-code" required></div>
       <div class="field wide"><label for="cNotes">Notes for the maker (optional)</label><textarea id="cNotes" rows="3" placeholder="e.g. Pair for a wall unit, grooves to line up"></textarea></div>
       <div class="hp" aria-hidden="true"><label for="cWebsite">Leave this empty</label><input id="cWebsite" tabindex="-1" autocomplete="off"></div>
       <div class="field wide">

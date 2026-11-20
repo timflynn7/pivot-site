@@ -23,6 +23,8 @@ const admin = require("./lib/admin.js")({ store, E, email, pay, orders, siteUrl:
 const wrap = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 
 app.disable("x-powered-by");
+// Render sits in front of the site, so take the visitor's address from its header (used for lookup limits).
+app.set("trust proxy", 1);
 app.use((req, res, next) => {
   res.set("X-Content-Type-Options", "nosniff");
   res.set("Referrer-Policy", "strict-origin-when-cross-origin");
@@ -62,6 +64,7 @@ app.post("/api/orders", express.json({ limit: "200kb" }), wrap(async (req, res) 
 /* ---------- payments (lib/payments.js) and the orders pages (lib/admin.js) ---------- */
 app.use(pay.router);
 app.use(admin.router);
+app.use(require("./lib/address.js")().router);
 
 // Clean addresses: /story serves story.html, and so on.
 app.use(express.static(PUBLIC, { extensions: ["html"], maxAge: "1h" }));

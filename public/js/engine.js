@@ -16,9 +16,11 @@
 })(typeof self !== "undefined" ? self : this, function () {
   "use strict";
 
-  const VERSION = 1;
+  const VERSION = 2; // 2: hinge distances and notes; bevelled shaker redrawn as a 5 mm recessed panel with a bevel
   const LIMITS = { wMin: 300, wMax: 1000, hMin: 300, hMax: 1200 }; // machine bed takes 1200 x 1200 sheets; 1000 x 1200 is the largest that can be held down safely
-  const OVERCUT = 10;            // grooves that run off the door go this far past the edge
+  const OVERCUT = 10;
+  const BEVEL_W = 12;            // bevelled shaker: width of the sloping bevel (placeholder until test cuts)
+  const HINGE = { def: 100, min: 50 }; // hinge cup centres from the top and bottom edges, mm            // grooves that run off the door go this far past the edge
   const LABEL_LAYER = "LABELS";
 
   /* ---------- tooling (placeholders) ---------- */
@@ -27,6 +29,7 @@
     cutout:   { layer: "CUTOUT_EM6",          label: "6 mm end mill, profile outside, with tabs", width: 6,    color: 7 },
     pocket8:  { layer: "POCKET_EM6_D8",       label: "6 mm end mill pocket, 8 mm deep",           width: 6,    color: 5, pocket: true },
     pocket6:  { layer: "POCKET_EM6_D6",       label: "6 mm end mill pocket, 6 mm deep",           width: 6,    color: 5, pocket: true },
+    pocket5:  { layer: "POCKET_EM6_D5",       label: "6 mm end mill pocket, 5 mm deep",           width: 6,    color: 5, pocket: true },
     pocket4:  { layer: "POCKET_EM6_D4",       label: "6 mm end mill pocket, 4 mm deep (first step)", width: 6, color: 150, pocket: true },
     flute16:  { layer: "FLUTE_CORE16_D5",     label: "16 mm fluting bit, 5 mm deep",              width: 16,   color: 3 },
     flute8:   { layer: "FLUTE_BALL8_D4",      label: "8 mm ball nose, 4 mm deep",                 width: 8,    color: 3 },
@@ -34,7 +37,7 @@
     bead6:    { layer: "BEAD_FORM6_D3",       label: "6 mm bead form tool, 3 mm deep",            width: 6,    color: 4 },
     v90d4:    { layer: "GROOVE_V90_D4",       label: "90 degree V-bit, 4 mm deep",                width: 8,    color: 1 },
     v90d5:    { layer: "GROOVE_V90_D5",       label: "90 degree V-bit, 5 mm deep",                width: 10,   color: 1 },
-    bevel:    { layer: "BEVEL_V90_D8",        label: "90 degree V-bit bevel along the panel edge, 8 mm deep", width: 16, color: 6 },
+    bevel:    { layer: "BEVEL_D5",            label: "Bevel: slopes from this line (at the face) down to the 5 mm pocket edge. Set the bit and angle in VCarve.", width: 12, color: 6 },
     mould:    { layer: "MOULD_TBN_RAIL",      label: "Moulding toolpath drive rail (tapered ball nose). Draw the profile in VCarve.", width: 18, color: 30 },
     chamfer:  { layer: "EDGE_CHAMFER_V90_D3", label: "90 degree V-bit edge chamfer, 3 mm",        width: 6,    color: 6 }
   };
@@ -157,7 +160,7 @@
       }
     },
     {
-      id: "flutedshaker", name: "Fluted shaker", family: "Frame with pattern", adjustable: true,
+      id: "flutedshaker", name: "Fluted shaker", family: "Frame with pattern", archived: true, adjustable: true,
       blurb: "A recessed frame with flutes filling the centre.",
       opts: [num("border", "Frame width", 70, 40, 120, 5), num("spacing", "Flute spacing", 20, 18, 32, 1, "Centre to centre. The flutes are 16 mm wide.")],
       build(W, H, o) {
@@ -230,11 +233,14 @@
     /* ----- draft designs for the first test cuts ----- */
     {
       id: "bevelled", name: "Bevelled shaker", family: "Shaker family", adjustable: true, draft: true,
-      blurb: "A shaker with an angled edge where the frame meets the panel.",
+      blurb: "A flat frame with an angled bevel down to a centre panel set about 5 mm below the face.",
       opts: [num("border", "Frame width", 70, 40, 120, 5)],
       build(W, H, o) {
+        // Frame (full thickness) → bevel sloping down → flat panel 5 mm deep.
         const [p] = shakerPanels(W, H, o.border, 0);
-        return { outline: rect(0, 0, W, H), paths: [{ tool: "pocket8", pts: rect(...p), closed: true }, { tool: "bevel", pts: rect(...p), closed: true }] };
+        const b = BEVEL_W;
+        const inner = rect(p[0] + b, p[1] + b, p[2] - b, p[3] - b);
+        return { outline: rect(0, 0, W, H), paths: [{ tool: "pocket5", pts: inner, closed: true }, { tool: "bevel", pts: rect(...p), inner, closed: true }] };
       }
     },
     {
@@ -260,7 +266,7 @@
       }
     },
     {
-      id: "mouldedflute", name: "Moulded frame, fluted", family: "Frame with pattern", adjustable: true, draft: true,
+      id: "mouldedflute", name: "Moulded frame, fluted", family: "Frame with pattern", archived: true, adjustable: true, draft: true,
       blurb: "A moulded frame round a finely fluted centre.",
       opts: [num("spacing", "Flute spacing", 12, 10, 20, 0.5, "Centre to centre. The flutes are 8 mm wide.")],
       build(W, H, o) {
@@ -273,7 +279,7 @@
       }
     },
     {
-      id: "victorian", name: "Victorian", family: "Frame with pattern", adjustable: false, draft: true,
+      id: "victorian", name: "Victorian", family: "Frame with pattern", archived: true, adjustable: false, draft: true,
       blurb: "A shaker with a decorative moulding inside the panel.",
       opts: [],
       build(W, H, o) {
@@ -321,7 +327,7 @@
       }
     },
     {
-      id: "archtop", name: "Arch-top beaded door", family: "Statement", adjustable: false, draft: true,
+      id: "archtop", name: "Arch-top beaded door", family: "Statement", archived: true, adjustable: false, draft: true,
       blurb: "A round-topped door with three beads following its shape.",
       opts: [],
       build(W, H) {
@@ -332,7 +338,7 @@
       }
     },
     {
-      id: "ringpanel", name: "Ring and arc panel", family: "Statement", adjustable: false, draft: true,
+      id: "ringpanel", name: "Ring and arc panel", family: "Statement", archived: true, adjustable: false, draft: true,
       blurb: "Two panels shaped round a large circle, with a ring at the centre.",
       opts: [],
       build(W, H, o) {
@@ -396,6 +402,18 @@
       hingeSide: side, hingeCount: side === "none" ? 0 : count,
       name: cleanText(input.name, 40), qty: Math.min(qty, 50)
     };
+    if (side !== "none") {
+      // Distance of the top and bottom hinge cups from the door's top and bottom edges.
+      const dist = (v) => { v = (v === undefined || v === null || v === "") ? HINGE.def : Math.round(Number(v)); return v; };
+      door.hingeTop = dist(input.hingeTop);
+      door.hingeBottom = dist(input.hingeBottom);
+      for (const [k, label] of [["hingeTop", "Top hinge distance"], ["hingeBottom", "Bottom hinge distance"]]) {
+        if (!Number.isFinite(door[k]) || door[k] < HINGE.min || (Number.isFinite(H) && door[k] > H / 2 - 25)) errors[k] = `${label} must be between ${HINGE.min} mm and ${Number.isFinite(H) ? Math.floor(H / 2 - 25) : "half the door height"} mm.`;
+      }
+      if (!errors.hingeTop && !errors.hingeBottom && Number.isFinite(H) && count > 2 && (H - door.hingeTop - door.hingeBottom) / (count - 1) < 60) errors.hingeCount = "Those hinges would be too close together. Use fewer hinges or move them further apart.";
+      const notes = cleanText(input.hingeNotes, 200);
+      if (notes) door.hingeNotes = notes;
+    }
     if (!errors.width && !errors.height && !Object.keys(errors).some((k) => d.opts.some((o) => o.key === k))) {
       try { buildDoor(door); } catch (e) { if (e instanceof DesignError) errors.geometry = e.message; else throw e; }
     }
@@ -405,8 +423,9 @@
   /* ---------- geometry ---------- */
   function hingePositions(door) {
     if (door.hingeSide === "none" || !door.hingeCount) return [];
-    const H = door.height, n = door.hingeCount, bottom = 100;
-    const top = door.design === "archtop" ? door.width / 2 + 50 : 100; // keep the top hinge below the arch
+    const H = door.height, n = door.hingeCount, bottom = door.hingeBottom || HINGE.def;
+    let top = door.hingeTop || HINGE.def;
+    if (door.design === "archtop") top = Math.max(top, door.width / 2 + 50); // keep the top hinge below the arch
     const x = door.hingeSide === "left" ? 22.5 : door.width - 22.5;
     const ys = [];
     for (let i = 0; i < n; i++) ys.push(top + ((H - top - bottom) * i) / (n - 1));
@@ -438,7 +457,12 @@
       if (o.type === "choice") return `${o.label}: ${(o.choices.find((c) => c[0] === v) || [v, v])[1]}`;
       return `${o.label}: ${v}${o.unit ? " " + o.unit : ""}`;
     });
-    bits.push(door.hingeSide === "none" ? "No hinge holes" : `Hinges ${door.hingeSide}, ${door.hingeCount}`);
+    if (door.hingeSide === "none") bits.push("No hinge holes");
+    else {
+      const t = door.hingeTop || HINGE.def, b = door.hingeBottom || HINGE.def;
+      bits.push(`Hinges ${door.hingeSide}, ${door.hingeCount}, ${t === b ? `${t} mm from top and bottom` : `${t} mm from top, ${b} mm from bottom`}`);
+      if (door.hingeNotes) bits.push(`Hinge notes: ${door.hingeNotes}`);
+    }
     return bits.join(" · ");
   }
 
@@ -464,6 +488,13 @@
       if (t.pocket) {
         s += `<polygon points="${ptsAttr(p.pts)}" fill="#000" fill-opacity=".10" stroke="#000" stroke-opacity=".35" stroke-width="2"/>`;
         if (p.pts.length === 4) s += `<polyline points="${ptsAttr([p.pts[3], p.pts[0], p.pts[1]])}" fill="none" stroke="#000" stroke-opacity=".25" stroke-width="4"/>`;
+      } else if (p.tool === "bevel" && p.inner) {
+        // Four sloping faces between the frame and the recessed panel, lit from the top left.
+        const o = p.pts, i = p.inner;
+        const faces = [[o[0], o[1], i[1], i[0], ".22"], [o[1], o[2], i[2], i[1], ".05"], [o[2], o[3], i[3], i[2], ".02"], [o[3], o[0], i[0], i[3], ".16"]];
+        for (const [a, b, c, d2, op] of faces) s += `<polygon points="${ptsAttr([a, b, c, d2])}" fill="#000" fill-opacity="${op}"/>`;
+        s += `<polygon points="${ptsAttr([o[1], o[2], i[2], i[1]])}" fill="#fff" fill-opacity=".10"/><polygon points="${ptsAttr([o[2], o[3], i[3], i[2]])}" fill="#fff" fill-opacity=".16"/>`;
+        s += `<polygon points="${ptsAttr(o)}" fill="none" stroke="#000" stroke-opacity=".30" stroke-width="1.5"/><polygon points="${ptsAttr(i)}" fill="none" stroke="#000" stroke-opacity=".22" stroke-width="1"/>`;
       } else if (p.tool === "chamfer") {
         s += `<polygon points="${ptsAttr(p.pts)}" fill="none" stroke="#fff" stroke-opacity=".45" stroke-width="5"/>`;
       } else {
@@ -528,14 +559,15 @@
       const named = d.name && d.name !== p.g.design.name;
       const lines0 = `${p.tag} ${named ? d.name : p.g.design.name}`;
       // Text about 0.75 x its height per character; keep the longest line inside the door.
-      const lh = Math.max(4, Math.min(10, (p.g.W - 24) / (0.75 * Math.max(lines0.length, 22))));
-      let ly = p.oy + p.g.H / 2 + lh * 2;
       const lines = [
         lines0,
         `${d.width} x ${d.height}${named ? " " + p.g.design.name : ""}`,
-        d.hingeSide === "none" ? "NO HINGES" : `HINGES ${d.hingeSide.toUpperCase()} x${d.hingeCount} (hand drill)`,
+        d.hingeSide === "none" ? "NO HINGES" : `HINGES ${d.hingeSide.toUpperCase()} x${d.hingeCount} TOP ${d.hingeTop || HINGE.def} BOTTOM ${d.hingeBottom || HINGE.def}`,
+        d.hingeNotes ? "HINGE NOTE: " + d.hingeNotes.slice(0, 30) + (d.hingeNotes.length > 30 ? "..." : "") : "",
         order.ref || ""
       ];
+      const lh = Math.max(4, Math.min(10, (p.g.W - 24) / (0.75 * Math.max(22, ...lines.map((l) => l.length)))));
+      let ly = p.oy + p.g.H / 2 + lh * 2;
       for (const l of lines) { if (l) text(l, lx, ly, lh); ly -= lh * 1.6; }
     }
     const layerColor = (name) => { const t = Object.values(TOOLS).find((t) => t.layer === name); return t ? t.color : 2; };

@@ -21,6 +21,11 @@ A site that makes a visitor want to order: clear about what Pivot makes, shows t
 - Should each design get its own page (photos, description, starting price, "design this door" button)?
 - Customer reviews or testimonials to use (Etsy has 5.0 from 4 reviews).
 
+## Content changes (20 Nov 2026, second round)
+- **No Etsy anywhere on the site** (Tim's decision: Etsy takes a large cut). Removed the header "Shop on Etsy" button (now "Get a price" → configurator), the hero "Order on Etsy", footer links, the contact page line, the story mention and the terms mention. The home page fact now reads "rated by our customers" (the 5.0 rating is from 4 Etsy reviews; Tim may want to drop it or add reviews collected directly).
+- Home "The range" no longer gives a number of designs. It shows a few favourites, linking to the full range in the configurator.
+- The configurator no longer says hinge holes are drilled by hand.
+
 ## Decisions (20 Nov 2026, resolved from Etsy differences)
 - Website size limits are now 300–1000 × 300–1200 mm (engine `LIMITS`). The machine takes 1200 × 1200 sheets, and 1000 × 1200 is the largest Tim can hold down. Etsy's 600 × 1150 figures are just his pricing buckets. A provisional **Extra large £80** band covers anything over 600 × 1150; Tim to set the real price.
 - Hinge holes are advertised as a service (FAQ, terms section 2).

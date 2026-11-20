@@ -26,6 +26,12 @@ Order requests are stored safely, Tim is emailed for each one, and customers pay
 - **New order (Tim creates one):** the **+ New order** button opens `/configurator?admin`, which uses a separate saved door list, shows a yellow bar and posts to `/admin/orders` (basic auth plus a same-site check). The order is created with `source: "admin"` and no emails; then Tim continues with Confirm price. A built-in **How this page works** guide on /admin covers all the workflows.
 - Archived = cancelled, refunded, or expired price, unless the order still needs action.
 
+## Address capture (20 Nov 2026)
+- The order form has a **Find your delivery address** search box (Ideal Postcodes, chosen by Tim; pay as you go, about 3–4p per address picked, and suggestions are free). It fills Address line 1, line 2, Town and Postcode, which customers can also type themselves.
+- The server proxies the lookup (`lib/address.js`, `/api/address/status|suggest|resolve`) so the key stays private. Limits per visitor: 150 searches and 15 picks per 10 minutes. `trust proxy` is on, so Render's forwarded IP is used.
+- Orders save `customer.addressLines {line1, line2, town}` plus the combined `customer.address`. The postcode is tidied to the UK format and checked; the town is required.
+- **Not yet live-tested against the real API** (the docs and API were blocked from the dev sandbox). Tim to add `IDEAL_POSTCODES_KEY` in Render, then type a real address on /configurator. If no suggestions appear, check Render Logs for "Address search failed".
+
 ## Decisions
 - Tim chose **pay link after quote**: no payment at checkout while prices are provisional. Tim confirms every order before the customer can pay.
 - Tim approved the Render Postgres database (about £6 a month).

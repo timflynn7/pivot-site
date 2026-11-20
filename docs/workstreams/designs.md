@@ -10,6 +10,11 @@ Every launch design produces a DXF that imports into VCarve and cuts the intende
 - Test board: `node scripts/test-board-dxf.js <folder>` writes the 8 draft designs onto one 1220 x 500 mm offcut (small doors, full-size details).
 - Not built: pairs or runs of doors whose pattern lines up across the gap (e.g. Arched across a pair).
 
+## Changes on 20 Nov 2026 (engine VERSION 2)
+- **Archived** (hidden from the configurator, refused for new orders, recipes kept for old orders): Fluted shaker, Moulded frame fluted, Victorian, Arch-top beaded door, Ring and arc panel. To bring one back, remove `archived: true` from its recipe.
+- **Bevelled shaker redrawn** from Tim's description: a flat frame, an angled bevel, and a flat centre panel about 5 mm below the face. Geometry: `BEVEL_D5` layer on the frame's inner edge (top of the bevel), and `POCKET_EM6_D5` inset by `BEVEL_W` = 12 mm (the panel floor). **The 12 mm bevel width and the bit are placeholders**; Tim to confirm from a test cut.
+- **Hinges:** none by default. When chosen: side, count, top and bottom distances (default 100, minimum 50, maximum half the height less 25), and notes up to 200 characters. The LABELS layer reads e.g. `HINGES LEFT x3 TOP 110 BOTTOM 100`, with notes on a separate line. Label text is now sized to its longest line.
+
 ## Decisions
 - One layer per toolpath, named by tool and depth. The layer name is the contract with Tim's VCarve toolpath templates.
 - Customer rules: statement designs are size only; shaker types adjust borders and rails; patterns adjust spacing only.
