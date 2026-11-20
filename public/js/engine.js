@@ -17,7 +17,7 @@
   "use strict";
 
   const VERSION = 1;
-  const LIMITS = { wMin: 300, wMax: 600, hMin: 300, hMax: 1150 };
+  const LIMITS = { wMin: 300, wMax: 1000, hMin: 300, hMax: 1200 }; // machine bed takes 1200 x 1200 sheets; 1000 x 1200 is the largest that can be held down safely
   const OVERCUT = 10;            // grooves that run off the door go this far past the edge
   const LABEL_LAYER = "LABELS";
 
@@ -43,7 +43,8 @@
   const BANDS = [
     { id: "small",   name: "Small",   maxW: 300, maxH: 600,  price: 30 },
     { id: "regular", name: "Regular", maxW: 600, maxH: 600,  price: 40 },
-    { id: "large",   name: "Large",   maxW: 600, maxH: 1150, price: 60 }
+    { id: "large",   name: "Large",   maxW: 600, maxH: 1150, price: 60 },
+    { id: "xl",      name: "Extra large", maxW: 1000, maxH: 1200, price: 80 } // provisional: Tim to set
   ];
   const DELIVERY = { first: 10, extra: 5 };
 
