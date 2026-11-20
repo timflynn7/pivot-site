@@ -22,7 +22,7 @@ A site that makes a visitor want to order: clear about what Pivot makes, shows t
 - Customer reviews or testimonials to use (Etsy has 5.0 from 4 reviews).
 
 ## Content changes (20 Nov 2026, second round)
-- **No Etsy anywhere on the site** (Tim's decision: Etsy takes a large cut). Removed the header "Shop on Etsy" button (now "Get a price" → configurator), the hero "Order on Etsy", footer links, the contact page line, the story mention and the terms mention. The home page fact now reads "rated by our customers" (the 5.0 rating is from 4 Etsy reviews; Tim may want to drop it or add reviews collected directly).
+- **No Etsy anywhere on the site** (Tim's decision: Etsy takes a large cut). Removed the header "Shop on Etsy" button (briefly replaced by "Get a price", then removed as a duplicate of "Design your door"; the header is now just logo + Home, Design your door, Our story, Contact on every page), the hero "Order on Etsy", footer links, the contact page line, the story mention and the terms mention. The home page fact now reads "rated by our customers" (the 5.0 rating is from 4 Etsy reviews; Tim may want to drop it or add reviews collected directly).
 - Home "The range" no longer gives a number of designs. It shows a few favourites, linking to the full range in the configurator.
 - The configurator no longer says hinge holes are drilled by hand.
 
