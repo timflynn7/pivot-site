@@ -82,6 +82,8 @@ Tim's own photos (real, so no Illustration label), resized to at most 1600 px, c
 - Reeded: a panel on the machine bed.
 - Tongue & bead groove: two tall unpainted panels (cropped to leave out a wave-pattern panel that isn't offered).
 The arched photo was cropped to leave out a lattice panel (archived). The carousel now shows whole photos (no cropping of tall ones), and the drawing shrinks a little when a design has photos so the preview fits a laptop screen.
+**Update, same day (Tim's feedback):** the painted wardrobe (full-height flutes, a style the Shop doesn't offer yet) is on the home page only, not in the Shop. New photo `fluted-doors-selection.jpg` (three fluted doors, Tim's most popular design) is the home page's main image and the first Fluted photo in the Shop. Home range tiles: wardrobe (Fluted), reeded on the machine, arched pair, tongue & bead; story page: bare fluted door and the reeded panel. The old soft Etsy crops (`public/img/arched|fluted|reeded|lattice|icon.jpg`) are deleted. Web-sized copies for the home and story pages are in `public/img/`; full-size ones in `public/img/designs/`, each with a 160 px `-thumb.jpg`.
+**Shop photo layout:** thumbnails under the drawing; clicking one opens a pop-up (native `<dialog>`) with the full photo, caption, arrows (and keyboard arrows), closed by ×, Esc or a click outside. A photo without a `-thumb.jpg` falls back to the full image.
 Still wanted: shaker family, Georgian, New Country, Tongue & V groove, slab, inside-corner close-ups, and better originals for the home page (`public/img/*.jpg` are soft Etsy crops).
 
 ## Next tasks (24 Nov 2026)

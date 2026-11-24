@@ -145,7 +145,7 @@
     const b = e.target.closest("[data-design]"); if (!b) return;
     state.design = b.dataset.design;
     document.querySelectorAll(".dz").forEach((x) => x.setAttribute("aria-pressed", x === b));
-    gIndex = 0; renderOpts(); update(); renderGallery();
+    renderOpts(); update(); renderGallery();
   });
   $("opts").addEventListener("input", (e) => {
     const t = e.target; if (!t.dataset.opt) return;
@@ -243,21 +243,39 @@
   }
 
   /* ---------- example photos and illustrations (public/data/design-images.json) ---------- */
-  let images = {}, gIndex = 0;
+  // Small thumbnails under the drawing; tapping one opens a pop-up with the full photo.
+  // Each photo can name a "thumb"; otherwise "-thumb.jpg" is tried, then the photo itself.
+  let images = {}, lbIndex = 0;
+  const picsFor = () => images[state.design] || [];
+  const thumbOf = (pic) => pic.thumb || pic.src.replace(/\.jpg$/i, "-thumb.jpg");
   function renderGallery() {
-    const pics = images[state.design] || [];
+    const pics = picsFor();
     $("gallery").hidden = !pics.length;
-    if (!pics.length) return;
-    gIndex = (gIndex + pics.length) % pics.length;
-    const pic = pics[gIndex];
-    $("gImg").src = pic.src; $("gImg").alt = pic.alt || pic.caption || E.designById(state.design).name;
-    $("gCap").textContent = pic.caption || "";
-    $("gTag").hidden = !pic.illustration;
-    $("gCount").textContent = pics.length > 1 ? `${gIndex + 1} of ${pics.length}` : "";
-    $("gPrev").hidden = $("gNext").hidden = pics.length < 2;
+    $("gThumbs").innerHTML = pics.map((pic, i) => `<button type="button" class="thumb" data-i="${i}" aria-label="Open photo ${i + 1} of ${pics.length}: ${esc(pic.caption || pic.alt || "")}"><img src="${esc(thumbOf(pic))}" data-full="${esc(pic.src)}" alt="" loading="lazy" width="80" height="80">${pic.illustration ? '<span class="thumb-tag">Illustration</span>' : ""}</button>`).join("");
+    $("gThumbs").querySelectorAll("img").forEach((im) => im.addEventListener("error", () => { if (im.src.indexOf(im.dataset.full) < 0) im.src = im.dataset.full; }, { once: true }));
   }
-  $("gPrev").addEventListener("click", () => { gIndex--; renderGallery(); });
-  $("gNext").addEventListener("click", () => { gIndex++; renderGallery(); });
+  function showPhoto(i) {
+    const pics = picsFor(); if (!pics.length) return;
+    lbIndex = (i + pics.length) % pics.length;
+    const pic = pics[lbIndex];
+    $("lbImg").src = pic.src; $("lbImg").alt = pic.alt || pic.caption || E.designById(state.design).name;
+    $("lbCap").textContent = pic.caption || "";
+    $("lbTag").hidden = !pic.illustration;
+    $("lbCount").textContent = pics.length > 1 ? `${lbIndex + 1} of ${pics.length}` : "";
+    $("lbPrev").hidden = $("lbNext").hidden = pics.length < 2;
+  }
+  const lb = $("lightbox");
+  $("gThumbs").addEventListener("click", (e) => {
+    const t = e.target.closest("[data-i]"); if (!t) return;
+    showPhoto(Number(t.dataset.i));
+    if (lb.showModal) lb.showModal(); else lb.setAttribute("open", "");
+  });
+  const closeLb = () => (lb.close ? lb.close() : lb.removeAttribute("open"));
+  $("lbClose").addEventListener("click", closeLb);
+  $("lbPrev").addEventListener("click", () => showPhoto(lbIndex - 1));
+  $("lbNext").addEventListener("click", () => showPhoto(lbIndex + 1));
+  lb.addEventListener("click", (e) => { if (e.target === lb) closeLb(); }); // a tap outside the photo closes it
+  lb.addEventListener("keydown", (e) => { if (e.key === "ArrowLeft") showPhoto(lbIndex - 1); if (e.key === "ArrowRight") showPhoto(lbIndex + 1); });
   fetch("/data/design-images.json", { cache: "no-cache" }).then((r) => r.ok ? r.json() : {}).then((d) => { images = d && typeof d === "object" ? d : {}; renderGallery(); }).catch(() => {});
 
   if (ADMIN) {

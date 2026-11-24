@@ -43,13 +43,10 @@
         <label class="toggle"><input type="checkbox" id="measures"> Show measurements</label>
         <p class="pv-note" id="pvNote" hidden>Dashed circles show the hinge holes on the back.</p>
       </div>
-      <figure class="gallery" id="gallery" hidden>
-        <div class="g-frame"><img id="gImg" alt=""><span class="g-tag" id="gTag" hidden>Illustration</span>
-          <button type="button" class="g-nav prev" id="gPrev" aria-label="Previous picture">‹</button>
-          <button type="button" class="g-nav next" id="gNext" aria-label="Next picture">›</button>
-        </div>
-        <figcaption><span id="gCap"></span> <span class="g-count" id="gCount"></span></figcaption>
-      </figure>
+      <div class="thumbs" id="gallery" hidden>
+        <span class="thumbs-label">Photos</span>
+        <div class="thumb-row" id="gThumbs"></div>
+      </div>
     </section>
 
     <form class="cfg-steps" id="doorForm" novalidate>
@@ -150,6 +147,16 @@
     </form>
   </section>
 </main>
+
+<dialog class="lightbox" id="lightbox" aria-label="Photo">
+  <button type="button" class="lb-close" id="lbClose" aria-label="Close photo">×</button>
+  <figure>
+    <div class="lb-frame"><img id="lbImg" alt=""><span class="g-tag" id="lbTag" hidden>Illustration</span></div>
+    <figcaption><span id="lbCap"></span><span class="lb-count" id="lbCount"></span></figcaption>
+  </figure>
+  <button type="button" class="lb-nav prev" id="lbPrev" aria-label="Previous photo">‹</button>
+  <button type="button" class="lb-nav next" id="lbNext" aria-label="Next photo">›</button>
+</dialog>
 <!--wa--><a class="wa-float" href="__WA_URL__?text=Hi%20Pivot%20Designs%2C%20I%20have%20a%20question%20about%20some%20doors." target="_blank" rel="noopener" aria-label="Message us on WhatsApp"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M12 3a9 9 0 0 0-7.8 13.5L3 21l4.6-1.2A9 9 0 1 0 12 3Zm0 1.8a7.2 7.2 0 1 1-3.7 13.4l-.3-.2-2.7.7.7-2.6-.2-.3A7.2 7.2 0 0 1 12 4.8Zm-3.1 3.6c-.2 0-.5 0-.7.3-.2.3-.9.9-.9 2.1s.9 2.4 1 2.6c.1.2 1.8 2.8 4.4 3.8 2.2.9 2.6.7 3.1.6.5 0 1.5-.6 1.7-1.2.2-.6.2-1.1.1-1.2l-.4-.3-1.6-.8c-.2-.1-.4-.1-.6.1l-.7.9c-.1.2-.3.2-.5.1-.3-.1-1-.4-2-1.2-.7-.6-1.2-1.4-1.3-1.7-.1-.2 0-.4.1-.5l.4-.5.3-.4v-.4l-.7-1.8c-.2-.5-.4-.4-.6-.4h-.5Z"/></svg><span>Message us on WhatsApp</span></a><!--/wa-->
 
 
