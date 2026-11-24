@@ -3,7 +3,7 @@
 ## Goal
 A site that makes a visitor want to order: clear about what Pivot makes, shows the doors well, builds trust, and leads to the configurator.
 
-## Status (18 Nov 2026)
+## Status (24 Nov 2026: see Changes on 24 Nov below)
 - Live at https://pivotdesigns.co.uk on Render, with the domain and HTTPS working.
 - Pages: Home (`public/index.html`), Our story (`story.html`), Contact (`contact.html`), Design your door (`configurator.html`, in the menu, test version), 404.
 - Visual style: chalk background, Jost headings, Inter body text, sage green buttons, MDF tan accents (`public/css/site.css`).
@@ -40,20 +40,40 @@ A site that makes a visitor want to order: clear about what Pivot makes, shows t
 5. **Terms and privacy pages: written 20 Nov 2026** (`public/terms.html`, `public/privacy.html`), with Tim's answers: sole trader; bare MDF; ±1 mm; mainland GB (other areas ask first); check on delivery and report transit damage within 48 hours with photos, with no transport-damage claims once doors are painted, cut, drilled or fitted (statutory rights for hidden faults kept); cancel after payment before cutting = refund less reasonable costs, capped at 50%; prices valid 30 days and can be withdrawn before payment; unpaid requests archived after 30 days, deleted after 2 years. Linked from every footer, the order form, the pay page and the emails. Published address: 61 Bridge Street, Kington, HR5 3DJ (a geographic address is legally required; a PO box isn't enough).
 6. Basic SEO: page titles and descriptions, Google Business Profile link, a sitemap. Remove `noindex` from the configurator when it's ready.
 
-## Tim's notes (24 Nov 2026), not yet built
-Agreed plan and answers to the questions go in this section once Tim replies.
-- **Terms**: "which you can pay for 30 days" → "the quote remains valid for 30 days" (also section 3). "Who we are": the Kington business address is too prominent, because the story is a workshop in Surrey. The law (E-Commerce Regulations 2002) needs a geographic address on the site, so it can't be removed. Move it to a small "Business details" note at the bottom of the terms page.
-- **Configurator (Design your door)**:
-  - Remove the door name field for now.
-  - Customers should add several doors of different sizes before they're asked for name and address. The list already allows this, but the contact form shows underneath from the start. Hide it until the list has a door, behind a "Continue to your details" step.
-  - "Dashed circles show hinge holes on the back": only show it when hinge holes are chosen.
-  - Optional image carousel per design (photos, labelled AI renders, close-ups of internal corners). None exist yet, so it must hide when empty, and adding or editing images must be easy (probably from /admin).
-  - Toggle on the preview to overlay measurements (width, height, frame width, rails, groove spacing and other options).
-  - Shaker: frame ranges overlap (Traditional 40–120 mm, Skinny 18–40 mm). Show the pocket depth (8 mm now, placeholder) and the internal corner radius (3 mm with the 6 mm end mill) so customers expect tight but rounded corners. Same for other pocketed designs.
-  - Arched: designed to flow across a pair of doors, but a single door is allowed. Choose left door, right door or a pair. Adjustable number of grooves (1–5), spacing, and horizontal and vertical position.
-- **New Test page**: an unlisted page (noindex) holding the archived designs plus new drafts (two-panel doors, vented doors, the raised-profile designs) to fine-tune the configurator before they go live.
-- **Our story**: tone down the DIY and self-taught background, which may hurt confidence in Pivot as a manufacturer.
-- **Home**: remove "Engraved icon" (not in the configurator). Rename the "Design your door" menu link to "Shop" (all page headers).
+## Changes on 24 Nov 2026 (from Tim's notes, on branch `claude/pensive-planck-hlap0l`)
+- **Menu**: "Design your door" is now **Shop** in every page header. The configurator page heading stays "Design your door".
+- **Terms**: "confirmed quote, which remains valid for 30 days". Section 1 now says Surrey workshop + email; the sole-trader name and Kington address moved to a small "Business details" line at the end (it can't be removed: the E-Commerce Regulations 2002 need a geographic address). The privacy page still names the address in its first paragraph; Tim hasn't asked to change that.
+- **Home**: Engraved icon tile, the engraving FAQ sentence and the "own icon or lettering" FAQ removed. `public/img/icon.jpg` is no longer used.
+- **Our story**: rewritten without the DIY and self-taught background (precision CNC, technology and automation background, test boards, every order checked, Surrey workshop). Tim to check the wording.
+- **Configurator**:
+  - Door name field removed (the engine still accepts names, so old orders keep theirs).
+  - The name and address form is hidden until the list has a door and the customer presses **Continue to your details**.
+  - The hinge-hole note only shows when hinges are chosen.
+  - **Show measurements** tick box overlays frame widths, rails, margins, spacing, arch position and hinge distances (each design's `dims` in engine.js).
+  - Pocketed designs show the recess depth and the 3 mm inside-corner radius (`designNote` in engine.js, from the tool's `depth` and width).
+  - **Picture carousel** per design, hidden while a design has no pictures. See "Adding pictures" below.
+- **Test page** `/test-designs` (not linked, noindex): the configurator showing every design, tagged Archived, Draft or Test only, with Download test DXF and no ordering. Designs marked `lab: true` in engine.js appear only there and are refused for orders.
+
+### Adding pictures to a design (for now)
+1. Put the image in `public/img/designs/` (GitHub: open the folder → Add file → Upload files). JPEG, about 1200 px wide, 4:3 looks best.
+2. Edit `public/data/design-images.json` (GitHub: pencil icon). Example:
+```json
+{
+  "shaker": [
+    { "src": "/img/designs/shaker-kitchen.jpg", "caption": "Painted shaker doors in a kitchen" },
+    { "src": "/img/designs/shaker-render.jpg", "caption": "Shaker in sage green", "illustration": true },
+    { "src": "/img/designs/shaker-corner.jpg", "caption": "Close-up of an inside corner" }
+  ]
+}
+```
+The key is the design id (slab, shaker, skinny, bevelled, beaded, newcountry, georgian, tvgroove, tbgroove, fluted, reeded, lattice, arched). `"illustration": true` adds the Illustration label, which **must** be set on every AI render. Committing to `main` publishes it.
+A later option: upload and edit pictures from /admin. That needs file storage that survives deploys (e.g. in the database or a storage bucket).
+
+## Next tasks (24 Nov 2026)
+1. Tim to check the new story wording and the test page; merge the branch to `main` to go live.
+2. Pictures: real photos and labelled AI renders per design, including inside-corner close-ups.
+3. New test designs (two-panel, vented, raised profile) in the designs workstream, added with `lab: true`.
+4. Admin security: on hold at Tim's request (options are in orders.md).
 
 ## Key files
 `public/*.html`, `public/css/site.css`, `public/img/`, `public/configurator.html`.

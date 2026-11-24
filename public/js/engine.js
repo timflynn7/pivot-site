@@ -16,7 +16,7 @@
 })(typeof self !== "undefined" ? self : this, function () {
   "use strict";
 
-  const VERSION = 2; // 2: hinge distances and notes; bevelled shaker redrawn as a 5 mm recessed panel with a bevel
+  const VERSION = 3; // 2: hinge distances and notes; bevelled shaker redrawn as a 5 mm recessed panel with a bevel. 3: skinny shaker pocket 5 mm deep (was 8); arched doors adjustable, with left, right and pair layouts
   const LIMITS = { wMin: 300, wMax: 1000, hMin: 300, hMax: 1200 }; // machine bed takes 1200 x 1200 sheets; 1000 x 1200 is the largest that can be held down safely
   const OVERCUT = 10;
   const BEVEL_W = 12;            // bevelled shaker: width of the sloping bevel (placeholder until test cuts)
@@ -27,10 +27,10 @@
   // width = the groove width the tool leaves at its depth, used for spacing and the preview.
   const TOOLS = {
     cutout:   { layer: "CUTOUT_EM6",          label: "6 mm end mill, profile outside, with tabs", width: 6,    color: 7 },
-    pocket8:  { layer: "POCKET_EM6_D8",       label: "6 mm end mill pocket, 8 mm deep",           width: 6,    color: 5, pocket: true },
-    pocket6:  { layer: "POCKET_EM6_D6",       label: "6 mm end mill pocket, 6 mm deep",           width: 6,    color: 5, pocket: true },
-    pocket5:  { layer: "POCKET_EM6_D5",       label: "6 mm end mill pocket, 5 mm deep",           width: 6,    color: 5, pocket: true },
-    pocket4:  { layer: "POCKET_EM6_D4",       label: "6 mm end mill pocket, 4 mm deep (first step)", width: 6, color: 150, pocket: true },
+    pocket8:  { layer: "POCKET_EM6_D8",       label: "6 mm end mill pocket, 8 mm deep",           width: 6,    color: 5, pocket: true, depth: 8 },
+    pocket6:  { layer: "POCKET_EM6_D6",       label: "6 mm end mill pocket, 6 mm deep",           width: 6,    color: 5, pocket: true, depth: 6 },
+    pocket5:  { layer: "POCKET_EM6_D5",       label: "6 mm end mill pocket, 5 mm deep",           width: 6,    color: 5, pocket: true, depth: 5 },
+    pocket4:  { layer: "POCKET_EM6_D4",       label: "6 mm end mill pocket, 4 mm deep (first step)", width: 6, color: 150, pocket: true, depth: 4 },
     flute16:  { layer: "FLUTE_CORE16_D5",     label: "16 mm fluting bit, 5 mm deep",              width: 16,   color: 3 },
     flute8:   { layer: "FLUTE_BALL8_D4",      label: "8 mm ball nose, 4 mm deep",                 width: 8,    color: 3 },
     reed13:   { layer: "REED_FORM13_D4",      label: "12.7 mm round-nose form tool, 4 mm deep",   width: 12.7, color: 4 },
@@ -79,6 +79,31 @@
     }
     return [[a[0] + dx * t0, a[1] + dy * t0], [a[0] + dx * t1, a[1] + dy * t1]];
   }
+  // Clip a polyline to rectangle r; returns the pieces that lie inside it.
+  function clipPolyline(pts, r) {
+    const out = [];
+    let cur = null;
+    for (let i = 0; i + 1 < pts.length; i++) {
+      const seg = clipSeg(pts[i], pts[i + 1], r);
+      if (!seg) { cur = null; continue; }
+      const last = cur && cur[cur.length - 1];
+      if (last && Math.abs(last[0] - seg[0][0]) < 1e-6 && Math.abs(last[1] - seg[0][1]) < 1e-6) cur.push(seg[1]);
+      else { cur = [seg[0], seg[1]]; out.push(cur); }
+    }
+    return out.filter((q) => q.length > 1);
+  }
+  // A measurement for the preview overlay: from a to b (door coordinates), with a label.
+  const dim = (a, b, label, left) => ({ a, b, label, left: !!left }); // left: put a vertical label on the left of its line
+  const mm = (v) => `${Math.round(v * 10) / 10} mm`;
+  function frameDims(W, H, border, rails) {
+    const out = [dim([0, H * 0.3], [border, H * 0.3], mm(border)), dim([W * 0.3, 0], [W * 0.3, border], mm(border))];
+    if (rails) {
+      const ph = (H - 2 * border - rails * border) / (rails + 1), y0 = border + ph;
+      out.push(dim([W * 0.3, y0], [W * 0.3, y0 + border], mm(border)));
+    }
+    return out;
+  }
+
   // Points along an arc, angles in degrees (y down, so -90 is the top).
   function arc(cx, cy, r, a0, a1, seg) {
     seg = seg || Math.max(12, Math.ceil(Math.abs(a1 - a0) / 4));
@@ -127,7 +152,8 @@
   }
 
   /* ---------- the design recipes ---------- */
-  const num = (key, label, def, min, max, step, help) => ({ key, type: "number", label, def, min, max, step: step || 1, unit: "mm", help });
+  // showIf: { otherKey: [values] } shows the option only when another option has one of those values.
+  const num = (key, label, def, min, max, step, help, showIf) => ({ key, type: "number", label, def, min, max, step: step || 1, unit: "mm", help, showIf });
   const int = (key, label, def, min, max, help) => ({ key, type: "int", label, def, min, max, help });
   const choice = (key, label, def, choices, help) => ({ key, type: "choice", label, def, choices, help });
 
@@ -147,16 +173,18 @@
       opts: [num("border", "Frame width", 70, 40, 120, 5), int("rails", "Mid rails", 0, 0, 3, "Rails are the same width as the frame and evenly spaced.")],
       build(W, H, o) {
         const panels = shakerPanels(W, H, o.border, o.rails);
-        return { outline: rect(0, 0, W, H), paths: panels.map((p) => ({ tool: "pocket8", pts: rect(...p), closed: true })) };
+        return { outline: rect(0, 0, W, H), paths: panels.map((p) => ({ tool: "pocket8", pts: rect(...p), closed: true })), dims: frameDims(W, H, o.border, o.rails) };
       }
     },
     {
       id: "skinny", name: "Skinny shaker", family: "Shaker family", adjustable: true,
       blurb: "A narrow frame for a modern look.",
-      opts: [num("border", "Frame width", 25, 18, 40, 1)],
-      build(W, H, o) {
+      opts: [num("border", "Frame width", 25, 18, 35, 1)],
+      build(W, H, o, door) {
+        // From engine version 3 the skinny panel is 5 mm deep, so hinge cups on the back don't break through the narrow frame.
+        const tool = door && door.version < 3 ? "pocket8" : "pocket5";
         const panels = shakerPanels(W, H, o.border, 0);
-        return { outline: rect(0, 0, W, H), paths: panels.map((p) => ({ tool: "pocket8", pts: rect(...p), closed: true })) };
+        return { outline: rect(0, 0, W, H), paths: panels.map((p) => ({ tool, pts: rect(...p), closed: true })), dims: frameDims(W, H, o.border, 0) };
       }
     },
     {
@@ -181,7 +209,9 @@
         const m = o.margin;
         if (W - 2 * m < 40 || H - 2 * m < 80) fail("The margin is too wide for this size. Make the margin smaller or the door bigger.");
         const flutes = stoppedFlutes(m, m, W - m, H - m, o.spacing, TOOLS.flute16.width);
-        return { outline: rect(0, 0, W, H), paths: flutes.map((pts) => ({ tool: "flute16", pts })) };
+        const dims = [dim([0, H * 0.25], [m, H * 0.25], mm(m)), dim([W * 0.5, 0], [W * 0.5, m], mm(m))];
+        if (flutes.length > 1) { const k = Math.floor(flutes.length / 2) - 1, x = flutes[k][0][0]; dims.push(dim([x, H * 0.5], [x + o.spacing, H * 0.5], mm(o.spacing))); }
+        return { outline: rect(0, 0, W, H), paths: flutes.map((pts) => ({ tool: "flute16", pts })), dims };
       }
     },
     {
@@ -194,7 +224,8 @@
         const start = W / 2 - ((n - 1) * o.spacing) / 2;
         const paths = [];
         for (let k = 0; k < n; k++) paths.push({ tool: "reed13", pts: fullHeight(start + k * o.spacing, H) });
-        return { outline: rect(0, 0, W, H), paths };
+        const x = start + (Math.floor(n / 2) - 1) * o.spacing;
+        return { outline: rect(0, 0, W, H), paths, dims: [dim([x, H * 0.5], [x + o.spacing, H * 0.5], mm(o.spacing))] };
       }
     },
     {
@@ -205,7 +236,7 @@
         const boards = Math.max(2, Math.round(W / o.spacing));
         const paths = [];
         for (let k = 1; k < boards; k++) paths.push({ tool: "v90d4", pts: fullHeight((k * W) / boards, H) });
-        return { outline: rect(0, 0, W, H), paths, info: `${boards} boards, ${Math.round((W / boards) * 10) / 10} mm each` };
+        return { outline: rect(0, 0, W, H), paths, dims: [dim([0, H * 0.5], [W / boards, H * 0.5], mm(W / boards))], info: `${boards} boards, ${Math.round((W / boards) * 10) / 10} mm each` };
       }
     },
     {
@@ -240,7 +271,7 @@
         const [p] = shakerPanels(W, H, o.border, 0);
         const b = BEVEL_W;
         const inner = rect(p[0] + b, p[1] + b, p[2] - b, p[3] - b);
-        return { outline: rect(0, 0, W, H), paths: [{ tool: "pocket5", pts: inner, closed: true }, { tool: "bevel", pts: rect(...p), inner, closed: true }] };
+        return { outline: rect(0, 0, W, H), paths: [{ tool: "pocket5", pts: inner, closed: true }, { tool: "bevel", pts: rect(...p), inner, closed: true }], dims: frameDims(W, H, o.border, 0).concat([dim([p[0], H * 0.6], [p[0] + b, H * 0.6], `bevel ${mm(b)}`)]) };
       }
     },
     {
@@ -250,7 +281,7 @@
       build(W, H, o) {
         const [p] = shakerPanels(W, H, o.border, 0);
         const bead = 6;
-        return { outline: rect(0, 0, W, H), paths: [{ tool: "pocket8", pts: rect(...p), closed: true }, { tool: "bead6", pts: rect(p[0] - bead, p[1] - bead, p[2] + bead, p[3] + bead), closed: true }] };
+        return { outline: rect(0, 0, W, H), paths: [{ tool: "pocket8", pts: rect(...p), closed: true }, { tool: "bead6", pts: rect(p[0] - bead, p[1] - bead, p[2] + bead, p[3] + bead), closed: true }], dims: frameDims(W, H, o.border, 0) };
       }
     },
     {
@@ -262,7 +293,7 @@
         const pw = p[2] - p[0], boards = Math.max(2, Math.round(pw / o.spacing));
         const paths = [{ tool: "pocket8", pts: rect(...p), closed: true }];
         for (let k = 1; k < boards; k++) { const x = p[0] + (k * pw) / boards; paths.push({ tool: "v90d4", pts: [[x, p[1]], [x, p[3]]] }); }
-        return { outline: rect(0, 0, W, H), paths, info: `${boards} boards in the panel` };
+        return { outline: rect(0, 0, W, H), paths, dims: frameDims(W, H, o.border, 0).concat([dim([p[0], H * 0.5], [p[0] + pw / boards, H * 0.5], mm(pw / boards))]), info: `${boards} boards in the panel` };
       }
     },
     {
@@ -308,22 +339,52 @@
           const x = (k * W) / boards;
           paths.push({ tool: "v90d4", pts: fullHeight(x, H) }, { tool: "bead6", pts: fullHeight(x + 9, H) });
         }
-        return { outline: rect(0, 0, W, H), paths, info: `${boards} boards, ${Math.round((W / boards) * 10) / 10} mm each` };
+        return { outline: rect(0, 0, W, H), paths, dims: [dim([0, H * 0.5], [W / boards, H * 0.5], mm(W / boards))], info: `${boards} boards, ${Math.round((W / boards) * 10) / 10} mm each` };
       }
     },
     {
-      id: "arched", name: "Arched", family: "Your current range", adjustable: false, draft: true,
-      blurb: "Concentric arches rising from the bottom edge.",
-      opts: [],
-      build(W, H) {
-        const R = Math.min(W * 0.38, H * 0.42), gap = R / 4.5, cx = W / 2, cy = H * 0.16 + R;
-        if (cy > H - 40) fail("This door is too short for the arches. Make it taller.");
-        const paths = [];
-        for (let i = 0; i < 4; i++) {
-          const r = R - i * gap;
-          paths.push({ tool: "reed13", pts: [[cx - r, H + OVERCUT]].concat(arc(cx, cy, r, 180, 360), [[cx + r, H + OVERCUT]]) });
+      id: "arched", name: "Arched", family: "Your current range", adjustable: true, draft: true,
+      blurb: "Concentric arches rising from the bottom edge. Designed to flow across a pair of doors, or on one door.",
+      opts: [
+        choice("layout", "Doors", "single", [["single", "Single door"], ["left", "Left of a pair"], ["right", "Right of a pair"], ["pair", "Both doors"]],
+          "The arches are centred on the gap between a pair of doors. Both doors are the size you enter."),
+        num("gap", "Gap between the doors", 3, 0, 10, 0.5, "The gap you'll leave between the pair when they're hung.", { layout: ["left", "right", "pair"] }),
+        int("count", "Number of arches", 4, 1, 5),
+        num("spacing", "Arch spacing", 30, 16, 60, 1, "Centre to centre. The grooves are cut with a 12.7 mm form tool."),
+        num("top", "Top of the arches from the top edge", 100, 20, 600, 5),
+        num("shift", "Move sideways", 0, -200, 200, 5, "Moves the centre of the arches left (minus) or right (plus).")
+      ],
+      build(W, H, o, door) {
+        if (door && door.version < 3) { // the fixed design from before engine version 3, kept for old orders
+          const R = Math.min(W * 0.38, H * 0.42), gap = R / 4.5, cx = W / 2, cy = H * 0.16 + R;
+          if (cy > H - 40) fail("This door is too short for the arches. Make it taller.");
+          const paths = [];
+          for (let i = 0; i < 4; i++) {
+            const r = R - i * gap;
+            paths.push({ tool: "reed13", pts: [[cx - r, H + OVERCUT]].concat(arc(cx, cy, r, 180, 360), [[cx + r, H + OVERCUT]]) });
+          }
+          return { outline: rect(0, 0, W, H), paths, info: "4 arches" };
         }
-        return { outline: rect(0, 0, W, H), paths, info: "4 arches" };
+        const layout = o.layout === "pair" ? "left" : o.layout, gap = layout === "single" ? 0 : o.gap;
+        const span = layout === "single" ? W : 2 * W + gap;
+        const cx = (layout === "single" ? W / 2 : layout === "left" ? W + gap / 2 : -gap / 2) + o.shift;
+        const R = Math.min(span * 0.38, H - o.top - 40), cy = o.top + R;
+        const inner = R - (o.count - 1) * o.spacing;
+        if (R < 40) fail("The arches don't fit. Make the door taller or move the arches up.");
+        if (inner < 15) fail("There isn't room for that many arches. Use fewer arches, closer spacing, or move the arches up.");
+        const box = { x0: -OVERCUT, y0: -OVERCUT, x1: W + OVERCUT, y1: H + OVERCUT };
+        const paths = [];
+        for (let i = 0; i < o.count; i++) {
+          const r = R - i * o.spacing;
+          for (const pts of clipPolyline([[cx - r, H + OVERCUT]].concat(arc(cx, cy, r, 180, 360, 90), [[cx + r, H + OVERCUT]]), box)) paths.push({ tool: "reed13", pts });
+        }
+        if (!paths.some((p) => p.pts.some((q) => q[0] > 0 && q[0] < W))) fail("The arches have moved off this door. Move them back towards the centre.");
+        // Measure at the top of the arches, or near the meeting edge when that's on the other door.
+        const mx = cx > 30 && cx < W - 30 ? cx : cx >= W - 30 ? W - 30 : 30, left = cx >= W - 30;
+        const yAt = (r) => cy - Math.sqrt(Math.max(0, r * r - (mx - cx) * (mx - cx)));
+        const dims = [dim([mx, 0], [mx, yAt(R)], mm(o.top), left)];
+        if (o.count > 1) dims.push(dim([mx, yAt(R)], [mx, yAt(R - o.spacing)], mm(o.spacing), left));
+        return { outline: rect(0, 0, W, H), paths, dims, info: `${o.count} arch${o.count === 1 ? "" : "es"}` };
       }
     },
     {
@@ -361,6 +422,21 @@
   const ORDER = ["slab", "shaker", "skinny", "bevelled", "beaded", "newcountry", "flutedshaker", "mouldedflute", "victorian", "georgian", "tvgroove", "tbgroove", "fluted", "reeded", "lattice", "arched", "archtop", "ringpanel"];
   DESIGNS.sort((a, b) => ORDER.indexOf(a.id) - ORDER.indexOf(b.id));
   const designById = (id) => DESIGNS.find((d) => d.id === id);
+  // Archived designs (kept for old orders) and lab designs (test page only) can't be ordered.
+  const orderable = (d) => !!d && !d.archived && !d.lab;
+  const optShown = (o, opts) => !o.showIf || Object.keys(o.showIf).every((k) => o.showIf[k].includes(opts[k]));
+
+  // The physical doors one order line makes. An arched pair is two doors, left and right,
+  // both the size entered, with hinges (if any) on their outer edges.
+  function doorParts(door) {
+    if (door.design === "arched" && door.opts && door.opts.layout === "pair" && !(door.version < 3)) {
+      return ["left", "right"].map((side) => Object.assign({}, door, {
+        opts: Object.assign({}, door.opts, { layout: side }), part: side,
+        hingeSide: door.hingeSide === "none" ? "none" : side
+      }));
+    }
+    return [door];
+  }
 
   /* ---------- validation ---------- */
   function hingeDefault(H) { return H <= 900 ? 2 : 3; }
@@ -415,7 +491,7 @@
       if (notes) door.hingeNotes = notes;
     }
     if (!errors.width && !errors.height && !Object.keys(errors).some((k) => d.opts.some((o) => o.key === k))) {
-      try { buildDoor(door); } catch (e) { if (e instanceof DesignError) errors.geometry = e.message; else throw e; }
+      try { doorParts(door).forEach(buildDoor); } catch (e) { if (e instanceof DesignError) errors.geometry = e.message; else throw e; }
     }
     return { door, errors };
   }
@@ -434,16 +510,17 @@
   function buildDoor(door) {
     const d = designById(door.design);
     if (!d) fail("Unknown design.");
-    const g = d.build(door.width, door.height, door.opts || {});
+    const g = d.build(door.width, door.height, door.opts || {}, door);
     g.paths.unshift({ tool: "cutout", pts: g.outline, closed: true });
-    return { W: door.width, H: door.height, outline: g.outline, paths: g.paths, info: g.info || "", hinges: hingePositions(door), design: d };
+    return { W: door.width, H: door.height, outline: g.outline, paths: g.paths, dims: g.dims || [], info: g.info || "", hinges: hingePositions(door), design: d };
   }
 
   /* ---------- prices ---------- */
   function bandFor(W, H) { return BANDS.find((b) => W <= b.maxW && H <= b.maxH) || null; }
-  function priceDoor(door) { const b = bandFor(door.width, door.height); return b ? b.price : null; }
+  // Price of one order line's worth (a pair counts as two doors).
+  function priceDoor(door) { const b = bandFor(door.width, door.height); return b ? b.price * doorParts(door).length : null; }
   function priceOrder(doors) {
-    const count = doors.reduce((a, d) => a + d.qty, 0);
+    const count = doors.reduce((a, d) => a + d.qty * doorParts(d).length, 0);
     const sub = doors.reduce((a, d) => a + d.qty * (priceDoor(d) || 0), 0);
     const ship = count ? DELIVERY.first + DELIVERY.extra * (count - 1) : 0;
     return { count, sub, ship, total: sub + ship };
@@ -452,7 +529,7 @@
   /* ---------- descriptions ---------- */
   function describe(door) {
     const d = designById(door.design);
-    const bits = d.opts.map((o) => {
+    const bits = d.opts.filter((o) => door.opts[o.key] !== undefined && optShown(o, door.opts)).map((o) => {
       const v = door.opts[o.key];
       if (o.type === "choice") return `${o.label}: ${(o.choices.find((c) => c[0] === v) || [v, v])[1]}`;
       return `${o.label}: ${v}${o.unit ? " " + o.unit : ""}`;
@@ -460,61 +537,101 @@
     if (door.hingeSide === "none") bits.push("No hinge holes");
     else {
       const t = door.hingeTop || HINGE.def, b = door.hingeBottom || HINGE.def;
-      bits.push(`Hinges ${door.hingeSide}, ${door.hingeCount}, ${t === b ? `${t} mm from top and bottom` : `${t} mm from top, ${b} mm from bottom`}`);
+      bits.push(`Hinges ${doorParts(door).length > 1 ? "on the outer edges" : door.hingeSide}, ${door.hingeCount}, ${t === b ? `${t} mm from top and bottom` : `${t} mm from top, ${b} mm from bottom`}`);
       if (door.hingeNotes) bits.push(`Hinge notes: ${door.hingeNotes}`);
     }
     return bits.join(" · ");
+  }
+
+  // What a customer should know about the recess: depth and the cutter's corner radius.
+  function designNote(door) {
+    const pockets = buildDoor(door).paths.map((p) => TOOLS[p.tool]).filter((t) => t.pocket && t.depth);
+    if (!pockets.length) return "";
+    const depths = Array.from(new Set(pockets.map((t) => t.depth))).sort((a, b) => a - b);
+    const r = Math.max(...pockets.map((t) => t.width)) / 2;
+    const depth = depths.length > 1 ? `The frame steps down ${depths.slice(0, -1).join(" mm, then ")} mm, then ${depths[depths.length - 1]} mm to the panel.` : `The panel is recessed ${depths[0]} mm.`;
+    return `${depth} The inside corners are rounded by the cutter to a ${r} mm radius, so they're tight but not perfectly square.`;
   }
 
   /* ---------- SVG preview ---------- */
   let uid = 0;
   const f1 = (v) => Math.round(v * 10) / 10;
   const ptsAttr = (pts) => pts.map((p) => f1(p[0]) + "," + f1(p[1])).join(" ");
+  // opt.dims: overall width and height. opt.measures: the detailed overlay (frame widths, spacing, hinge distances).
   function doorSVG(door, opt) {
     opt = opt || {};
-    const g = buildDoor(door);
-    const W = g.W, H = g.H, id = "pv" + (++uid);
+    const gs = doorParts(door).map(buildDoor);
+    const W = gs[0].W, H = gs[0].H, pair = gs.length > 1, id = "pv" + (++uid);
+    const realGap = pair ? Number(door.opts.gap) || 0 : 0, gap = pair ? Math.max(realGap, 10) : 0; // drawn at least 10 mm so the seam shows
+    const TW = gs.length * W + (gs.length - 1) * gap;
     const fill = opt.fill || "#CDB28A", edge = opt.edge || "#9C8462";
-    const dims = !!opt.dims, pad = dims ? Math.max(W, H) * 0.12 : 8;
-    const vb = [-pad * (dims ? 0.35 : 1), -pad * (dims ? 0.35 : 1), W + pad * (dims ? 1.35 : 2), H + pad * (dims ? 1.35 : 2)];
-    let s = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${vb.map(f1).join(" ")}" role="img" aria-label="${g.design.name}, ${W} by ${H} mm">`;
-    s += `<defs><clipPath id="${id}c"><polygon points="${ptsAttr(g.outline)}"/></clipPath>` +
-      `<linearGradient id="${id}g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".18"/><stop offset=".6" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".12"/></linearGradient></defs>`;
-    s += `<polygon points="${ptsAttr(g.outline)}" fill="${fill}"/>`;
-    s += `<g clip-path="url(#${id}c)">`;
-    for (const p of g.paths) {
-      const t = TOOLS[p.tool];
-      if (p.tool === "cutout") continue;
-      if (t.pocket) {
-        s += `<polygon points="${ptsAttr(p.pts)}" fill="#000" fill-opacity=".10" stroke="#000" stroke-opacity=".35" stroke-width="2"/>`;
-        if (p.pts.length === 4) s += `<polyline points="${ptsAttr([p.pts[3], p.pts[0], p.pts[1]])}" fill="none" stroke="#000" stroke-opacity=".25" stroke-width="4"/>`;
-      } else if (p.tool === "bevel" && p.inner) {
-        // Four sloping faces between the frame and the recessed panel, lit from the top left.
-        const o = p.pts, i = p.inner;
-        const faces = [[o[0], o[1], i[1], i[0], ".22"], [o[1], o[2], i[2], i[1], ".05"], [o[2], o[3], i[3], i[2], ".02"], [o[3], o[0], i[0], i[3], ".16"]];
-        for (const [a, b, c, d2, op] of faces) s += `<polygon points="${ptsAttr([a, b, c, d2])}" fill="#000" fill-opacity="${op}"/>`;
-        s += `<polygon points="${ptsAttr([o[1], o[2], i[2], i[1]])}" fill="#fff" fill-opacity=".10"/><polygon points="${ptsAttr([o[2], o[3], i[3], i[2]])}" fill="#fff" fill-opacity=".16"/>`;
-        s += `<polygon points="${ptsAttr(o)}" fill="none" stroke="#000" stroke-opacity=".30" stroke-width="1.5"/><polygon points="${ptsAttr(i)}" fill="none" stroke="#000" stroke-opacity=".22" stroke-width="1"/>`;
-      } else if (p.tool === "chamfer") {
-        s += `<polygon points="${ptsAttr(p.pts)}" fill="none" stroke="#fff" stroke-opacity=".45" stroke-width="5"/>`;
-      } else {
-        const w = t.width, el = p.closed ? "polygon" : "polyline";
-        s += `<${el} points="${ptsAttr(p.pts)}" fill="none" stroke="#000" stroke-opacity="${p.tool === "mould" || p.tool === "bevel" ? ".14" : ".24"}" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round"/>`;
-        s += `<${el} points="${ptsAttr(p.pts.map((q) => [q[0] + w * 0.22, q[1] + w * 0.22]))}" fill="none" stroke="#fff" stroke-opacity=".28" stroke-width="${f1(w * 0.28)}" stroke-linecap="round" stroke-linejoin="round"/>`;
+    const dims = !!opt.dims, M = Math.max(TW, H), pad = dims ? M * 0.12 : 8;
+    const vb = [-pad * (dims ? 0.35 : 1), -pad * (dims ? 0.35 : 1), TW + pad * (dims ? 1.35 : 2), H + pad * (dims ? 1.35 : 2)];
+    let s = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${vb.map(f1).join(" ")}" role="img" aria-label="${gs[0].design.name}, ${pair ? "a pair of doors, each " : ""}${W} by ${H} mm">`;
+    s += `<defs><linearGradient id="${id}g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".18"/><stop offset=".6" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".12"/></linearGradient>`;
+    gs.forEach((g, k) => { s += `<clipPath id="${id}c${k}"><polygon points="${ptsAttr(g.outline)}"/></clipPath>`; });
+    s += `</defs>`;
+    gs.forEach((g, k) => {
+      s += `<g transform="translate(${f1(k * (W + gap))} 0)">`;
+      s += `<polygon points="${ptsAttr(g.outline)}" fill="${fill}"/>`;
+      s += `<g clip-path="url(#${id}c${k})">`;
+      for (const p of g.paths) {
+        const t = TOOLS[p.tool];
+        if (p.tool === "cutout") continue;
+        if (t.pocket) {
+          s += `<polygon points="${ptsAttr(p.pts)}" fill="#000" fill-opacity=".10" stroke="#000" stroke-opacity=".35" stroke-width="2"/>`;
+          if (p.pts.length === 4) s += `<polyline points="${ptsAttr([p.pts[3], p.pts[0], p.pts[1]])}" fill="none" stroke="#000" stroke-opacity=".25" stroke-width="4"/>`;
+        } else if (p.tool === "bevel" && p.inner) {
+          // Four sloping faces between the frame and the recessed panel, lit from the top left.
+          const o = p.pts, i = p.inner;
+          const faces = [[o[0], o[1], i[1], i[0], ".22"], [o[1], o[2], i[2], i[1], ".05"], [o[2], o[3], i[3], i[2], ".02"], [o[3], o[0], i[0], i[3], ".16"]];
+          for (const [a, b, c, d2, op] of faces) s += `<polygon points="${ptsAttr([a, b, c, d2])}" fill="#000" fill-opacity="${op}"/>`;
+          s += `<polygon points="${ptsAttr([o[1], o[2], i[2], i[1]])}" fill="#fff" fill-opacity=".10"/><polygon points="${ptsAttr([o[2], o[3], i[3], i[2]])}" fill="#fff" fill-opacity=".16"/>`;
+          s += `<polygon points="${ptsAttr(o)}" fill="none" stroke="#000" stroke-opacity=".30" stroke-width="1.5"/><polygon points="${ptsAttr(i)}" fill="none" stroke="#000" stroke-opacity=".22" stroke-width="1"/>`;
+        } else if (p.tool === "chamfer") {
+          s += `<polygon points="${ptsAttr(p.pts)}" fill="none" stroke="#fff" stroke-opacity=".45" stroke-width="5"/>`;
+        } else {
+          const w = t.width, el = p.closed ? "polygon" : "polyline";
+          s += `<${el} points="${ptsAttr(p.pts)}" fill="none" stroke="#000" stroke-opacity="${p.tool === "mould" || p.tool === "bevel" ? ".14" : ".24"}" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round"/>`;
+          s += `<${el} points="${ptsAttr(p.pts.map((q) => [q[0] + w * 0.22, q[1] + w * 0.22]))}" fill="none" stroke="#fff" stroke-opacity=".28" stroke-width="${f1(w * 0.28)}" stroke-linecap="round" stroke-linejoin="round"/>`;
+        }
       }
-    }
-    s += `</g>`;
-    s += `<polygon points="${ptsAttr(g.outline)}" fill="url(#${id}g)" stroke="${edge}" stroke-width="2"/>`;
-    for (const [x, y] of g.hinges) s += `<circle cx="${f1(x)}" cy="${f1(y)}" r="17.5" fill="none" stroke="#000" stroke-opacity=".5" stroke-width="1.5" stroke-dasharray="4 3"/>`;
+      s += `</g>`;
+      s += `<polygon points="${ptsAttr(g.outline)}" fill="url(#${id}g)" stroke="${edge}" stroke-width="2"/>`;
+      for (const [x, y] of g.hinges) s += `<circle cx="${f1(x)}" cy="${f1(y)}" r="17.5" fill="none" stroke="#000" stroke-opacity=".5" stroke-width="1.5" stroke-dasharray="4 3"/>`;
+      if (opt.measures) {
+        const fs = M * 0.026, list = k ? [] : g.dims.slice(); // a pair's design measurements are shown once, on the left door
+        if (g.hinges.length) {
+          const hx = g.hinges[0][0], ys = g.hinges.map((q) => q[1]);
+          const inLeft = hx > W / 2;
+          list.push(dim([hx, 0], [hx, ys[0]], mm(ys[0]), inLeft), dim([hx, ys[ys.length - 1]], [hx, H], mm(H - ys[ys.length - 1]), inLeft));
+        }
+        for (const m of list) s += measureSVG(m, fs);
+      }
+      s += `</g>`;
+    });
     if (dims) {
-      const fs = Math.max(W, H) * 0.035, c = opt.ink || "currentColor", lw = Math.max(W, H) * 0.003, tk = fs * 0.45;
-      const yd = H + pad * 0.45, xd = W + pad * 0.45;
+      const fs = M * 0.035, c = opt.ink || "currentColor", lw = M * 0.003, tk = fs * 0.45;
+      const yd = H + pad * 0.45, xd = TW + pad * 0.45;
       s += `<g stroke="${c}" stroke-width="${f1(lw)}"><line x1="0" y1="${f1(yd)}" x2="${W}" y2="${f1(yd)}"/><line x1="0" y1="${f1(yd - tk)}" x2="0" y2="${f1(yd + tk)}"/><line x1="${W}" y1="${f1(yd - tk)}" x2="${W}" y2="${f1(yd + tk)}"/>` +
         `<line x1="${f1(xd)}" y1="0" x2="${f1(xd)}" y2="${H}"/><line x1="${f1(xd - tk)}" y1="0" x2="${f1(xd + tk)}" y2="0"/><line x1="${f1(xd - tk)}" y1="${H}" x2="${f1(xd + tk)}" y2="${H}"/></g>`;
-      s += `<text x="${f1(W / 2)}" y="${f1(yd + fs * 1.35)}" text-anchor="middle" font-size="${f1(fs)}" fill="${c}" font-family="system-ui, sans-serif">${W} mm</text>`;
+      s += `<text x="${f1(W / 2)}" y="${f1(yd + fs * 1.35)}" text-anchor="middle" font-size="${f1(fs)}" fill="${c}" font-family="system-ui, sans-serif">${W} mm${pair ? " each" : ""}</text>`;
       s += `<text transform="translate(${f1(xd + fs * 1.2)} ${f1(H / 2)}) rotate(90)" text-anchor="middle" font-size="${f1(fs)}" fill="${c}" font-family="system-ui, sans-serif">${H} mm</text>`;
+      if (pair && opt.measures) s += `<text x="${f1(W + gap / 2)}" y="${f1(yd + fs * 1.35)}" text-anchor="middle" font-size="${f1(fs * 0.8)}" fill="${c}" font-family="system-ui, sans-serif">${mm(realGap)} gap</text>`;
     }
     return s + `</svg>`;
+  }
+  // One measurement line with end ticks and a haloed label.
+  function measureSVG(m, fs) {
+    const [x0, y0] = m.a, [x1, y1] = m.b, horiz = Math.abs(x1 - x0) >= Math.abs(y1 - y0);
+    const tk = fs * 0.4, ink = "#1F2A22", lw = f1(fs * 0.08);
+    const ticks = horiz ? [[x0, y0 - tk, x0, y0 + tk], [x1, y1 - tk, x1, y1 + tk]] : [[x0 - tk, y0, x0 + tk, y0], [x1 - tk, y1, x1 + tk, y1]];
+    let s = `<g stroke="${ink}" stroke-width="${lw}"><line x1="${f1(x0)}" y1="${f1(y0)}" x2="${f1(x1)}" y2="${f1(y1)}"/>` + ticks.map((t) => `<line x1="${f1(t[0])}" y1="${f1(t[1])}" x2="${f1(t[2])}" y2="${f1(t[3])}"/>`).join("") + `</g>`;
+    const mx = (x0 + x1) / 2, my = (y0 + y1) / 2;
+    const txt = `font-size="${f1(fs)}" font-weight="600" fill="${ink}" stroke="#fff" stroke-width="${f1(fs * 0.28)}" paint-order="stroke" stroke-linejoin="round" font-family="system-ui, sans-serif"`;
+    s += horiz ? `<text x="${f1(mx)}" y="${f1(my - fs * 0.45)}" text-anchor="middle" ${txt}>${m.label}</text>`
+      : `<text x="${f1(mx + (m.left ? -fs * 0.45 : fs * 0.45))}" y="${f1(my + fs * 0.35)}"${m.left ? ' text-anchor="end"' : ""} ${txt}>${m.label}</text>`;
+    return s;
   }
 
   /* ---------- DXF (R12 ASCII) ---------- */
@@ -525,10 +642,12 @@
   // own part, spread out in rows no wider than sheetWidth (default 2440 mm) for VCarve to nest.
   function orderDXF(order) {
     const parts = [];
-    order.doors.forEach((door, i) => {
-      for (let c = 1; c <= door.qty; c++) {
-        const tag = door.qty > 1 ? `${i + 1}.${c}` : `${i + 1}`;
-        parts.push({ door, tag, g: buildDoor(door) });
+    order.doors.forEach((line, i) => {
+      for (let c = 1; c <= line.qty; c++) {
+        for (const door of doorParts(line)) {
+          const tag = (line.qty > 1 ? `${i + 1}.${c}` : `${i + 1}`) + (door.part ? (door.part === "left" ? "L" : "R") : "");
+          parts.push({ door, tag, g: buildDoor(door) });
+        }
       }
     });
     parts.sort((a, b) => b.g.H - a.g.H);
@@ -557,7 +676,7 @@
       for (const path of p.g.paths) poly(TOOLS[path.tool].layer, path.pts.map(tx), !!path.closed);
       const d = p.door, lx = p.ox + 12;
       const named = d.name && d.name !== p.g.design.name;
-      const lines0 = `${p.tag} ${named ? d.name : p.g.design.name}`;
+      const lines0 = `${p.tag} ${named ? d.name : p.g.design.name}${d.part ? ` (${d.part.toUpperCase()} OF PAIR)` : ""}`;
       // Text about 0.75 x its height per character; keep the longest line inside the door.
       const lines = [
         lines0,
@@ -587,9 +706,9 @@
   // The toolpath list for an order: one row per layer used.
   function layerList(doors) {
     const seen = new Map();
-    for (const door of doors) for (const p of buildDoor(door).paths) { const t = TOOLS[p.tool]; seen.set(t.layer, t.label); }
+    for (const line of doors) for (const door of doorParts(line)) for (const p of buildDoor(door).paths) { const t = TOOLS[p.tool]; seen.set(t.layer, t.label); }
     return Array.from(seen, ([layer, label]) => ({ layer, label }));
   }
 
-  return { VERSION, LIMITS, TOOLS, BANDS, DELIVERY, DESIGNS, designById, normalizeDoor, buildDoor, hingeDefault, priceDoor, priceOrder, bandFor, describe, doorSVG, orderDXF, layerList };
+  return { VERSION, LIMITS, TOOLS, BANDS, DELIVERY, DESIGNS, designById, orderable, optShown, doorParts, designNote, normalizeDoor, buildDoor, hingeDefault, priceDoor, priceOrder, bandFor, describe, doorSVG, orderDXF, layerList };
 });

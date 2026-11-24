@@ -4,7 +4,7 @@ Each workstream has its own brief. Work on one per Claude session, and update it
 
 | # | Workstream | Brief | Status |
 | --- | --- | --- | --- |
-| 1 | Website content and layout | [website.md](website.md) | **Active.** Holding pages live; terms and privacy drafted (branch), waiting on Tim's facts and Etsy content |
+| 1 | Website content and layout | [website.md](website.md) | **Active.** 24 Nov: Tim's page notes done on branch (Shop menu, terms, story, configurator steps, measurements, arched pairs, test page). Waiting on pictures |
 | 2 | Visualiser | [visualiser.md](visualiser.md) | Not started |
 | 3 | Door designs and DXF engine | [designs.md](designs.md) | **Active.** 18 drafts; moulding and round-over designs need rework |
 | 3a | Toolpath lab: moulding toolpath and round-over bits | [toolpath-lab.md](toolpath-lab.md) | **Active.** Proven settings go back into designs.md |

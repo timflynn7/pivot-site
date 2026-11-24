@@ -302,7 +302,7 @@ async function payPath(ref) {
   assert.strictEqual(hr.status, 201);
   const href = (await hr.json()).ref;
   o = await spec(href);
-  assert(o.doors[0].hingeTop === 120 && o.doors[0].hingeBottom === 90 && o.doors[0].hingeNotes === "Blum soft-close" && o.doors[0].version === 2);
+  assert(o.doors[0].hingeTop === 120 && o.doors[0].hingeBottom === 90 && o.doors[0].hingeNotes === "Blum soft-close" && o.doors[0].version === 3);
   assert((await page("/admin")).includes("120 mm from top, 90 mm from bottom · Hinge notes: Blum soft-close"));
   const hd = await (await req(`/admin/orders/${href}.dxf`, { headers: auth })).text();
   assert(hd.includes("HINGES RIGHT x3 TOP 120 BOTTOM 90") && hd.includes("HINGE NOTE: Blum soft-close") && hd.includes("BEVEL_D5") && hd.includes("POCKET_EM6_D5"));
@@ -310,6 +310,23 @@ async function payPath(ref) {
   const nh = await tryOrder([{ design: "shaker", width: 450, height: 700 }]);
   assert.strictEqual((await spec((await nh.json()).ref)).doors[0].hingeSide, "none");
   step("archived designs refused; hinge distances and notes saved, shown on /admin and in the DXF; no hinges by default");
+
+  // ---------- arched pairs, skinny depth, test page ----------
+  const E = require("../public/js/engine.js");
+  const pr = await tryOrder([{ design: "arched", width: 450, height: 700, opts: { layout: "pair", count: 3 }, hingeSide: "left", qty: 2 }]);
+  assert.strictEqual(pr.status, 201);
+  const pref = (await pr.json()).ref;
+  o = await spec(pref);
+  assert.strictEqual(o.totals.count, 4, "a pair counts as two doors");
+  const pd = await (await req(`/admin/orders/${pref}.dxf`, { headers: auth })).text();
+  for (const t of ["1.1L", "1.1R", "1.2L", "1.2R", "LEFT OF PAIR", "RIGHT OF PAIR", "HINGES LEFT", "HINGES RIGHT"]) assert(pd.includes(t), t);
+  const sk = E.normalizeDoor({ design: "skinny", width: 400, height: 600 }).door;
+  assert(E.layerList([sk]).some((l) => l.layer === "POCKET_EM6_D5"));
+  assert(E.layerList([{ ...sk, version: 2 }]).some((l) => l.layer === "POCKET_EM6_D8"), "old skinny orders keep their 8 mm pocket");
+  assert(E.normalizeDoor({ design: "skinny", width: 400, height: 600, opts: { border: 40 } }).errors.border);
+  const tp = await req("/test-designs");
+  assert(tp.status === 200 && (await tp.text()).includes("configurator.js"));
+  step("arched pair: two doors priced and in the DXF, hinges on outer edges; skinny 5 mm pocket (old orders keep 8 mm); test page served");
 
   // ---------- address lookup and checks ----------
   assert.deepStrictEqual(await (await req("/api/address/status")).json(), { enabled: true });

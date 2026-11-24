@@ -18,7 +18,7 @@
     <a class="brand" href="/" aria-label="Pivot Designs home"><span class="word">PIVOT</span><span class="sub">DESIGNS</span></a>
     <nav class="nav" aria-label="Main">
       <a href="/">Home</a>
-      <a href="/configurator" aria-current="page">Design your door</a>
+      <a href="/configurator" aria-current="page">Shop</a>
       <a href="/story">Our story</a>
       <a href="/contact">Contact</a>
     </nav>
@@ -41,7 +41,17 @@
         <div><span class="pv-name" id="pvName"></span><span class="pv-info" id="pvInfo"></span></div>
         <span class="pv-price" id="pvPrice"></span>
       </div>
-      <p class="pv-note">Dashed circles show hinge holes on the back.</p>
+      <div class="pv-tools">
+        <label class="toggle"><input type="checkbox" id="measures"> Show measurements</label>
+        <p class="pv-note" id="pvNote" hidden>Dashed circles show the hinge holes on the back.</p>
+      </div>
+      <figure class="gallery" id="gallery" hidden>
+        <div class="g-frame"><img id="gImg" alt=""><span class="g-tag" id="gTag" hidden>Illustration</span>
+          <button type="button" class="g-nav prev" id="gPrev" aria-label="Previous picture">‹</button>
+          <button type="button" class="g-nav next" id="gNext" aria-label="Next picture">›</button>
+        </div>
+        <figcaption><span id="gCap"></span> <span class="g-count" id="gCount"></span></figcaption>
+      </figure>
     </section>
 
     <form class="cfg-steps" id="doorForm" novalidate>
@@ -62,6 +72,7 @@
       <fieldset class="step" id="optStep">
         <legend><span class="n">03</span> Options</legend>
         <div id="opts" class="opts"></div>
+        <p class="hint" id="designNote"></p>
         <p class="err" id="geomMsg" role="alert"></p>
       </fieldset>
 
@@ -85,10 +96,9 @@
       </fieldset>
 
       <fieldset class="step">
-        <legend><span class="n">05</span> Name and quantity</legend>
+        <legend><span class="n">05</span> Quantity</legend>
         <div class="pair">
-          <div class="field"><label for="doorName">Door name (optional)</label><input id="doorName" type="text" maxlength="40" placeholder="e.g. Under sink"></div>
-          <div class="field"><label for="qty">How many</label><input id="qty" type="number" inputmode="numeric" min="1" max="50" value="1"></div>
+          <div class="field"><label for="qty">How many of this door</label><input id="qty" type="number" inputmode="numeric" min="1" max="50" value="1"></div>
         </div>
       </fieldset>
 
@@ -108,11 +118,13 @@
         <div class="row"><span>Delivery</span><span id="sShip">£0.00</span></div>
         <div class="row total"><span>Estimated total</span><span id="sTotal">£0.00</span></div>
         <p class="hint">Provisional prices. We confirm the final price before you pay.</p>
+        <button type="button" class="btn" id="continueBtn" disabled>Continue to your details</button>
+        <p class="hint" id="continueHint">Add all your doors first. You can add more, or remove them, after this step.</p>
       </div>
     </div>
   </section>
 
-  <section class="send" aria-labelledby="sendH" id="sendSection">
+  <section class="send" aria-labelledby="sendH" id="sendSection" hidden>
     <h2 id="sendH">Send your order request</h2>
     <form id="orderForm" class="order-form" novalidate>
       <div class="field"><label for="cName">Your name</label><input id="cName" autocomplete="name" required></div>

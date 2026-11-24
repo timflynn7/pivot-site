@@ -15,6 +15,7 @@ The work is split into workstreams. **Read `docs/workstreams/README.md` first, t
 - `public/js/engine.js`: **the single source of truth for doors.** It works in the browser (`window.PivotEngine`) and in Node. It holds the design recipes, size limits, provisional prices, SVG preview and R12 DXF writer. The configurator, the server and the scripts all use it, so a recipe change shows up everywhere.
 - `public/configurator.html` + `public/js/configurator.js` + `public/css/configurator.css`: the customer configurator. `?test` in the URL shows a Download test DXF button; `?admin` is Tim creating an order. The address uses separate fields (line 1, line 2, town, postcode, with the postcode checked as UK) and an optional search box.
 - `lib/address.js`: UK address search through Ideal Postcodes, proxied by the server so the key (env `IDEAL_POSTCODES_KEY`) stays private, with limits per visitor. Suggestions are free; each address picked costs a lookup. Without the key the search box is hidden. The API field names (`hits[].id/suggestion`, `line_1..3`, `post_town`, `postcode`) come from memory, because the docs were blocked here; check them on the live site.
+- Pictures for each design: `public/data/design-images.json` + `public/img/designs/` (AI renders need `"illustration": true`).
 - `public/index.html`, `story.html`, `contact.html`, `404.html` + `public/css/site.css`: site pages. The header and footer are repeated in each page, so change all of them.
 - `scripts/sample-dxf.js`: writes one full-size test DXF per design plus one combined file.
 - `scripts/test-board-dxf.js`: writes one 1220 x 500 mm offcut board with the draft designs, hand-placed, with full-size details.
@@ -29,6 +30,8 @@ The work is split into workstreams. **Read `docs/workstreams/README.md` first, t
 - The bevelled shaker is a flat frame, then a bevel (placeholder 12 mm wide, `BEVEL_W`) down to a flat panel pocketed 5 mm deep. Layers: `BEVEL_D5` (the top edge of the bevel) and `POCKET_EM6_D5` (the panel floor).
 - One DXF per order, in mm, with parts spread apart for VCarve to nest. Each toolpath has its own layer named by tool and depth (e.g. `POCKET_EM6_D8`). Plus `CUTOUT_EM6` (outline), `LABELS`, and grooves overcut 10 mm past the edge where they run off the door.
 - **Tooling in `TOOLS` (top of engine.js) is placeholder** until Tim's test cuts confirm bits, depths and layer names.
+- Shaker pockets: Traditional 8 mm deep, frame 40–120 mm; Skinny 5 mm deep (so hinge cups don't weaken the face), frame 18–35 mm. Arched doors can be single, left, right or a pair (one line, two doors, default 3 mm gap).
+- Designs with `lab: true` appear only on the unlinked test page `/test-designs` and can't be ordered.
 - Customer rules: complex or statement designs are size only; shaker types can adjust borders and rails; flutes, reeds and grooves can adjust spacing but not groove size (set by the bit).
 - Order requests save a door spec (design, version, sizes, options), and the DXF is made from the spec, so it can be made again.
 - Prices are provisional, by size band (£30 / £40 / £60, plus Extra large £80 up to 1000 × 1200 mm, a placeholder Tim hasn't set), with delivery £10 for the first door and £5 each extra. The plan is to price by machining time.

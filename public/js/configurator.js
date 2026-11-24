@@ -5,27 +5,31 @@
   const $ = (id) => document.getElementById(id);
   const gbp = (n) => "£" + n.toFixed(2);
   const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-  const TEST = /[?&]test\b/.test(location.search);
+  // /test-designs: the test page, showing archived and draft designs. Nothing there can be ordered.
+  const LAB = location.pathname.replace(/\/$/, "") === "/test-designs";
+  const TEST = LAB || /[?&]test\b/.test(location.search);
 
-  const state = { design: "shaker", width: 450, height: 700, opts: {}, hingeSide: "none", hingeCount: 2, hingeTouched: false, hingeTop: 100, hingeBottom: 100, hingeNotes: "", name: "", qty: 1 };
+  const state = { design: "shaker", width: 450, height: 700, opts: {}, hingeSide: "none", hingeCount: 2, hingeTouched: false, hingeTop: 100, hingeBottom: 100, hingeNotes: "", qty: 1, measures: false };
   for (const d of E.DESIGNS) { state.opts[d.id] = {}; for (const o of d.opts) state.opts[d.id][o.key] = o.def; }
 
   let list = [];
   // /configurator?admin: Tim creating an order for a customer (from /admin → New order).
   // It posts to the password-protected /admin/orders and sends the customer nothing.
   const ADMIN = new URLSearchParams(location.search).has("admin");
-  const LIST_KEY = ADMIN ? "pivot-door-list-admin" : "pivot-door-list";
-  try { const saved = JSON.parse(localStorage.getItem(LIST_KEY) || "[]"); if (Array.isArray(saved)) list = saved.map((d) => E.normalizeDoor(d)).filter((r) => !Object.keys(r.errors).length && !E.designById(r.door.design).archived).map((r) => r.door); } catch (e) { list = []; }
+  const LIST_KEY = LAB ? "pivot-door-list-lab" : ADMIN ? "pivot-door-list-admin" : "pivot-door-list";
+  const offered = (d) => LAB || E.orderable(d);
+  try { const saved = JSON.parse(localStorage.getItem(LIST_KEY) || "[]"); if (Array.isArray(saved)) list = saved.map((d) => E.normalizeDoor(d)).filter((r) => !Object.keys(r.errors).length && offered(E.designById(r.door.design))).map((r) => r.door); } catch (e) { list = []; }
   const saveList = () => { try { localStorage.setItem(LIST_KEY, JSON.stringify(list)); } catch (e) { /* private window */ } };
 
-  const current = () => E.normalizeDoor({ design: state.design, width: state.width, height: state.height, opts: state.opts[state.design], hingeSide: state.hingeSide, hingeCount: state.hingeCount, hingeTop: state.hingeTop, hingeBottom: state.hingeBottom, hingeNotes: state.hingeNotes, name: state.name, qty: state.qty });
+  const current = () => E.normalizeDoor({ design: state.design, width: state.width, height: state.height, opts: state.opts[state.design], hingeSide: state.hingeSide, hingeCount: state.hingeCount, hingeTop: state.hingeTop, hingeBottom: state.hingeBottom, hingeNotes: state.hingeNotes, qty: state.qty });
 
   /* ---------- design tiles ---------- */
   function renderDesigns() {
     // Archived designs stay in the engine (so old orders can be cut again) but aren't offered.
-    $("designs").innerHTML = E.DESIGNS.filter((d) => !d.archived).map((d) => {
+    $("designs").innerHTML = E.DESIGNS.filter(offered).map((d) => {
       const { door } = E.normalizeDoor({ design: d.id, width: 400, height: 600 });
-      return `<button type="button" class="dz" data-design="${d.id}" aria-pressed="${d.id === state.design}">${E.doorSVG(door)}<span>${esc(d.name)}</span></button>`;
+      const tag = LAB ? (d.archived ? "Archived" : d.lab ? "Test only" : d.draft ? "Draft" : "") : "";
+      return `<button type="button" class="dz" data-design="${d.id}" aria-pressed="${d.id === state.design}">${E.doorSVG(door)}<span>${esc(d.name)}</span>${tag ? `<em class="dz-tag">${tag}</em>` : ""}</button>`;
     }).join("");
   }
 
@@ -36,6 +40,7 @@
     if (!d.opts.length) { $("opts").innerHTML = `<p class="none">${esc(d.name)} is a fixed design. The pattern is fitted to your sizes.</p>`; return; }
     $("opts").innerHTML = d.opts.map((o) => {
       const id = "opt-" + o.key;
+      if (!E.optShown(o, vals)) return "";
       if (o.type === "choice") {
         return `<div class="opt"><span class="top">${esc(o.label)}</span><div class="seg" role="group" aria-label="${esc(o.label)}" data-opt="${o.key}">${o.choices.map((c) => `<button type="button" data-v="${c[0]}" aria-pressed="${vals[o.key] === c[0]}">${esc(c[1])}</button>`).join("")}</div>${o.help ? `<span class="hint">${esc(o.help)}</span>` : ""}</div>`;
       }
@@ -59,21 +64,31 @@
     const optErr = Object.keys(errors).filter((k) => !["width", "height", "geometry", "qty", ...HINGE_KEYS].includes(k)).map((k) => errors[k]);
     $("hingeMsg").textContent = HINGE_KEYS.map((k) => errors[k]).filter(Boolean).join(" ");
     $("geomMsg").textContent = errors.geometry || optErr.join(" ");
+    let note = ""; try { note = !errors.geometry && door ? E.designNote(door) : ""; } catch (e) { note = ""; }
+    $("designNote").textContent = note;
     const ok = !Object.keys(errors).length;
     $("addBtn").disabled = !ok;
     const d = E.designById(state.design);
     $("pvName").textContent = d.name;
     if (ok) {
-      $("stage").innerHTML = E.doorSVG(door, { dims: true });
-      $("pvInfo").textContent = `${door.width} × ${door.height} mm` + (E.buildDoor(door).info ? " · " + E.buildDoor(door).info : "");
+      $("stage").innerHTML = E.doorSVG(door, { dims: true, measures: state.measures });
+      const pair = E.doorParts(door).length > 1, info = E.buildDoor(door).info;
+      $("pvInfo").textContent = (pair ? `Pair, each ${door.width} × ${door.height} mm` : `${door.width} × ${door.height} mm`) + (info ? " · " + info : "");
       const p = E.priceDoor(door);
-      $("pvPrice").textContent = p ? gbp(p * door.qty) + (door.qty > 1 ? ` (${door.qty} × ${gbp(p)})` : "") : "";
+      $("pvPrice").textContent = p ? gbp(p * door.qty) + (door.qty > 1 ? ` (${door.qty} × ${gbp(p)}${pair ? " a pair" : ""})` : "") : "";
     } else {
       $("pvInfo").textContent = "Check the sizes and options";
       $("pvPrice").textContent = "";
     }
     $("hingeFields").hidden = state.hingeSide === "none";
-    document.querySelectorAll("#hingeSide button").forEach((b) => b.setAttribute("aria-pressed", b.dataset.v === state.hingeSide));
+    $("pvNote").hidden = state.hingeSide === "none";
+    // An arched pair has its hinges on the outer edges of both doors.
+    const isPair = d.id === "arched" && state.opts.arched.layout === "pair";
+    if (isPair && state.hingeSide === "right") state.hingeSide = "left";
+    const hb = document.querySelectorAll("#hingeSide button");
+    hb.forEach((b) => b.setAttribute("aria-pressed", b.dataset.v === state.hingeSide));
+    hb[1].textContent = isPair ? "Outer edges" : "Left";
+    hb[2].hidden = isPair;
     $("hingeCount").value = String(state.hingeCount);
   }
 
@@ -81,13 +96,18 @@
   function renderList() {
     $("items").innerHTML = list.length ? list.map((door, i) => {
       const d = E.designById(door.design), p = E.priceDoor(door);
-      return `<div class="item">${E.doorSVG(door)}<div><div class="t">${i + 1}. ${esc(door.name || d.name)}</div><div class="s">${esc(d.name)} · ${door.width} × ${door.height} mm</div><div class="s">${esc(E.describe(door))}</div></div>` +
+      const pair = E.doorParts(door).length > 1;
+      return `<div class="item">${E.doorSVG(door)}<div><div class="t">${i + 1}. ${esc(door.name || d.name)}${pair ? " (pair)" : ""}</div><div class="s">${pair ? "Each " : ""}${door.width} × ${door.height} mm</div><div class="s">${esc(E.describe(door))}</div></div>` +
         `<div class="r"><span>${door.qty} × ${gbp(p)}</span><button type="button" class="linkbtn" data-remove="${i}">Remove</button></div></div>`;
     }).join("") : `<div class="empty">No doors yet. Design one above and press Add to door list.</div>`;
     const t = E.priceOrder(list);
     $("sCount").textContent = t.count; $("sSub").textContent = gbp(t.sub); $("sShip").textContent = gbp(t.ship); $("sTotal").textContent = gbp(t.total);
     $("sendBtn").disabled = !list.length;
     $("testDxf").hidden = !(TEST && list.length);
+    // Contact and address details come after the door list is ready.
+    $("continueBtn").disabled = !list.length;
+    if (LAB || (!list.length && !$("sendMsg").classList.contains("ok"))) $("sendSection").hidden = true;
+    $("continueBtn").hidden = $("continueHint").hidden = LAB || !$("sendSection").hidden;
   }
 
   /* ---------- events ---------- */
@@ -95,7 +115,7 @@
     const b = e.target.closest("[data-design]"); if (!b) return;
     state.design = b.dataset.design;
     document.querySelectorAll(".dz").forEach((x) => x.setAttribute("aria-pressed", x === b));
-    renderOpts(); update();
+    gIndex = 0; renderOpts(); update(); renderGallery();
   });
   $("opts").addEventListener("input", (e) => {
     const t = e.target; if (!t.dataset.opt) return;
@@ -108,7 +128,7 @@
     const g = b.closest("[data-opt]");
     state.opts[state.design][g.dataset.opt] = g.dataset.int ? Number(b.dataset.v) : b.dataset.v;
     g.querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", x === b));
-    update();
+    renderOpts(); update(); // options can show or hide others (e.g. the gap for a pair)
   });
   for (const k of ["width", "height"]) $(k).addEventListener("input", (e) => {
     state[k] = Number(e.target.value);
@@ -120,7 +140,7 @@
   $("hingeTop").addEventListener("input", (e) => { state.hingeTop = e.target.value; update(); });
   $("hingeBottom").addEventListener("input", (e) => { state.hingeBottom = e.target.value; update(); });
   $("hingeNotes").addEventListener("input", (e) => { state.hingeNotes = e.target.value; });
-  $("doorName").addEventListener("input", (e) => { state.name = e.target.value; });
+  $("measures").addEventListener("change", (e) => { state.measures = e.target.checked; update(); });
   $("qty").addEventListener("input", (e) => { state.qty = Number(e.target.value) || 1; update(); });
 
   $("doorForm").addEventListener("submit", (e) => {
@@ -128,8 +148,12 @@
     const { door, errors } = current();
     if (Object.keys(errors).length) return;
     list.push(door); saveList(); renderList();
-    $("addMsg").textContent = `Added ${door.qty} × ${E.designById(door.design).name}. Change the sizes to add another.`;
-    state.name = ""; $("doorName").value = "";
+    $("addMsg").textContent = `Added ${door.qty} × ${E.designById(door.design).name}. Change the sizes to add another, or continue below when your list is complete.`;
+  });
+  $("continueBtn").addEventListener("click", () => {
+    $("sendSection").hidden = false; renderList();
+    $("sendSection").scrollIntoView({ behavior: "smooth", block: "start" });
+    $("cName").focus({ preventScroll: true });
   });
   $("items").addEventListener("click", (e) => {
     const b = e.target.closest("[data-remove]"); if (!b) return;
@@ -171,6 +195,32 @@
       $("sendBtn").disabled = false;
     }
   });
+
+  if (LAB) {
+    document.title = "Test designs | Pivot Designs";
+    document.querySelector(".cfg-head h1").textContent = "Test designs";
+    document.querySelector(".cfg-head .lede").textContent = "Archived and draft designs for fine-tuning before they go live. Use Download test DXF to try them in VCarve.";
+    document.querySelector(".testbar .inner").textContent = "Test page. Not linked from the site, and these designs can't be ordered.";
+    const cur = document.querySelector('.nav [aria-current="page"]'); if (cur) cur.removeAttribute("aria-current");
+  }
+
+  /* ---------- example photos and illustrations (public/data/design-images.json) ---------- */
+  let images = {}, gIndex = 0;
+  function renderGallery() {
+    const pics = images[state.design] || [];
+    $("gallery").hidden = !pics.length;
+    if (!pics.length) return;
+    gIndex = (gIndex + pics.length) % pics.length;
+    const pic = pics[gIndex];
+    $("gImg").src = pic.src; $("gImg").alt = pic.alt || pic.caption || E.designById(state.design).name;
+    $("gCap").textContent = pic.caption || "";
+    $("gTag").hidden = !pic.illustration;
+    $("gCount").textContent = pics.length > 1 ? `${gIndex + 1} of ${pics.length}` : "";
+    $("gPrev").hidden = $("gNext").hidden = pics.length < 2;
+  }
+  $("gPrev").addEventListener("click", () => { gIndex--; renderGallery(); });
+  $("gNext").addEventListener("click", () => { gIndex++; renderGallery(); });
+  fetch("/data/design-images.json", { cache: "no-cache" }).then((r) => r.ok ? r.json() : {}).then((d) => { images = d && typeof d === "object" ? d : {}; renderGallery(); }).catch(() => {});
 
   if (ADMIN) {
     const bar = document.createElement("div");

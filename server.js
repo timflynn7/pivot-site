@@ -66,6 +66,9 @@ app.use(pay.router);
 app.use(admin.router);
 app.use(require("./lib/address.js")().router);
 
+// The test page: the configurator showing archived and draft designs (not linked, not orderable).
+app.get(["/test-designs", "/test-designs/"], (req, res) => res.sendFile(path.join(PUBLIC, "configurator.html")));
+
 // Clean addresses: /story serves story.html, and so on.
 app.use(express.static(PUBLIC, { extensions: ["html"], maxAge: "1h" }));
 

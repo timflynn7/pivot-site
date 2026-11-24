@@ -15,6 +15,13 @@ Every launch design produces a DXF that imports into VCarve and cuts the intende
 - **Bevelled shaker redrawn** from Tim's description: a flat frame, an angled bevel, and a flat centre panel about 5 mm below the face. Geometry: `BEVEL_D5` layer on the frame's inner edge (top of the bevel), and `POCKET_EM6_D5` inset by `BEVEL_W` = 12 mm (the panel floor). **The 12 mm bevel width and the bit are placeholders**; Tim to confirm from a test cut.
 - **Hinges:** none by default. When chosen: side, count, top and bottom distances (default 100, minimum 50, maximum half the height less 25), and notes up to 200 characters. The LABELS layer reads e.g. `HINGES LEFT x3 TOP 110 BOTTOM 100`, with notes on a separate line. Label text is now sized to its longest line.
 
+## Changes on 24 Nov 2026 (engine VERSION 3)
+- **Skinny shaker**: frame 18–35 mm (Traditional is 40–120, so they no longer overlap), and the panel is pocketed **5 mm** (`POCKET_EM6_D5`) so hinge cups on the back don't weaken the face. Traditional shaker stays 8 mm. Orders saved before version 3 keep 8 mm (`door.version` is passed to `build`).
+- **Arched** is adjustable. Layout: single door, left of a pair, right of a pair, or both doors (one order line making two doors, priced as two, with hinges on the outer edges). Options: gap between the doors (default 3 mm, 0–10), number of arches 1–5, spacing (centre to centre, 16–60 mm), top of the arches from the top edge, and sideways shift. The arch radius is 38% of the pair's width (or the door's), limited by the height. Grooves are clipped to each door with the 10 mm overcut. In the DXF a pair is labelled `1L`/`1R` "(LEFT/RIGHT OF PAIR)". Old (version 2) arched orders keep the fixed design.
+- Tools have a `depth`, and pocketed designs show customers the depth and the 3 mm inside-corner radius.
+- Each design can return `dims` (measurements for the preview overlay).
+- New flag `lab: true`: shown only on `/test-designs` and refused for orders. Use it for new drafts (two-panel, vented, raised profile).
+
 ## Decisions
 - One layer per toolpath, named by tool and depth. The layer name is the contract with Tim's VCarve toolpath templates.
 - Customer rules: statement designs are size only; shaker types adjust borders and rails; patterns adjust spacing only.
