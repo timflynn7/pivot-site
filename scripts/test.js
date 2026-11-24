@@ -505,6 +505,29 @@ async function payPath(ref) {
   assert((await (await req("/")).text()).includes("confirm the price before you pay"));
   step("payment mode: switch on /admin/pricing, page wording follows it, mainland checkout pays at once with emails after payment, outside-area and chosen quotes come in as requests");
 
+  // ---------- filters, search and deleting several orders ----------
+  let fl = await page("/admin?q=pat%40example.com");
+  assert(fl.includes(`id="${cod.ref}"`) && !fl.includes(`id="${ref}"`) && fl.includes("matching"), "search by email finds the order");
+  assert((await page(`/admin?q=${cod.ref.toLowerCase()}`)).includes(`id="${cod.ref}"`), "search by reference, any case");
+  fl = await page("/admin?show=paid");
+  assert(fl.includes(`id="${cod.ref}"`) && fl.includes("Paid: to cut") && !fl.includes(`id="${oqd.ref}"`));
+  fl = await page("/admin?show=new");
+  assert(fl.includes(`id="${oqd.ref}"`) && !fl.includes(`id="${cod.ref}"`));
+  assert((await page("/admin?show=action")).includes(`id="${oqd.ref}"`), "new requests need action");
+  assert((await page("/admin")).includes('aria-current="true">Current'));
+  const bulk = (body, origin) => req("/admin/bulk-delete", { method: "POST", headers: { ...auth, Origin: origin || BASE, "Content-Type": "application/x-www-form-urlencoded" }, body: new URLSearchParams(body) });
+  const mq2 = (await spec(oqd.ref)).ref;
+  assert.strictEqual((await bulk([["refs", mq2]], "https://evil.example")).status, 403);
+  let bd = await (await bulk([["refs", mq2], ["refs", cod.ref]])).text();
+  assert(bd.includes("Delete 2 orders?") && bd.includes("Type <b>DELETE</b>"), "asks first, and paid orders need DELETE typed");
+  assert.strictEqual((await bulk([["refs", mq2], ["refs", cod.ref], ["confirm", "yes"], ["typed", "delete"]])).status, 400);
+  assert.strictEqual((await req(`/admin/orders/${mq2}.json`, { headers: auth })).status, 200, "nothing deleted without DELETE");
+  const bdone = await bulk([["refs", mq2], ["refs", cod.ref], ["confirm", "yes"], ["typed", "DELETE"]]);
+  assert(bdone.status === 303 && bdone.headers.get("location").endsWith("deleted=2"));
+  assert.strictEqual((await req(`/admin/orders/${cod.ref}.json`, { headers: auth })).status, 404);
+  assert((await page("/admin?deleted=2")).includes("2 orders deleted"));
+  step("filters: search and what's-next views with counts; delete several orders at once, with DELETE typed for paid ones");
+
   // ---------- quote-only wording stays out of Pay online mode ----------
   await form("/admin/mode", { mode: "checkout" });
   assert(!(await (await req("/configurator")).text()).includes("We check every order and confirm the price, including delivery, before you pay."));

@@ -68,5 +68,12 @@ Order requests are stored safely, Tim is emailed for each one, and customers pay
 ## Payment mode switch (built 24 Nov 2026)
 Tim's decisions: a switch on /admin/pricing between **Quote first** (as before) and **Pay online**. Outside the delivery area: Northern Ireland (BT), Isle of Man (IM), Channel Islands (JE, GY), Isles of Scilly (TR21–25), Isle of Wight (PO30–41), the Scottish islands and the Scottish Highlands (full district list in `OUTSIDE`, engine.js). Those addresses, and anyone who chooses "Ask for a quote instead", send a quote request. In Pay online mode there's no "request received" email: after payment the customer gets "Order confirmed" (with the 5–7 working days lead time) and Tim gets "New paid order" with the delivery address. Unpaid checkouts show "Awaiting payment (online checkout)" on /admin and move to Archived after 7 days. Wording on the home page, Shop, contact, terms, pay pages and emails follows the mode. Went live in Quote first mode: nothing changes for customers until Tim flips the switch. Tested in `npm test` (both storage types), plus a browser check of the checkout and the out-of-area message.
 
+## Finding orders and clearing test orders (built 24 Nov 2026)
+- /admin has a search box (reference, name, email, phone, postcode, address, notes) and filter chips with counts: Current, Needs action, New requests, Awaiting payment, To cut, To dispatch, Dispatched, Archived, All.
+- Tick boxes and **Delete selected…** delete several orders at once, after a confirmation page; paid orders need DELETE typed. Tim clears the old test orders himself with this (Claude has no access to the live database).
+
+## Messaging (Tim asked 24 Nov 2026: options sent, waiting on his choice)
+Tim uses Etsy's messages a lot. Options: WhatsApp click-to-chat button (free, no cookies, needs a number he's happy to publish, ideally WhatsApp Business), a live-chat widget such as Tawk.to (free, phone app, but third-party cookies so privacy page and possibly a consent banner), or order messages built into the site (a message box on the order/pay page, replies by email, thread on /admin: most like Etsy, more work).
+
 ## Key files
 `server.js`, `lib/orders.js`, `lib/admin.js`, `lib/store.js`, `lib/payments.js`, `lib/email.js`, `scripts/test.js`, `render.yaml`.
