@@ -31,6 +31,7 @@ The work is split into workstreams. **Read `docs/workstreams/README.md` first, t
 - One DXF per order, in mm, with parts spread apart for VCarve to nest. Each toolpath has its own layer named by tool and depth (e.g. `POCKET_EM6_D8`). Plus `CUTOUT_EM6` (outline), `LABELS`, and grooves overcut 10 mm past the edge where they run off the door.
 - **Tooling in `TOOLS` (top of engine.js) is placeholder** until Tim's test cuts confirm bits, depths and layer names.
 - Shaker pockets: Traditional 8 mm deep, frame 40–120 mm; Skinny 5 mm deep (so hinge cups don't weaken the face), frame 18–35 mm. Arched doors can be single, left, right or a pair (one line, two doors, default 3 mm gap).
+- Every pocket shows customers its depth and a 1.5 mm inside-corner radius (1/8 in downcut or 2 mm finishing bit). The bevel (90 degree V-bit) is as wide as the pocket is deep. Beaded shaker = 12.7 mm round-over moulding rail on the pocket edge. Reeds are fixed at 12.5 mm. Board patterns can be "Fit evenly" or "Exact width". Arched doors are mirrored about the door or pair centre line, sized by a side margin.
 - Designs with `lab: true` appear only on the unlinked test page `/test-designs` and can't be ordered.
 - Customer rules: complex or statement designs are size only; shaker types can adjust borders and rails; flutes, reeds and grooves can adjust spacing but not groove size (set by the bit).
 - Order requests save a door spec (design, version, sizes, options), and the DXF is made from the spec, so it can be made again.
