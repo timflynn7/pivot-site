@@ -372,26 +372,34 @@ async function payPath(ref) {
   assert.strictEqual((await addrOrder({ line1: "1 Road", postcode: "LS1 4AB" })).status, 400);
   step("address saved as separate lines; postcode tidied and checked; town required");
 
-  // ---------- pricing by sheet share ----------
+  // ---------- pricing: Etsy bands less 10% ----------
   const priceOf = (design, width, height, opts) => E.priceDoor(nd({ design, width, height, opts }).door);
-  assert.deepStrictEqual([priceOf("shaker", 500, 720), priceOf("slab", 450, 640), priceOf("fluted", 600, 720), priceOf("shaker", 600, 900), priceOf("slab", 1000, 1200), priceOf("slab", 300, 400), priceOf("arched", 500, 720, { layout: "pair" })], [59, 40, 83, 89, 129, 30, 108], "worked examples");
+  assert.deepStrictEqual([priceOf("slab", 300, 600), priceOf("fluted", 300, 600), priceOf("shaker", 600, 600), priceOf("shaker", 450, 640), priceOf("fluted", 600, 1150), priceOf("shaker", 800, 1150), priceOf("slab", 1000, 1200), priceOf("arched", 450, 700, { layout: "pair" })], [27, 27, 36, 54, 54, 67, 90, 108]);
+  const etsy = (w, h) => (w <= 300 && h <= 600 ? 30 : w <= 600 && h <= 600 ? 40 : w <= 600 && h <= 1150 ? 60 : w <= 800 && h <= 1150 ? 75 : null);
+  for (const d of E.DESIGNS.filter((x) => E.orderable(x))) for (let w = 300; w <= 1000; w += 50) for (let h = 300; h <= 1200; h += 50) {
+    const r = nd({ design: d.id, width: w, height: h }); if (Object.keys(r.errors).length) continue;
+    const p = E.priceDoor(r.door), e = etsy(w, h);
+    if (e != null) assert(p <= e * 0.9 && p < e, `${d.id} ${w}x${h}: £${p} must be under Etsy £${e}`);
+    else assert(p >= 67, `${d.id} ${w}x${h}: bigger than the bands, at least the Extra large price`);
+  }
   const six = E.priceOrder([nd({ design: "shaker", width: 600, height: 900, qty: 6 }).door]);
-  assert(six.sub === 534 && six.ship === 0 && six.freeDelivery, "free delivery over £400");
-  assert.strictEqual(E.priceOrder([nd({ design: "shaker", width: 450, height: 720, qty: 2 }).door]).ship, 17, "£12 + £5");
-  for (let w = 300; w <= 1000; w += 50) assert(priceOf("slab", w, 720) <= priceOf("slab", w + 50, 720), "wider never cheaper");
-  assert.strictEqual((await (await req("/api/pricing")).json()).minPrice, 30);
-  assert((await page("/admin/pricing")).includes("Example prices per door"));
-  assert.strictEqual((await form("/admin/pricing", { minPrice: "35" }, "https://evil.example")).status, 403);
+  assert(six.sub === 324 && six.ship === 37 && !six.freeDelivery, "6 x 600 x 900: £324 + £37 delivery");
+  assert(E.priceOrder([nd({ design: "shaker", width: 600, height: 900, qty: 8 }).door]).freeDelivery, "free delivery from £400");
+  const api = await (await req("/api/pricing")).text();
+  assert(api.includes('"price":27') && !/etsy/i.test(api), "public prices never mention Etsy");
+  assert((await page("/admin/pricing")).includes("Etsy price"));
+  assert.strictEqual((await form("/admin/pricing", { discount: "5" }, "https://evil.example")).status, 403);
   const P0 = E.getPricing();
-  const body = { sheetCost: "21", multiple: "6", perDoor: "12", minPrice: "35", wasteShare: "0.5", border: "30", gap: "25", sheet: "1220", "delivery.first": "12", "delivery.extra": "5", "delivery.freeOver": "400", "factor.slab": "1" };
+  const body = { etsy0: "30", etsy1: "40", etsy2: "60", etsy3: "75", discount: "5", sheet: "1220", border: "30", gap: "25", wasteShare: "0.5", "delivery.first": "12", "delivery.extra": "5", "delivery.freeOver": "400" };
   assert((await (await form("/admin/pricing", body)).text()).includes("Prices saved"));
-  assert.strictEqual((await (await req("/api/pricing")).json()).minPrice, 35);
+  assert.deepStrictEqual((await (await req("/api/pricing")).json()).bands.map((x) => x.price), [28, 38, 57, 71]);
   const cheap = await tryOrder([{ design: "slab", width: 300, height: 400 }]);
-  assert.strictEqual((await spec((await cheap.json()).ref)).totals.sub, 35, "new orders use the saved prices");
-  assert((await (await form("/admin/pricing", { ...body, minPrice: "-1" })).text()).includes("Not saved"));
+  assert.strictEqual((await spec((await cheap.json()).ref)).totals.sub, 28, "new orders use the saved prices");
+  const badSave = await form("/admin/pricing", { ...body, discount: "100" });
+  assert(badSave.status === 400 && (await badSave.text()).includes("Not saved"));
   await form("/admin/pricing", { reset: "1" });
   assert.deepStrictEqual(E.getPricing(), P0);
-  step("pricing: worked examples, free delivery, /admin/pricing saves, checks and resets, new orders use saved prices");
+  step("pricing: Etsy bands less 10%, every orderable size under Etsy, oversize from sheet use, /admin/pricing saves and resets, Etsy kept off the public prices");
 
   const dxf = await req(`/admin/orders/${ref}.dxf`, { headers: auth });
   assert(dxf.status === 200 && (await dxf.text()).includes("CUTOUT"));
