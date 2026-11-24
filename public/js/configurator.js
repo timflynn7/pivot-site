@@ -103,7 +103,8 @@
         `<div class="r"><span>${door.qty} × ${gbp(p)}</span><button type="button" class="linkbtn" data-remove="${i}">Remove</button></div></div>`;
     }).join("") : `<div class="empty">No doors yet. Design one above and press Add to door list.</div>`;
     const t = E.priceOrder(list);
-    $("sCount").textContent = t.count; $("sSub").textContent = gbp(t.sub); $("sShip").textContent = gbp(t.ship); $("sTotal").textContent = gbp(t.total);
+    $("sCount").textContent = t.count; $("sSub").textContent = gbp(t.sub); $("sShip").textContent = t.freeDelivery ? "Free" : gbp(t.ship); $("sTotal").textContent = gbp(t.total);
+    $("sFree").textContent = !t.freeOver ? "" : t.freeDelivery ? "Your order qualifies for free delivery." : t.count ? `Add ${gbp(t.freeOver - t.sub)} more for free delivery.` : `Free delivery on orders over ${gbp(t.freeOver).replace(".00", "")}.`;
     $("sendBtn").disabled = !list.length;
     $("testDxf").hidden = !(TEST && list.length);
     // Contact and address details come after the door list is ready.
@@ -283,4 +284,6 @@
   })();
 
   renderDesigns(); renderOpts(); update(); renderList();
+  // Prices are set on /admin/pricing; redraw once the current ones arrive.
+  fetch("/api/pricing", { cache: "no-cache" }).then((r) => r.ok ? r.json() : null).then((p) => { if (p) { E.setPricing(p); update(); renderList(); } }).catch(() => {});
 })();

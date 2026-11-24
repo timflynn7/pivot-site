@@ -372,6 +372,27 @@ async function payPath(ref) {
   assert.strictEqual((await addrOrder({ line1: "1 Road", postcode: "LS1 4AB" })).status, 400);
   step("address saved as separate lines; postcode tidied and checked; town required");
 
+  // ---------- pricing by sheet share ----------
+  const priceOf = (design, width, height, opts) => E.priceDoor(nd({ design, width, height, opts }).door);
+  assert.deepStrictEqual([priceOf("shaker", 500, 720), priceOf("slab", 450, 640), priceOf("fluted", 600, 720), priceOf("shaker", 600, 900), priceOf("slab", 1000, 1200), priceOf("slab", 300, 400), priceOf("arched", 500, 720, { layout: "pair" })], [59, 40, 83, 89, 129, 30, 108], "worked examples");
+  const six = E.priceOrder([nd({ design: "shaker", width: 600, height: 900, qty: 6 }).door]);
+  assert(six.sub === 534 && six.ship === 0 && six.freeDelivery, "free delivery over £400");
+  assert.strictEqual(E.priceOrder([nd({ design: "shaker", width: 450, height: 720, qty: 2 }).door]).ship, 17, "£12 + £5");
+  for (let w = 300; w <= 1000; w += 50) assert(priceOf("slab", w, 720) <= priceOf("slab", w + 50, 720), "wider never cheaper");
+  assert.strictEqual((await (await req("/api/pricing")).json()).minPrice, 30);
+  assert((await page("/admin/pricing")).includes("Example prices per door"));
+  assert.strictEqual((await form("/admin/pricing", { minPrice: "35" }, "https://evil.example")).status, 403);
+  const P0 = E.getPricing();
+  const body = { sheetCost: "21", multiple: "6", perDoor: "12", minPrice: "35", wasteShare: "0.5", border: "30", gap: "25", sheet: "1220", "delivery.first": "12", "delivery.extra": "5", "delivery.freeOver": "400", "factor.slab": "1" };
+  assert((await (await form("/admin/pricing", body)).text()).includes("Prices saved"));
+  assert.strictEqual((await (await req("/api/pricing")).json()).minPrice, 35);
+  const cheap = await tryOrder([{ design: "slab", width: 300, height: 400 }]);
+  assert.strictEqual((await spec((await cheap.json()).ref)).totals.sub, 35, "new orders use the saved prices");
+  assert((await (await form("/admin/pricing", { ...body, minPrice: "-1" })).text()).includes("Not saved"));
+  await form("/admin/pricing", { reset: "1" });
+  assert.deepStrictEqual(E.getPricing(), P0);
+  step("pricing: worked examples, free delivery, /admin/pricing saves, checks and resets, new orders use saved prices");
+
   const dxf = await req(`/admin/orders/${ref}.dxf`, { headers: auth });
   assert(dxf.status === 200 && (await dxf.text()).includes("CUTOUT"));
   step("DXF still downloads");

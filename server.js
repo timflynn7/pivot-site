@@ -40,6 +40,8 @@ app.use((req, res, next) => {
 });
 
 app.get("/health", (req, res) => res.json({ ok: true }));
+// Current prices for the configurator and home page (set on /admin/pricing).
+app.get("/api/pricing", (req, res) => res.set("Cache-Control", "no-cache").json(E.getPricing()));
 
 /* ---------- order requests from the configurator ---------- */
 app.post("/api/orders", express.json({ limit: "200kb" }), wrap(async (req, res) => {
@@ -80,7 +82,9 @@ app.use((err, req, res, next) => {
   res.status(500).type("text").send("Something went wrong. Please try again, or email tim@pivotdesigns.co.uk.");
 });
 
-store.init().then(() => {
+store.init().then(async () => {
+  // Prices saved on /admin/pricing; the engine's defaults until Tim saves any.
+  E.setPricing(await store.getSetting("pricing"));
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`Pivot Designs running on port ${PORT}. Orders kept in ${store.kind}. Payments ${pay.enabled ? (pay.testMode ? "on (test mode)" : "on (LIVE)") : "off"}.`);
   });

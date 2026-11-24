@@ -50,14 +50,36 @@
     chamfer:  { layer: "CHAMFER_D3",   label: "Edge chamfer, 45 degrees, 3 mm",                     width: 6,    color: 6 }
   };
 
-  /* ---------- prices (provisional, by size band) ---------- */
-  const BANDS = [
-    { id: "small",   name: "Small",   maxW: 300, maxH: 600,  price: 30 },
-    { id: "regular", name: "Regular", maxW: 600, maxH: 600,  price: 40 },
-    { id: "large",   name: "Large",   maxW: 600, maxH: 1150, price: 60 },
-    { id: "xl",      name: "Extra large", maxW: 1000, maxH: 1200, price: 80 } // provisional: Tim to set
-  ];
-  const DELIVERY = { first: 10, extra: 5 };
+  /* ---------- prices: by share of a half sheet (Tim, 24 Nov 2026) ---------- */
+  // Defaults. Tim changes these on /admin/pricing; the server stores them and
+  // passes them in with setPricing(), and the configurator loads them from /api/pricing.
+  const PRICING_DEFAULTS = {
+    sheet: 1220,          // half sheet of MR MDF, 1220 x 1220 mm (a full sheet is 1220 x 2440)
+    border: 30,           // left round the sheet edge for screwing down, mm
+    gap: 25,              // between parts, mm
+    sheetCost: 21,        // £ per half sheet (£42 a full sheet)
+    multiple: 6,          // price per half sheet = sheet cost x this
+    perDoor: 12,          // £ per door for handling, sanding, labelling and packing
+    minPrice: 30,         // £ minimum per door
+    wasteShare: 0.5,      // share of a wasted strip (too narrow for another door) charged to the door
+    factors: { slab: 1, tvgroove: 1.15, arched: 1.15, shaker: 1.25, skinny: 1.25, tbgroove: 1.35, newcountry: 1.35, bevelled: 1.45, georgian: 1.45, fluted: 1.55, reeded: 1.55, beaded: 1.55 },
+    defaultFactor: 1.25,  // designs without their own factor (e.g. test designs)
+    delivery: { first: 12, extra: 5, freeOver: 400 } // £; free when the doors come to at least freeOver (0 = never)
+  };
+  let PRICING = JSON.parse(JSON.stringify(PRICING_DEFAULTS));
+  // Merge saved settings over the defaults, ignoring anything that isn't a sensible number.
+  function setPricing(cfg) {
+    const next = JSON.parse(JSON.stringify(PRICING_DEFAULTS));
+    const numOk = (v) => typeof v === "number" && Number.isFinite(v) && v >= 0;
+    cfg = cfg || {};
+    for (const k of ["sheet", "border", "gap", "sheetCost", "multiple", "perDoor", "minPrice", "wasteShare", "defaultFactor"]) if (numOk(cfg[k])) next[k] = cfg[k];
+    next.wasteShare = Math.min(1, next.wasteShare);
+    if (cfg.factors) for (const k of Object.keys(cfg.factors)) if (numOk(cfg.factors[k])) next.factors[k] = cfg.factors[k];
+    if (cfg.delivery) for (const k of ["first", "extra", "freeOver"]) if (numOk(cfg.delivery[k])) next.delivery[k] = cfg.delivery[k];
+    PRICING = next;
+    return getPricing();
+  }
+  const getPricing = () => JSON.parse(JSON.stringify(PRICING));
 
   /* ---------- geometry helpers ---------- */
   const rect = (x0, y0, x1, y1) => [[x0, y0], [x1, y0], [x1, y1], [x0, y1]];
@@ -584,14 +606,37 @@
   }
 
   /* ---------- prices ---------- */
-  function bandFor(W, H) { return BANDS.find((b) => W <= b.maxW && H <= b.maxH) || null; }
+  // How much of a usable half sheet one door takes. Each side is the door plus one
+  // gap; if what's left beside it is too narrow for another door, part of that
+  // strip (wasteShare) is charged too. A door bigger than the usable area takes the whole side.
+  function sheetShare(W, H) {
+    const P = PRICING, usable = P.sheet - 2 * P.border + P.gap, room = LIMITS.wMin + P.gap;
+    const side = (d) => {
+      if (d > P.sheet - 2 * P.border) return usable;
+      const e = d + P.gap, left = usable - e;
+      return left < room ? e + left * P.wasteShare : e;
+    };
+    return Math.min(1, side(W) * side(H) / (usable * usable));
+  }
+  const designFactor = (id) => PRICING.factors[id] != null ? PRICING.factors[id] : PRICING.defaultFactor;
+  // Price of one door, in whole pounds.
+  function priceOne(door) {
+    const P = PRICING;
+    const raw = (P.perDoor + sheetShare(door.width, door.height) * P.sheetCost * P.multiple) * designFactor(door.design);
+    return Math.max(P.minPrice, Math.round(raw));
+  }
   // Price of one order line's worth (a pair counts as two doors).
-  function priceDoor(door) { const b = bandFor(door.width, door.height); return b ? b.price * doorParts(door).length : null; }
+  function priceDoor(door) {
+    if (!Number.isFinite(door.width) || !Number.isFinite(door.height)) return null;
+    return doorParts(door).reduce((a, p) => a + priceOne(p), 0);
+  }
   function priceOrder(doors) {
+    const D = PRICING.delivery;
     const count = doors.reduce((a, d) => a + d.qty * doorParts(d).length, 0);
     const sub = doors.reduce((a, d) => a + d.qty * (priceDoor(d) || 0), 0);
-    const ship = count ? DELIVERY.first + DELIVERY.extra * (count - 1) : 0;
-    return { count, sub, ship, total: sub + ship };
+    const free = !!(count && D.freeOver > 0 && sub >= D.freeOver);
+    const ship = count && !free ? D.first + D.extra * (count - 1) : 0;
+    return { count, sub, ship, total: sub + ship, freeDelivery: free, freeOver: D.freeOver };
   }
 
   /* ---------- descriptions ---------- */
@@ -807,5 +852,5 @@
     return Array.from(seen, ([layer, label]) => ({ layer, label }));
   }
 
-  return { VERSION, LIMITS, TOOLS, BANDS, DELIVERY, DESIGNS, designById, orderable, optShown, doorParts, designNote, normalizeDoor, buildDoor, hingeDefault, priceDoor, priceOrder, bandFor, describe, doorSVG, orderDXF, layerList };
+  return { VERSION, LIMITS, TOOLS, PRICING_DEFAULTS, setPricing, getPricing, sheetShare, designFactor, DESIGNS, designById, orderable, optShown, doorParts, designNote, normalizeDoor, buildDoor, hingeDefault, priceDoor, priceOrder, describe, doorSVG, orderDXF, layerList };
 });

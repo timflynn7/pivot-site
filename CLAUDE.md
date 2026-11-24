@@ -6,7 +6,7 @@ The work is split into workstreams. **Read `docs/workstreams/README.md` first, t
 
 ## How the code fits together
 
-- `server.js`: Express server that wires the parts together. It serves the static pages from `public/` and takes `POST /api/orders` from the configurator. Orders are stored by `lib/store.js`: in Render Postgres when `DATABASE_URL` is set, otherwise in `data/orders.json` (wiped on every Render deploy).
+- `server.js`: Express server that wires the parts together. It serves the static pages from `public/` and takes `POST /api/orders` from the configurator. Orders (and settings such as prices) are stored by `lib/store.js`: in Render Postgres when `DATABASE_URL` is set, otherwise in `data/orders.json` (wiped on every Render deploy).
 - `lib/orders.js`: statuses, `createOrder` (validates every door again with the engine; used by customers and by Tim), and `mail()`, which notes each email in the order's history.
 - `lib/admin.js`: the password-protected `/admin` pages (env `ADMIN_PASSWORD`): the order list with Action required flags and a Needs action queue, Confirm price, Mark paid, Mark dispatched, status, Archived view, Delete (paid orders need the reference typed), **email preview and edit before sending**, New order (`/configurator?admin` posts to `/admin/orders`, and nobody is emailed), DXF and JSON downloads, and a built-in "How this page works" guide.
 - **Email rule:** only customer actions send customer emails automatically (request received, paid by card). Anything Tim does sets `pendingEmail` on the order and opens a preview; nothing is sent until he presses Send.
@@ -35,7 +35,7 @@ The work is split into workstreams. **Read `docs/workstreams/README.md` first, t
 - Designs with `lab: true` appear only on the unlinked test page `/test-designs` and can't be ordered.
 - Customer rules: complex or statement designs are size only; shaker types can adjust borders and rails; flutes, reeds and grooves can adjust spacing but not groove size (set by the bit).
 - Order requests save a door spec (design, version, sizes, options), and the DXF is made from the spec, so it can be made again.
-- Prices are provisional, by size band (£30 / £40 / £60, plus Extra large £80 up to 1000 × 1200 mm, a placeholder Tim hasn't set), with delivery £10 for the first door and £5 each extra. The plan is to price by machining time.
+- **Prices by sheet share (live 24 Nov 2026):** price per door = max(£30, round((£12 + share of a usable half sheet × £21 × 6) × design factor)). Usable half sheet = 1220 − 2 × 30 mm border + 25 mm gap; each door side is size + 25 mm, plus half of any strip it leaves too narrow for another door. Factors: Slab 1, Tongue & V and Arched 1.15, Shaker/Skinny 1.25, Tongue & bead/New Country 1.35, Bevelled/Georgian 1.45, Fluted/Reeded/Beaded 1.55. Delivery £12 first door + £5 each extra, free when the doors come to £400 or more. Every number is editable on **/admin/pricing** (saved in the `settings` table, served to the browser by `/api/pricing`); the defaults are `PRICING_DEFAULTS` in engine.js. Etsy prices are set about 18% higher than the website (Tim's decision), and /admin/pricing shows the matching Etsy price.
 - The trade portal (white-label quoting for fitters) is planned for later. See the Trade Portal Plan.
 
 ## Working style

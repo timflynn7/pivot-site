@@ -77,8 +77,8 @@
 
   <section class="band tight">
     <div class="inner facts">
-      <div class="fact"><span class="big">From £30</span><span>per door, priced by size</span></div>
-      <div class="fact"><span class="big">£10 + £5</span><span>delivery: £10 for the first door, £5 for each extra</span></div>
+      <div class="fact"><span class="big" id="pMin">From £30</span><span>per door, priced by size and design</span></div>
+      <div class="fact"><span class="big" id="dBig">£12 + £5</span><span id="dText">delivery: £12 for the first door, £5 for each extra, free on orders over £400</span></div>
       <div class="fact"><span class="big">5.0 ★</span><span>rated by our customers</span></div>
     </div>
   </section>
@@ -110,5 +110,15 @@
     <span>© 2026 Pivot Designs</span>
   </div>
 </footer>
+<script>
+// Keep the price facts in step with /admin/pricing.
+fetch("/api/pricing").then(function (r) { return r.ok ? r.json() : null; }).then(function (p) {
+  if (!p) return;
+  var d = p.delivery, g = function (n) { return "£" + n; };
+  document.getElementById("pMin").textContent = "From " + g(p.minPrice);
+  document.getElementById("dBig").textContent = g(d.first) + " + " + g(d.extra);
+  document.getElementById("dText").textContent = "delivery: " + g(d.first) + " for the first door, " + g(d.extra) + " for each extra" + (d.freeOver > 0 ? ", free on orders over " + g(d.freeOver) : "");
+}).catch(function () {});
+</script>
 </body>
 </html>
