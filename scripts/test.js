@@ -306,7 +306,7 @@ async function payPath(ref) {
   assert(o.doors[0].hingeTop === 120 && o.doors[0].hingeBottom === 90 && o.doors[0].hingeNotes === "Blum soft-close" && o.doors[0].version === E.VERSION);
   assert((await page("/admin")).includes("120 mm from top, 90 mm from bottom · Hinge notes: Blum soft-close"));
   const hd = await (await req(`/admin/orders/${href}.dxf`, { headers: auth })).text();
-  assert(hd.includes("HINGES RIGHT x3 TOP 120 BOTTOM 90") && hd.includes("HINGE NOTE: Blum soft-close") && hd.includes("BEVEL_D8") && hd.includes("POCKET_EM6_D8"));
+  assert(hd.includes("HINGES RIGHT x3 TOP 120 BOTTOM 90") && hd.includes("HINGE NOTE: Blum soft-close") && hd.includes("BEVEL_D8") && hd.includes("POCKET_D8"));
   assert.strictEqual((await tryOrder([{ design: "shaker", width: 450, height: 400, hingeSide: "left", hingeTop: 20 }])).status, 400);
   const nh = await tryOrder([{ design: "shaker", width: 450, height: 700 }]);
   assert.strictEqual((await spec((await nh.json()).ref)).doors[0].hingeSide, "none");
@@ -321,21 +321,21 @@ async function payPath(ref) {
   const pd = await (await req(`/admin/orders/${pref}.dxf`, { headers: auth })).text();
   for (const t of ["1.1L", "1.1R", "1.2L", "1.2R", "LEFT OF PAIR", "RIGHT OF PAIR", "HINGES LEFT", "HINGES RIGHT"]) assert(pd.includes(t), t);
   const sk = E.normalizeDoor({ design: "skinny", width: 400, height: 600 }).door;
-  assert(E.layerList([sk]).some((l) => l.layer === "POCKET_EM6_D5"));
-  assert(E.layerList([{ ...sk, version: 2 }]).some((l) => l.layer === "POCKET_EM6_D8"), "old skinny orders keep their 8 mm pocket");
+  assert(E.layerList([sk]).some((l) => l.layer === "POCKET_D5"));
+  assert(E.layerList([{ ...sk, version: 2 }]).some((l) => l.layer === "POCKET_D8"), "old skinny orders keep their 8 mm pocket");
   assert(E.normalizeDoor({ design: "skinny", width: 400, height: 600, opts: { border: 40 } }).errors.border);
   const tp = await req("/test-designs");
   assert(tp.status === 200 && (await tp.text()).includes("configurator.js"));
   // engine version 4 changes, with old orders kept as they were
   const nd = (o) => E.normalizeDoor(o);
-  assert(E.layerList([nd({ design: "beaded", width: 450, height: 700 }).door]).some((l) => l.layer === "MOULD_ROUNDOVER13_RAIL"));
-  assert(E.layerList([{ ...nd({ design: "beaded", width: 450, height: 700 }).door, version: 3 }]).some((l) => l.layer === "BEAD_FORM6_D3"));
+  assert(E.layerList([nd({ design: "beaded", width: 450, height: 700 }).door]).some((l) => l.layer === "ROUNDOVER"));
+  assert(E.layerList([{ ...nd({ design: "beaded", width: 450, height: 700 }).door, version: 3 }]).some((l) => l.layer === "BEAD_D3"));
   const bevelW = (version) => { const d = { ...nd({ design: "bevelled", width: 450, height: 700 }).door }; if (version) d.version = version; const b = E.buildDoor(d).paths.find((p) => p.inner); return [b.inner[0][0] - b.pts[0][0], b.tool, E.layerList([d]).map((l) => l.layer).join()]; };
   assert.deepStrictEqual(bevelW().slice(0, 2), [8, "bevel8"], "bevel as wide as the 8 mm pocket is deep");
-  assert(bevelW()[2].includes("POCKET_EM6_D8") && bevelW(4)[2].includes("POCKET_EM6_D5") && bevelW(4)[0] === 5 && bevelW(3)[0] === 12, "older bevelled orders keep their geometry");
+  assert(bevelW()[2].includes("POCKET_D8") && bevelW(4)[2].includes("POCKET_D5") && bevelW(4)[0] === 5 && bevelW(3)[0] === 12, "older bevelled orders keep their geometry");
   assert(E.designById("lattice").archived && E.buildDoor(nd({ design: "lattice", width: 400, height: 680 }).door).dims.length === 2, "lattice archived, with diamond measurements");
   assert(!/tight but/.test(E.designNote(nd({ design: "shaker", width: 450, height: 700 }).door)) && E.designNote(nd({ design: "newcountry", width: 450, height: 700 }).door) === "");
-  assert(E.layerList([nd({ design: "georgian", width: 450, height: 700, opts: { sdepth: "3" } }).door]).some((l) => l.layer === "POCKET_EM6_D3"));
+  assert(E.layerList([nd({ design: "georgian", width: 450, height: 700, opts: { sdepth: "3" } }).door]).some((l) => l.layer === "POCKET_D3"));
   assert(nd({ design: "georgian", width: 450, height: 700, opts: { border: 35 } }).errors.border, "Georgian frame minimum matches the shaker");
   const ex = (w) => E.buildDoor(nd({ design: "tvgroove", width: w, height: 600, opts: { fit: "exact", spacing: 100 } }).door).paths.filter((p) => p.tool === "v90d4").map((p) => p.pts[0][0]);
   for (const w of [450, 600, 733]) { const xs = ex(w); for (let i = 1; i < xs.length; i++) assert(Math.abs(xs[i] - xs[i - 1] - 100) < 1e-6, "exact boards are exactly 100 mm"); }
@@ -373,7 +373,7 @@ async function payPath(ref) {
   step("address saved as separate lines; postcode tidied and checked; town required");
 
   const dxf = await req(`/admin/orders/${ref}.dxf`, { headers: auth });
-  assert(dxf.status === 200 && (await dxf.text()).includes("CUTOUT_EM6"));
+  assert(dxf.status === 200 && (await dxf.text()).includes("CUTOUT"));
   step("DXF still downloads");
 
   console.log(`\nAll tests passed (orders kept in ${process.env.DATABASE_URL ? "Postgres" : "a file"}).`);

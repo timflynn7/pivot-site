@@ -6,9 +6,8 @@
  * Units are millimetres. Door coordinates have the origin at the top-left
  * corner of the front, x to the right, y down. The DXF writer flips y.
  *
- * TOOLING IS PLACEHOLDER. Change the TOOLS table once the live tests settle
- * each design's bits, depths and layer names. A layer name is the contract
- * with your VCarve toolpath templates.
+ * DXF layers are named by the type of cut and its depth (e.g. POCKET_D8,
+ * VGROOVE_D4). Tim sets the bits and toolpaths in VCarve.
  */
 (function (root, factory) {
   if (typeof module === "object" && module.exports) module.exports = factory();
@@ -27,25 +26,28 @@
 
   /* ---------- tooling (placeholders) ---------- */
   // width = the groove width the tool leaves at its depth, used for spacing and the preview.
+  // Layers are named by the type of cut and its depth only. Tim picks the bits and
+  // toolpath settings in VCarve. width = the groove width the cut leaves, used for
+  // spacing and the preview.
   const TOOLS = {
-    cutout:   { layer: "CUTOUT_EM6",          label: "6 mm end mill, profile outside, with tabs", width: 6,    color: 7 },
-    pocket8:  { layer: "POCKET_EM6_D8",       label: "Pocket 8 mm deep: clear with the 6 mm end mill, finish the corners with a 1/8 in downcut or 2 mm straight bit (about 1.5 mm radius)",           width: 6,    color: 5, pocket: true, depth: 8 },
-    pocket6:  { layer: "POCKET_EM6_D6",       label: "Pocket 6 mm deep: clear with the 6 mm end mill, finish the corners with a 1/8 in downcut or 2 mm straight bit (about 1.5 mm radius)",           width: 6,    color: 5, pocket: true, depth: 6 },
-    pocket5:  { layer: "POCKET_EM6_D5",       label: "Pocket 5 mm deep: clear with the 6 mm end mill, finish the corners with a 1/8 in downcut or 2 mm straight bit (about 1.5 mm radius)",           width: 6,    color: 5, pocket: true, depth: 5 },
-    pocket3:  { layer: "POCKET_EM6_D3",       label: "Pocket 3 mm deep (first step): clear with the 6 mm end mill, finish the corners with a 1/8 in downcut or 2 mm straight bit (about 1.5 mm radius)", width: 6, color: 150, pocket: true, depth: 3 },
-    pocket2:  { layer: "POCKET_EM6_D2",       label: "Pocket 2 mm deep (first step): clear with the 6 mm end mill, finish the corners with a 1/8 in downcut or 2 mm straight bit (about 1.5 mm radius)", width: 6, color: 150, pocket: true, depth: 2 },
-    pocket4:  { layer: "POCKET_EM6_D4",       label: "Pocket 4 mm deep (first step): clear with the 6 mm end mill, finish the corners with a 1/8 in downcut or 2 mm straight bit (about 1.5 mm radius)", width: 6, color: 150, pocket: true, depth: 4 },
-    flute16:  { layer: "FLUTE_CORE16_D5",     label: "16 mm fluting bit, 5 mm deep",              width: 16,   color: 3 },
-    flute8:   { layer: "FLUTE_BALL8_D4",      label: "8 mm ball nose, 4 mm deep",                 width: 8,    color: 3 },
-    reed13:   { layer: "REED_FORM13_D4",      label: "12.7 mm round-nose form tool, 4 mm deep",   width: 12.7, color: 4 },
-    bead6:    { layer: "BEAD_FORM6_D3",       label: "6 mm bead form tool, 3 mm deep",            width: 6,    color: 4 },
-    v90d4:    { layer: "GROOVE_V90_D4",       label: "90 degree V-bit, 4 mm deep",                width: 8,    color: 1 },
-    v90d5:    { layer: "GROOVE_V90_D5",       label: "90 degree V-bit, 5 mm deep",                width: 10,   color: 1 },
-    bevel:    { layer: "BEVEL_D5",            label: "Bevel, 90 degree V-bit: slopes 45 degrees from this line (at the face) down to the 5 mm pocket edge.", width: 5, color: 6 },
-    bevel8:   { layer: "BEVEL_D8",            label: "Bevel, 90 degree V-bit: slopes 45 degrees from this line (at the face) down to the 8 mm pocket edge.", width: 8, color: 6 },
-    roundover:{ layer: "MOULD_ROUNDOVER13_RAIL", label: "Moulding toolpath drive rail on the pocket edge, 12.7 mm round-over bit (the moulding toolpath squares the corners). Set the profile in VCarve.", width: 12.7, color: 30 },
-    mould:    { layer: "MOULD_TBN_RAIL",      label: "Moulding toolpath drive rail (tapered ball nose). Draw the profile in VCarve.", width: 18, color: 30 },
-    chamfer:  { layer: "EDGE_CHAMFER_V90_D3", label: "90 degree V-bit edge chamfer, 3 mm",        width: 6,    color: 6 }
+    cutout:   { layer: "CUTOUT",       label: "Cut out: the door outline, profile outside",        width: 6,    color: 7 },
+    pocket8:  { layer: "POCKET_D8",    label: "Pocket, 8 mm deep (inside corners 1.5 mm radius)",  width: 6,    color: 5,   pocket: true, depth: 8 },
+    pocket6:  { layer: "POCKET_D6",    label: "Pocket, 6 mm deep (inside corners 1.5 mm radius)",  width: 6,    color: 5,   pocket: true, depth: 6 },
+    pocket5:  { layer: "POCKET_D5",    label: "Pocket, 5 mm deep (inside corners 1.5 mm radius)",  width: 6,    color: 5,   pocket: true, depth: 5 },
+    pocket4:  { layer: "POCKET_D4",    label: "Pocket, 4 mm deep (inside corners 1.5 mm radius)",  width: 6,    color: 150, pocket: true, depth: 4 },
+    pocket3:  { layer: "POCKET_D3",    label: "Pocket, 3 mm deep (inside corners 1.5 mm radius)",  width: 6,    color: 150, pocket: true, depth: 3 },
+    pocket2:  { layer: "POCKET_D2",    label: "Pocket, 2 mm deep (inside corners 1.5 mm radius)",  width: 6,    color: 150, pocket: true, depth: 2 },
+    flute16:  { layer: "FLUTE_D5",     label: "Flute, 16 mm wide, 5 mm deep",                       width: 16,   color: 3 },
+    flute8:   { layer: "FLUTE_D4",     label: "Flute, 8 mm wide, 4 mm deep",                        width: 8,    color: 3 },
+    reed13:   { layer: "REED_D4",      label: "Reed groove, 12.7 mm wide, 4 mm deep",               width: 12.7, color: 4 },
+    bead6:    { layer: "BEAD_D3",      label: "Bead, 6 mm wide, 3 mm deep",                         width: 6,    color: 4 },
+    v90d4:    { layer: "VGROOVE_D4",   label: "V-groove, 90 degrees, 4 mm deep",                    width: 8,    color: 1 },
+    v90d5:    { layer: "VGROOVE_D5",   label: "V-groove, 90 degrees, 5 mm deep",                    width: 10,   color: 1 },
+    bevel:    { layer: "BEVEL_D5",     label: "Bevel, 45 degrees, from this line (at the face) down to the 5 mm pocket edge", width: 5, color: 6 },
+    bevel8:   { layer: "BEVEL_D8",     label: "Bevel, 45 degrees, from this line (at the face) down to the 8 mm pocket edge", width: 8, color: 6 },
+    roundover:{ layer: "ROUNDOVER",    label: "Round-over on the pocket edge (12.7 mm), corners squared", width: 12.7, color: 30 },
+    mould:    { layer: "MOULD",        label: "Moulding rail: set the profile in VCarve",           width: 18,   color: 30 },
+    chamfer:  { layer: "CHAMFER_D3",   label: "Edge chamfer, 45 degrees, 3 mm",                     width: 6,    color: 6 }
   };
 
   /* ---------- prices (provisional, by size band) ---------- */
@@ -404,13 +406,13 @@
       id: "arched", name: "Arched", family: "Your current range", adjustable: true, draft: true,
       blurb: "Concentric arches rising from the bottom edge. Designed to flow across a pair of doors (a quarter turn on each), or on one door.",
       opts: [
-        num("spacing", "Arch spacing", 30, 16, 60, 1, "Centre to centre. The grooves are cut with a 12.7 mm form tool."),
-        num("top", "Top of the arches from the top edge", 100, 20, 600, 5, "Stays where you set it when you change the width."),
-        num("margin", "Side margin", 50, 15, 300, 5, "From the outside edge of the door to the outer arch. The arches stay centred on the door, or on the gap between a pair, so both sides match."),
-        int("count", "Number of arches", 4, 1, 5),
         choice("layout", "Doors", "single", [["single", "Single door"], ["left", "Left of a pair"], ["right", "Right of a pair"], ["pair", "Both doors"]],
           "The arches are centred on the gap between a pair of doors. Both doors are the size you enter."),
-        num("gap", "Gap between the doors", 3, 0, 10, 0.5, "The gap you'll leave between the pair when they're hung.", { layout: ["left", "right", "pair"] })
+        int("count", "Number of arches", 4, 1, 5),
+        num("gap", "Gap between the doors", 3, 0, 10, 0.5, "The gap you'll leave between the pair when they're hung.", { layout: ["left", "right", "pair"] }),
+        num("spacing", "Arch spacing", 30, 16, 60, 1, "Centre to centre. The grooves are cut with a 12.7 mm form tool."),
+        num("top", "Top of the arches from the top edge", 100, 20, 600, 5, "Stays where you set it when you change the width."),
+        num("margin", "Side margin", 50, 15, 300, 5, "From the outside edge of the door to the outer arch. The arches stay centred on the door, or on the gap between a pair, so both sides match.")
       ],
       build(W, H, o, door) {
         if (door && door.version < 3) { // the fixed design from before engine version 3, kept for old orders

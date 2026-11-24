@@ -61,9 +61,9 @@ In Render, open the `pivot-site` service → **Environment** → **Add Environme
 ### What's in each DXF
 
 - One part per door copy, spread apart in rows up to 2440 mm wide, ready for VCarve to nest.
-- `CUTOUT_EM6`: the door outline, to profile outside with tabs.
-- One layer per toolpath, named by tool and depth, e.g. `POCKET_EM6_D8`, `FLUTE_CORE16_D5`, `REED_FORM13_D4`, `GROOVE_V90_D4`, `BEAD_FORM6_D3`, `BEVEL_V90_D8`.
-- `MOULD_TBN_RAIL`: drive rails for VCarve's moulding toolpath (Moulded frame, Victorian, Ring and arc). Draw the moulding profile in VCarve.
+- `CUTOUT`: the door outline, to profile outside with tabs.
+- One layer per cut, named by the type of cut and its depth only (no tool names), e.g. `POCKET_D8`, `FLUTE_D5`, `REED_D4`, `VGROOVE_D4`, `BEAD_D3`, `BEVEL_D8`, `CHAMFER_D3`. The bits and toolpath settings are chosen in VCarve.
+- `ROUNDOVER` (beaded shaker, on the pocket edge) and `MOULD` (moulding rails): no fixed depth; set the profile in VCarve.
 - Grooves that run the full height go 10 mm past the door edge.
 - `LABELS`: door number and name, size and design, hinge side and count (for hand drilling), and the order reference.
 - Units are millimetres. Set the VCarve job to mm before importing.

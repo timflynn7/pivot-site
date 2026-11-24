@@ -8,11 +8,11 @@ How to get the moulding toolpath to work correctly with Tim's round-over bits, a
 ## Designs affected
 | Design | What's in the DXF now (draft) | Effect wanted |
 | --- | --- | --- |
-| Moulded frame, fluted | `MOULD_TBN_RAIL` rectangle 75 mm in from the edge; pocket 22 mm further in; 8 mm flutes | A moulded frame round a fluted centre (Tim's white door photo) |
-| Victorian | 8 mm pocket at a 70 mm border, plus a `MOULD_TBN_RAIL` rectangle 20 mm inside the panel | A decorative moulding inside the panel |
-| Ring and arc panel | Two shaped pockets, with `MOULD_TBN_RAIL` on their edges and a centre ring | Moulded edges on the arcs and the centre ring (Tim's photo) |
-| Beaded shaker | 8 mm pocket, plus a bead line 6 mm out on `BEAD_FORM6_D3` | A bead round the inside of the frame |
-| Arch-top beaded door | Three beads on `REED_FORM13_D4`, at 30, 55 and 80 mm in | Three rounded beads following the arched outline |
+| Moulded frame, fluted | `MOULD` rectangle 75 mm in from the edge; pocket 22 mm further in; 8 mm flutes | A moulded frame round a fluted centre (Tim's white door photo) |
+| Victorian | 8 mm pocket at a 70 mm border, plus a `MOULD` rectangle 20 mm inside the panel | A decorative moulding inside the panel |
+| Ring and arc panel | Two shaped pockets, with `MOULD` on their edges and a centre ring | Moulded edges on the arcs and the centre ring (Tim's photo) |
+| Beaded shaker | 8 mm pocket, plus a bead line 6 mm out on `BEAD_D3` | A bead round the inside of the frame |
+| Arch-top beaded door | Three beads on `REED_D4`, at 30, 55 and 80 mm in | Three rounded beads following the arched outline |
 
 ## Things to establish (fill in as they're found)
 - **Tim's VCarve version** (affects which moulding options exist): _
