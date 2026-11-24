@@ -31,5 +31,75 @@
       "alt": "Two tall unpainted MDF panels with tongue and bead grooves",
       "caption": "Tongue and bead panels, unpainted"
     }
+  ],
+  "slab": [
+    {
+      "src": "/img/designs/slab-render.jpg",
+      "render": true,
+      "alt": "Computer render of a Slab door, painted warm white",
+      "caption": "Slab, shown painted warm white (render from the exact cutting design)"
+    }
+  ],
+  "shaker": [
+    {
+      "src": "/img/designs/shaker-render.jpg",
+      "render": true,
+      "alt": "Computer render of a Traditional shaker door, painted sage green",
+      "caption": "Traditional shaker, shown painted sage green (render from the exact cutting design)"
+    },
+    {
+      "src": "/img/designs/shaker-corner-render.jpg",
+      "render": true,
+      "alt": "Close-up render of the inside corner of a shaker door's recessed panel",
+      "caption": "Close-up of an inside corner: the 1.5 mm radius left by the cutter (render)"
+    }
+  ],
+  "skinny": [
+    {
+      "src": "/img/designs/skinny-render.jpg",
+      "render": true,
+      "alt": "Computer render of a Skinny shaker door, painted navy",
+      "caption": "Skinny shaker, shown painted navy (render from the exact cutting design)"
+    }
+  ],
+  "bevelled": [
+    {
+      "src": "/img/designs/bevelled-render.jpg",
+      "render": true,
+      "alt": "Computer render of a Bevelled shaker door, painted stone",
+      "caption": "Bevelled shaker, shown painted stone (render from the exact cutting design)"
+    }
+  ],
+  "beaded": [
+    {
+      "src": "/img/designs/beaded-render.jpg",
+      "render": true,
+      "alt": "Computer render of a Beaded shaker door, painted deep green",
+      "caption": "Beaded shaker, shown painted deep green (render from the exact cutting design)"
+    }
+  ],
+  "newcountry": [
+    {
+      "src": "/img/designs/newcountry-render.jpg",
+      "render": true,
+      "alt": "Computer render of a New Country door, painted cream",
+      "caption": "New Country, shown painted cream (render from the exact cutting design)"
+    }
+  ],
+  "georgian": [
+    {
+      "src": "/img/designs/georgian-render.jpg",
+      "render": true,
+      "alt": "Computer render of a Georgian door, painted putty grey",
+      "caption": "Georgian, shown painted putty grey (render from the exact cutting design)"
+    }
+  ],
+  "tvgroove": [
+    {
+      "src": "/img/designs/tvgroove-render.jpg",
+      "render": true,
+      "alt": "Computer render of a Tongue & V groove door, painted blue grey",
+      "caption": "Tongue & V groove, shown painted blue grey (render from the exact cutting design)"
+    }
   ]
 }

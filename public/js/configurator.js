@@ -248,10 +248,13 @@
   let images = {}, lbIndex = 0;
   const picsFor = () => images[state.design] || [];
   const thumbOf = (pic) => pic.thumb || pic.src.replace(/\.jpg$/i, "-thumb.jpg");
+  // Renders (made by scripts/render_designs.py) and AI images carry a small badge, so nobody mistakes them for photos.
+  const BADGE_ICON = '<svg viewBox="0 0 16 16" width="10" height="10" aria-hidden="true"><path fill="currentColor" d="M8 1 14 4.5v7L8 15l-6-3.5v-7L8 1Zm0 1.7L3.6 5.2 8 7.7l4.4-2.5L8 2.7ZM3 6.1v4.8l4.5 2.6V8.6L3 6.1Zm10 0L8.5 8.6v4.9l4.5-2.6V6.1Z"/></svg>';
+  const badgeOf = (pic) => (pic.render ? "Render" : pic.illustration ? "AI image" : "");
   function renderGallery() {
     const pics = picsFor();
     $("gallery").hidden = !pics.length;
-    $("gThumbs").innerHTML = pics.map((pic, i) => `<button type="button" class="thumb" data-i="${i}" aria-label="Open photo ${i + 1} of ${pics.length}: ${esc(pic.caption || pic.alt || "")}"><img src="${esc(thumbOf(pic))}" data-full="${esc(pic.src)}" alt="" loading="lazy" width="80" height="80">${pic.illustration ? '<span class="thumb-tag">Illustration</span>' : ""}</button>`).join("");
+    $("gThumbs").innerHTML = pics.map((pic, i) => `<button type="button" class="thumb" data-i="${i}" aria-label="Open photo ${i + 1} of ${pics.length}: ${esc(pic.caption || pic.alt || "")}"><img src="${esc(thumbOf(pic))}" data-full="${esc(pic.src)}" alt="" loading="lazy" width="80" height="80">${badgeOf(pic) ? `<span class="thumb-tag">${BADGE_ICON}${badgeOf(pic)}</span>` : ""}</button>`).join("");
     $("gThumbs").querySelectorAll("img").forEach((im) => im.addEventListener("error", () => { if (im.src.indexOf(im.dataset.full) < 0) im.src = im.dataset.full; }, { once: true }));
   }
   function showPhoto(i) {
@@ -260,7 +263,8 @@
     const pic = pics[lbIndex];
     $("lbImg").src = pic.src; $("lbImg").alt = pic.alt || pic.caption || E.designById(state.design).name;
     $("lbCap").textContent = pic.caption || "";
-    $("lbTag").hidden = !pic.illustration;
+    $("lbTag").hidden = !badgeOf(pic);
+    $("lbTag").innerHTML = badgeOf(pic) ? `${BADGE_ICON} ${pic.render ? "Computer render, not a photo" : "AI-generated image, not a photo"}` : "";
     $("lbCount").textContent = pics.length > 1 ? `${lbIndex + 1} of ${pics.length}` : "";
     $("lbPrev").hidden = $("lbNext").hidden = pics.length < 2;
   }

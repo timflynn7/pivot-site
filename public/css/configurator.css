@@ -101,7 +101,7 @@ button.btn { font: inherit; font-weight: 600; cursor: pointer; }
 .thumb { position: relative; padding: 0; border: 1.5px solid var(--line); border-radius: 3px; background: var(--paper); cursor: zoom-in; width: 80px; height: 80px; overflow: hidden; }
 .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .thumb:hover, .thumb:focus-visible { border-color: var(--sage); outline: none; box-shadow: 0 0 0 2px var(--sage-soft); }
-.thumb-tag { position: absolute; left: 3px; bottom: 3px; background: rgba(31,42,34,.8); color: #fff; font-size: 9px; font-weight: 600; padding: 1px 4px; border-radius: 2px; }
+.thumb-tag { position: absolute; left: 3px; bottom: 3px; display: inline-flex; align-items: center; gap: 3px; background: rgba(31,42,34,.82); color: #fff; font-size: 9px; font-weight: 600; padding: 2px 4px; border-radius: 2px; }
 .lightbox { border: 0; padding: 0; background: transparent; max-width: min(94vw, 1100px); max-height: 94vh; overflow: visible; }
 .lightbox::backdrop { background: rgba(20, 24, 21, .82); }
 .lightbox figure { margin: 0; display: grid; gap: 8px; }
@@ -109,7 +109,7 @@ button.btn { font: inherit; font-weight: 600; cursor: pointer; }
 .lightbox img { display: block; max-width: min(94vw, 1100px); max-height: 82vh; width: auto; height: auto; border-radius: 3px; margin: 0 auto; }
 .lightbox figcaption { color: #fff; font-size: 0.95rem; display: flex; justify-content: space-between; gap: 12px; }
 .lb-count { color: #C9CEC8; }
-.g-tag { position: absolute; left: 10px; top: 10px; background: rgba(31, 42, 34, .78); color: #fff; font-size: 0.75rem; font-weight: 600; letter-spacing: .04em; padding: 3px 8px; border-radius: 2px; }
+.g-tag { position: absolute; left: 10px; top: 10px; display: inline-flex; align-items: center; gap: 5px; background: rgba(31, 42, 34, .78); color: #fff; font-size: 0.75rem; font-weight: 600; letter-spacing: .04em; padding: 3px 8px; border-radius: 2px; }
 .lb-close { position: fixed; top: 14px; right: 16px; width: 44px; height: 44px; border-radius: 50%; border: 0; background: rgba(255,255,255,.92); color: #1F2A22; font-size: 1.8rem; line-height: 1; cursor: pointer; }
 .lb-nav { position: fixed; top: 50%; transform: translateY(-50%); width: 48px; height: 48px; border-radius: 50%; border: 0; background: rgba(255,255,255,.9); color: #1F2A22; font-size: 2rem; line-height: 1; cursor: pointer; }
 .lb-nav.prev { left: 14px; } .lb-nav.next { right: 14px; }
