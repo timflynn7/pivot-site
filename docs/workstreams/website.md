@@ -75,6 +75,15 @@ The yellow "Test version, prices provisional" bar is gone from the Shop (it only
 ## Basket wording (24 Nov 2026)
 The Shop calls the door list the **basket** in both payment modes: "Add to basket", "Your basket", "Your basket is empty…", and the home, contact and privacy pages match. Admin pages still say "door list" (internal).
 
+## Photos added (24 Nov 2026)
+Tim's own photos (real, so no Illustration label), resized to at most 1600 px, compressed, no camera data, in `public/img/designs/` and listed in `public/data/design-images.json`:
+- Fluted: painted fitted wardrobe (full-height flutes) and a bare MDF door with stopped flutes.
+- Arched: a painted pair.
+- Reeded: a panel on the machine bed.
+- Tongue & bead groove: two tall unpainted panels (cropped to leave out a wave-pattern panel that isn't offered).
+The arched photo was cropped to leave out a lattice panel (archived). The carousel now shows whole photos (no cropping of tall ones), and the drawing shrinks a little when a design has photos so the preview fits a laptop screen.
+Still wanted: shaker family, Georgian, New Country, Tongue & V groove, slab, inside-corner close-ups, and better originals for the home page (`public/img/*.jpg` are soft Etsy crops).
+
 ## Next tasks (24 Nov 2026)
 1. Tim to check the new story wording and the test page; merge the branch to `main` to go live.
 2. Pictures: real photos and labelled AI renders per design, including inside-corner close-ups.

@@ -1,1 +1,35 @@
-{}
+{
+  "fluted": [
+    {
+      "src": "/img/designs/fluted-wardrobe-painted.jpg",
+      "alt": "A tall fitted wardrobe with painted fluted doors and drawer fronts",
+      "caption": "Fluted doors on a fitted wardrobe, painted"
+    },
+    {
+      "src": "/img/designs/fluted-bare-mdf.jpg",
+      "alt": "An unpainted MDF door with rounded flutes stopped inside a plain border",
+      "caption": "A fluted door straight from the workshop, ready to paint"
+    }
+  ],
+  "arched": [
+    {
+      "src": "/img/designs/arched-pair-painted.jpg",
+      "alt": "A painted pair of doors with concentric arches running across the gap between them",
+      "caption": "A painted pair, with the arches running across both doors"
+    }
+  ],
+  "reeded": [
+    {
+      "src": "/img/designs/reeded-on-the-machine.jpg",
+      "alt": "A reeded MDF panel lying on the CNC machine bed",
+      "caption": "A reeded panel, straight off the machine"
+    }
+  ],
+  "tbgroove": [
+    {
+      "src": "/img/designs/tongue-and-bead-panels.jpg",
+      "alt": "Two tall unpainted MDF panels with tongue and bead grooves",
+      "caption": "Tongue and bead panels, unpainted"
+    }
+  ]
+}

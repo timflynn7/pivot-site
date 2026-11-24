@@ -96,7 +96,7 @@ button.btn { font: inherit; font-weight: 600; cursor: pointer; }
 /* Example photos and illustrations for the chosen design */
 .gallery { margin: 0; display: grid; gap: 6px; }
 .g-frame { position: relative; background: var(--paper); border-radius: 3px; overflow: hidden; aspect-ratio: 4 / 3; }
-.g-frame img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.g-frame img { width: 100%; height: 100%; object-fit: contain; display: block; } /* whole photo, portrait or landscape */
 .g-tag { position: absolute; left: 10px; top: 10px; background: rgba(31, 42, 34, .78); color: #fff; font-size: 0.75rem; font-weight: 600; letter-spacing: .04em; padding: 3px 8px; border-radius: 2px; }
 .g-nav { position: absolute; top: 50%; transform: translateY(-50%); width: 40px; height: 40px; border-radius: 50%; border: 0; background: rgba(255, 255, 255, .85); color: var(--ink); font-size: 1.6rem; line-height: 1; cursor: pointer; }
 .g-nav.prev { left: 10px; } .g-nav.next { right: 10px; }
@@ -121,3 +121,7 @@ button.btn { font: inherit; font-weight: 600; cursor: pointer; }
 .area-msg[hidden] { display: none; }
 #intentToggle[hidden] { display: none; }
 .actions #intentToggle { margin-left: 14px; }
+/* With photos under the drawing, keep the whole preview panel within a laptop screen. */
+.preview:has(#gallery:not([hidden])) .stage svg { height: min(44vh, 460px); }
+.g-frame { aspect-ratio: auto; height: min(30vh, 300px); }
+@media (max-width: 900px) { .g-frame { height: min(60vw, 320px); } }
