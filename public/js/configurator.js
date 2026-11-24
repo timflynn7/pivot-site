@@ -82,9 +82,11 @@
       $("pvInfo").textContent = (pair ? `Pair, each ${door.width} × ${door.height} mm` : `${door.width} × ${door.height} mm`) + (info ? " · " + info : "");
       const p = E.priceDoor(door);
       $("pvPrice").textContent = p ? gbp(p * door.qty) + (door.qty > 1 ? ` (${door.qty} × ${gbp(p)}${pair ? " a pair" : ""})` : "") : "";
+      $("barPrice").textContent = p ? gbp(p * door.qty) : "";
     } else {
       $("pvInfo").textContent = "Check the sizes and options";
       $("pvPrice").textContent = "";
+      $("barPrice").textContent = "";
     }
     $("hingeFields").hidden = state.hingeSide === "none";
     $("pvNote").hidden = state.hingeSide === "none";
@@ -107,6 +109,7 @@
         `<div class="r"><span>${door.qty} × ${gbp(p)}</span><button type="button" class="linkbtn" data-remove="${i}">Remove</button></div></div>`;
     }).join("") : `<div class="empty">Your basket is empty. Design a door above and press Add to basket.</div>`;
     const t = E.priceOrder(list);
+    $("barBasket").textContent = t.count ? `Basket (${t.count}) · ${gbp(t.total)}` : "Basket (0)";
     $("sCount").textContent = t.count; $("sSub").textContent = gbp(t.sub); $("sShip").textContent = t.freeDelivery ? "Free" : gbp(t.ship); $("sTotal").textContent = gbp(t.total);
     $("sFree").textContent = !t.freeOver ? "" : t.freeDelivery ? "Your order qualifies for free delivery." : t.count ? `Add ${gbp(t.freeOver - t.sub)} more for free delivery.` : `Free delivery on orders over ${gbp(t.freeOver).replace(".00", "")}.`;
     $("sendBtn").disabled = !list.length;
@@ -117,6 +120,19 @@
     $("continueBtn").hidden = $("continueHint").hidden = LAB || !$("sendSection").hidden;
     if (CHECKOUT) $("continueBtn").textContent = "Continue to checkout";
     updateIntent();
+  }
+
+  /* ---------- phones: design strip and the bar at the bottom ---------- */
+  let addedTimer = 0;
+  // On phones the designs are one row you swipe; keep the chosen one in view.
+  function centreDesign() {
+    const row = $("designs"), tile = row.querySelector('[aria-pressed="true"]');
+    if (!tile || row.scrollWidth <= row.clientWidth) return;
+    row.scrollTo({ left: tile.offsetLeft - row.offsetLeft - (row.clientWidth - tile.offsetWidth) / 2, behavior: "smooth" });
+  }
+  // The bar with the price and Add to basket steps aside once the basket itself is on screen.
+  if ("IntersectionObserver" in window) {
+    new IntersectionObserver((entries) => { for (const e of entries) document.querySelector(".addbar").classList.toggle("bar-away", e.isIntersecting); }, { threshold: 0.05 }).observe(document.querySelector(".list"));
   }
 
   /* ---------- pay online, or send a quote request ---------- */
@@ -145,7 +161,7 @@
     const b = e.target.closest("[data-design]"); if (!b) return;
     state.design = b.dataset.design;
     document.querySelectorAll(".dz").forEach((x) => x.setAttribute("aria-pressed", x === b));
-    renderOpts(); update(); renderGallery();
+    renderOpts(); update(); renderGallery(); centreDesign();
   });
   $("opts").addEventListener("input", (e) => {
     const t = e.target; if (!t.dataset.opt) return;
@@ -180,6 +196,8 @@
     if (Object.keys(errors).length) return;
     list.push(door); saveList(); renderList();
     $("addMsg").textContent = `Added ${door.qty} × ${E.designById(door.design).name}. Change the sizes to add another, or continue below when your basket is complete.`;
+    $("addBtn").textContent = "Added ✓";
+    clearTimeout(addedTimer); addedTimer = setTimeout(() => { $("addBtn").textContent = "Add to basket"; }, 1500);
   });
   $("continueBtn").addEventListener("click", () => {
     $("sendSection").hidden = false; renderList();
@@ -255,6 +273,8 @@
     const pics = picsFor();
     $("gallery").hidden = !pics.length;
     $("gThumbs").innerHTML = pics.map((pic, i) => `<button type="button" class="thumb" data-i="${i}" aria-label="Open photo ${i + 1} of ${pics.length}: ${esc(pic.caption || pic.alt || "")}"><img src="${esc(thumbOf(pic))}" data-full="${esc(pic.src)}" alt="" loading="lazy" width="80" height="80">${badgeOf(pic) ? `<span class="thumb-tag">${BADGE_ICON}${badgeOf(pic)}</span>` : ""}</button>`).join("");
+    $("photosBtn").hidden = !pics.length;
+    $("photosBtn").textContent = `Photos (${pics.length})`;
     $("gThumbs").querySelectorAll("img").forEach((im) => im.addEventListener("error", () => { if (im.src.indexOf(im.dataset.full) < 0) im.src = im.dataset.full; }, { once: true }));
   }
   function showPhoto(i) {
@@ -274,6 +294,8 @@
     showPhoto(Number(t.dataset.i));
     if (lb.showModal) lb.showModal(); else lb.setAttribute("open", "");
   });
+  // Phones: the thumbnails are hidden and a "Photos" button opens the first one.
+  $("photosBtn").addEventListener("click", () => { showPhoto(0); if (lb.showModal) lb.showModal(); else lb.setAttribute("open", ""); });
   const closeLb = () => (lb.close ? lb.close() : lb.removeAttribute("open"));
   $("lbClose").addEventListener("click", closeLb);
   $("lbPrev").addEventListener("click", () => showPhoto(lbIndex - 1));
@@ -340,6 +362,7 @@
   })();
 
   renderDesigns(); renderOpts(); update(); renderList();
+  setTimeout(centreDesign, 50);
   // Prices are set on /admin/pricing; redraw once the current ones arrive.
   fetch("/api/pricing", { cache: "no-cache" }).then((r) => r.ok ? r.json() : null).then((p) => { if (p) { E.setPricing(p); update(); renderList(); } }).catch(() => {});
 })();

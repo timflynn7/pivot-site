@@ -104,6 +104,9 @@ Result: no axe violations left. Remaining "small" targets are links inside sente
 Already fine: one h1 per page, alt text on every image, labelled form fields, visible focus outlines, no sideways scrolling on phones, the photo pop-up moves focus in and back out, reduced-motion respected.
 Tim removed the "5.0 ★ rated by our customers" fact (no way to collect reviews on this site yet); it's replaced by "5–7 days" dispatch. Possible later task: a way for customers to leave reviews. Done at Tim's request: the Contact card says "Workshop: Surrey, delivering UK-wide", and the home page button says "Shop", matching the menu.
 
+## Shop on phones (24 Nov 2026)
+Tim found the phone layout meant scrolling up and down: the preview took 621 px, the design grid 831 px, and the options started 2291 px down (screen 664 px). Built his chosen fixes 1–5 for screens up to 900 px: pinned compact preview (drawing about a quarter of the screen tall, with price and a "Photos (n)" button), one-row swipeable design picker that centres the chosen design, a fixed bottom bar (price, Add to basket with "Added ✓", "Basket (n) · £total" link) that hides when the basket section is visible, width and height side by side, one-line intro. Options now start at 965 px and the page is 37% shorter. Desktop unchanged.
+
 ## Next tasks (24 Nov 2026)
 1. Tim to check the new story wording and the test page; merge the branch to `main` to go live.
 2. Pictures: real photos and labelled AI renders per design, including inside-corner close-ups.
