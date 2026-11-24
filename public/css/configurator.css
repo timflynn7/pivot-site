@@ -109,3 +109,9 @@ button.btn { font: inherit; font-weight: 600; cursor: pointer; }
 
 /* Test page labels on design tiles */
 .dz-tag { font-style: normal; font-size: 0.68rem; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+
+/* Number box next to each slider */
+.numbox { display: inline-flex; align-items: center; gap: 6px; font-weight: 500; color: var(--muted); }
+.numbox input { width: 84px; font: inherit; font-variant-numeric: tabular-nums; text-align: right; padding: 6px 8px; border: 1.5px solid var(--line); border-radius: 3px; background: var(--paper); color: var(--ink); }
+.numbox input:focus { outline: 2px solid var(--sage); outline-offset: 1px; }
+.opt .top label { font-weight: 600; }

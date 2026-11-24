@@ -16,7 +16,7 @@
 })(typeof self !== "undefined" ? self : this, function () {
   "use strict";
 
-  const VERSION = 4; // 4: bevel matches the 5 mm pocket (90 degree V-bit); beaded shaker uses a round-over moulding rail; arched sized by side margin, mirrored about the centre; fluted margins split; reeds fixed at 12.5 mm. 2: hinge distances and notes; bevelled shaker redrawn as a 5 mm recessed panel with a bevel. 3: skinny shaker pocket 5 mm deep (was 8); arched doors adjustable, with left, right and pair layouts
+  const VERSION = 5; // 5: bevelled shaker pocket 8 mm deep with an 8 mm bevel. 4: 4: bevel matches the 5 mm pocket (90 degree V-bit); beaded shaker uses a round-over moulding rail; arched sized by side margin, mirrored about the centre; fluted margins split; reeds fixed at 12.5 mm. 2: hinge distances and notes; bevelled shaker redrawn as a 5 mm recessed panel with a bevel. 3: skinny shaker pocket 5 mm deep (was 8); arched doors adjustable, with left, right and pair layouts
   const LIMITS = { wMin: 300, wMax: 1000, hMin: 300, hMax: 1200 }; // machine bed takes 1200 x 1200 sheets; 1000 x 1200 is the largest that can be held down safely
   const OVERCUT = 10;
   const BEVEL_W = 12;            // bevelled shaker before engine version 4. From version 4 a 90 degree V-bit makes the bevel, so its width equals the pocket depth.
@@ -42,6 +42,7 @@
     v90d4:    { layer: "GROOVE_V90_D4",       label: "90 degree V-bit, 4 mm deep",                width: 8,    color: 1 },
     v90d5:    { layer: "GROOVE_V90_D5",       label: "90 degree V-bit, 5 mm deep",                width: 10,   color: 1 },
     bevel:    { layer: "BEVEL_D5",            label: "Bevel, 90 degree V-bit: slopes 45 degrees from this line (at the face) down to the 5 mm pocket edge.", width: 5, color: 6 },
+    bevel8:   { layer: "BEVEL_D8",            label: "Bevel, 90 degree V-bit: slopes 45 degrees from this line (at the face) down to the 8 mm pocket edge.", width: 8, color: 6 },
     roundover:{ layer: "MOULD_ROUNDOVER13_RAIL", label: "Moulding toolpath drive rail on the pocket edge, 12.7 mm round-over bit (the moulding toolpath squares the corners). Set the profile in VCarve.", width: 12.7, color: 30 },
     mould:    { layer: "MOULD_TBN_RAIL",      label: "Moulding toolpath drive rail (tapered ball nose). Draw the profile in VCarve.", width: 18, color: 30 },
     chamfer:  { layer: "EDGE_CHAMFER_V90_D3", label: "90 degree V-bit edge chamfer, 3 mm",        width: 6,    color: 6 }
@@ -125,7 +126,7 @@
     return out;
   }
   const fitOpt = () => choice("fit", "Board widths", "even", [["even", "Fit evenly"], ["exact", "Exact width"]],
-    "Fit evenly: all boards equal, as close as possible to the width below. Exact: every board is exactly that width, centred on the door, so the pattern matches across doors of different widths (the edge boards take up the difference).");
+    "Fit evenly: all boards equal, as close as possible to the board width above. Exact: every board is exactly that width, centred on the door, so the pattern matches across doors of different widths (the edge boards take up the difference).");
   function frameDims(W, H, border, rails) {
     const out = [dim([0, H * 0.3], [border, H * 0.3], mm(border)), dim([W * 0.3, 0], [W * 0.3, border], mm(border))];
     if (rails) {
@@ -278,14 +279,14 @@
     {
       id: "tvgroove", name: "Tongue & V groove", family: "Grooved slab", adjustable: true,
       blurb: "A flat door divided into boards by V-grooves.",
-      opts: [fitOpt(), num("spacing", "Board width", 100, 50, 200, 5)],
+      opts: [num("spacing", "Board width", 100, 50, 200, 5), fitOpt()],
       build(W, H, o) {
         const bl = boardLines(0, W, o);
-        return { outline: rect(0, 0, W, H), paths: bl.xs.map((x) => ({ tool: "v90d4", pts: fullHeight(x, H) })), dims: boardDims(0, W, bl, H * 0.45), info: bl.info };
+        return { outline: rect(0, 0, W, H), paths: bl.xs.map((x) => ({ tool: "v90d4", pts: fullHeight(x, H) })), dims: boardDims(0, W, bl, H * 0.45) };
       }
     },
     {
-      id: "lattice", name: "Diamond lattice", family: "Your current range", adjustable: false,
+      id: "lattice", name: "Diamond lattice", family: "Your current range", archived: true, adjustable: false,
       blurb: "V-grooved diamonds fitted to each door.",
       opts: [],
       build(W, H) {
@@ -302,23 +303,27 @@
             if (seg && Math.hypot(seg[1][0] - seg[0][0], seg[1][1] - seg[0][1]) > 1) paths.push({ tool: "v90d5", pts: seg });
           }
         }
-        return { outline: rect(0, 0, W, H), paths, info: `${N} × ${M} diamonds` };
+        // Grooves cross at x = multiples of s on the rows y = h, 2h...: each diamond is s wide and h tall.
+        const dims = [dim([s, h], [2 * s, h], mm(s)), dim([s, h], [s, 2 * h], mm(h))];
+        return { outline: rect(0, 0, W, H), paths, dims, info: `${N} × ${M} diamonds` };
       }
     },
 
     /* ----- draft designs for the first test cuts ----- */
     {
       id: "bevelled", name: "Bevelled shaker", family: "Shaker family", adjustable: true, draft: true,
-      blurb: "A flat frame with a 45 degree bevel down to a centre panel set 5 mm below the face.",
+      blurb: "A flat frame with a 45 degree bevel down to a recessed centre panel.",
       opts: [num("border", "Frame width", 70, 40, 120, 5)],
       build(W, H, o, door) {
-        // Frame (full thickness) → bevel sloping down → flat panel 5 mm deep.
-        // From engine version 4 the bevel is cut with a 90 degree V-bit, so it is as wide as the pocket is deep.
+        // Frame (full thickness) → 45 degree bevel (90 degree V-bit, as wide as the pocket is deep) → flat panel.
+        // Version 5: 8 mm pocket and bevel. Version 4: 5 mm. Earlier: 5 mm pocket with a 12 mm bevel.
+        const v = door ? door.version : VERSION;
         const [p] = shakerPanels(W, H, o.border, 0);
-        const b = door && door.version < 4 ? BEVEL_W : TOOLS.pocket5.depth;
+        const pocket = v < 5 ? "pocket5" : "pocket8", bevel = v < 5 ? "bevel" : "bevel8";
+        const b = v < 4 ? BEVEL_W : TOOLS[pocket].depth;
         const inner = rect(p[0] + b, p[1] + b, p[2] - b, p[3] - b);
-        return { outline: rect(0, 0, W, H), paths: [{ tool: "pocket5", pts: inner, closed: true }, { tool: "bevel", pts: rect(...p), inner, closed: true }],
-          dims: frameDims(W, H, o.border, 0).concat([note([p[2] - 8, p[1] + (p[3] - p[1]) * 0.75], `45° bevel, ${mm(b)}`, [p[2] - b / 2, p[1] + (p[3] - p[1]) * 0.75])]) };
+        return { outline: rect(0, 0, W, H), paths: [{ tool: pocket, pts: inner, closed: true }, { tool: bevel, pts: rect(...p), inner, closed: true }],
+          dims: frameDims(W, H, o.border, 0).concat([note([p[2] - 10, p[1] + (p[3] - p[1]) * 0.75], "45° bevel", [p[2] - b / 2, p[1] + (p[3] - p[1]) * 0.75])]) };
       }
     },
     {
@@ -334,15 +339,15 @@
       }
     },
     {
-      id: "newcountry", name: "New Country", family: "Shaker family", adjustable: true, draft: true,
+      id: "newcountry", name: "New Country", family: "Shaker family", adjustable: true, draft: true, noNote: true,
       blurb: "A shaker with V-grooved boards in the panel.",
-      opts: [num("border", "Frame width", 70, 40, 120, 5), fitOpt(), num("spacing", "Board width", 80, 50, 150, 5)],
+      opts: [num("border", "Frame width", 70, 40, 120, 5), num("spacing", "Board width", 80, 50, 150, 5), fitOpt()],
       build(W, H, o) {
         const [p] = shakerPanels(W, H, o.border, 0);
         const bl = boardLines(p[0], p[2], o);
         const paths = [{ tool: "pocket8", pts: rect(...p), closed: true }];
         for (const x of bl.xs) paths.push({ tool: "v90d4", pts: [[x, p[1]], [x, p[3]]] });
-        return { outline: rect(0, 0, W, H), paths, dims: frameDims(W, H, o.border, 0).concat(boardDims(p[0], p[2], bl, H * 0.62)), info: bl.info + " in the panel" };
+        return { outline: rect(0, 0, W, H), paths, dims: frameDims(W, H, o.border, 0).concat(boardDims(p[0], p[2], bl, H * 0.62)) };
       }
     },
     {
@@ -387,25 +392,25 @@
     {
       id: "tbgroove", name: "Tongue & bead groove", family: "Grooved slab", adjustable: true, draft: true,
       blurb: "Boards divided by grooves, each with a bead beside it.",
-      opts: [fitOpt(), num("spacing", "Board width", 100, 50, 200, 5)],
+      opts: [num("spacing", "Board width", 100, 50, 200, 5), fitOpt()],
       build(W, H, o) {
         const bl = boardLines(0, W, o);
         const paths = [];
         for (const x of bl.xs) paths.push({ tool: "v90d4", pts: fullHeight(x, H) }, { tool: "bead6", pts: fullHeight(x + 9, H) });
-        return { outline: rect(0, 0, W, H), paths, dims: boardDims(0, W, bl, H * 0.45), info: bl.info };
+        return { outline: rect(0, 0, W, H), paths, dims: boardDims(0, W, bl, H * 0.45) };
       }
     },
     {
       id: "arched", name: "Arched", family: "Your current range", adjustable: true, draft: true,
       blurb: "Concentric arches rising from the bottom edge. Designed to flow across a pair of doors (a quarter turn on each), or on one door.",
       opts: [
-        choice("layout", "Doors", "single", [["single", "Single door"], ["left", "Left of a pair"], ["right", "Right of a pair"], ["pair", "Both doors"]],
-          "The arches are centred on the gap between a pair of doors. Both doors are the size you enter."),
-        num("gap", "Gap between the doors", 3, 0, 10, 0.5, "The gap you'll leave between the pair when they're hung.", { layout: ["left", "right", "pair"] }),
-        int("count", "Number of arches", 4, 1, 5),
         num("spacing", "Arch spacing", 30, 16, 60, 1, "Centre to centre. The grooves are cut with a 12.7 mm form tool."),
         num("top", "Top of the arches from the top edge", 100, 20, 600, 5, "Stays where you set it when you change the width."),
-        num("margin", "Side margin", 50, 15, 300, 5, "From the outside edge of the door to the outer arch. The arches stay centred on the door, or on the gap between a pair, so both sides match.")
+        num("margin", "Side margin", 50, 15, 300, 5, "From the outside edge of the door to the outer arch. The arches stay centred on the door, or on the gap between a pair, so both sides match."),
+        int("count", "Number of arches", 4, 1, 5),
+        choice("layout", "Doors", "single", [["single", "Single door"], ["left", "Left of a pair"], ["right", "Right of a pair"], ["pair", "Both doors"]],
+          "The arches are centred on the gap between a pair of doors. Both doors are the size you enter."),
+        num("gap", "Gap between the doors", 3, 0, 10, 0.5, "The gap you'll leave between the pair when they're hung.", { layout: ["left", "right", "pair"] })
       ],
       build(W, H, o, door) {
         if (door && door.version < 3) { // the fixed design from before engine version 3, kept for old orders
@@ -606,11 +611,12 @@
 
   // What a customer should know about the recess: depth and the cutter's corner radius.
   function designNote(door) {
+    if (designById(door.design).noNote) return "";
     const pockets = buildDoor(door).paths.map((p) => TOOLS[p.tool]).filter((t) => t.pocket && t.depth);
     if (!pockets.length) return "";
     const depths = Array.from(new Set(pockets.map((t) => t.depth))).sort((a, b) => a - b);
     const depth = depths.length > 1 ? `The frame steps down ${depths.slice(0, -1).join(" mm, then ")} mm, then ${depths[depths.length - 1]} mm to the panel.` : `The panel is recessed ${depths[0]} mm.`;
-    return `${depth} The inside corners of the recess have a ${CORNER_R} mm radius, left by the cutter, so they're tight but not perfectly square.`;
+    return `${depth} The inside corners of the recess have a ${CORNER_R} mm radius, left by the cutter.`;
   }
 
   /* ---------- SVG preview ---------- */
@@ -641,7 +647,7 @@
         if (t.pocket) {
           s += `<polygon points="${ptsAttr(p.pts)}" fill="#000" fill-opacity=".10" stroke="#000" stroke-opacity=".35" stroke-width="2"/>`;
           if (p.pts.length === 4) s += `<polyline points="${ptsAttr([p.pts[3], p.pts[0], p.pts[1]])}" fill="none" stroke="#000" stroke-opacity=".25" stroke-width="4"/>`;
-        } else if (p.tool === "bevel" && p.inner) {
+        } else if ((p.tool === "bevel" || p.tool === "bevel8") && p.inner) {
           // Four sloping faces between the frame and the recessed panel, lit from the top left.
           const o = p.pts, i = p.inner;
           const faces = [[o[0], o[1], i[1], i[0], ".22"], [o[1], o[2], i[2], i[1], ".05"], [o[2], o[3], i[3], i[2], ".02"], [o[3], o[0], i[0], i[3], ".16"]];

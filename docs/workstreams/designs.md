@@ -15,6 +15,14 @@ Every launch design produces a DXF that imports into VCarve and cuts the intende
 - **Bevelled shaker redrawn** from Tim's description: a flat frame, an angled bevel, and a flat centre panel about 5 mm below the face. Geometry: `BEVEL_D5` layer on the frame's inner edge (top of the bevel), and `POCKET_EM6_D5` inset by `BEVEL_W` = 12 mm (the panel floor). **The 12 mm bevel width and the bit are placeholders**; Tim to confirm from a test cut.
 - **Hinges:** none by default. When chosen: side, count, top and bottom distances (default 100, minimum 50, maximum half the height less 25), and notes up to 200 characters. The LABELS layer reads e.g. `HINGES LEFT x3 TOP 110 BOTTOM 100`, with notes on a separate line. Label text is now sized to its longest line.
 
+## Changes on 24 Nov 2026, third round (engine VERSION 5)
+- **Bevelled shaker**: pocket back to **8 mm** (`POCKET_EM6_D8`), with an 8 mm wide 45 degree bevel on new layer `BEVEL_D8`. Show measurements labels it "45° bevel". Version 4 orders keep 5 mm/5 mm; earlier ones 5 mm with a 12 mm bevel.
+- **Diamond lattice archived** (test page only), with Show measurements giving one diamond's width and height. Removed from the home page range, meta description and lede, and from the story text (the lattice photo on the story page stays, as it's a real photo of past work).
+- Pocket note no longer says "tight but not perfectly square". **New Country** shows no pocket note (`noNote: true`); its measurements overlay still shows depth and corners.
+- The board-count text (e.g. "3 boards...") is no longer shown in the preview summary for New Country and the groove designs.
+- **Option order everywhere**: frame width first, then the pattern sliders, then toggles (Board widths, Number of arches, Doors), each with its help text underneath. Arched: spacing, top, side margin, number of arches, doors, then gap.
+- **Every slider has a number box** beside it; each updates the other. Typed values outside the limits show the usual error and block Add.
+
 ## Changes on 24 Nov 2026, second round (engine VERSION 4, Tim's configurator comments)
 Old orders keep their earlier geometry (each recipe checks `door.version`).
 - **Every pocket** shows its depth and the inside-corner radius in the design note and in Show measurements. The radius is labelled **1.5 mm** (`CORNER_R`): Tim will finish corners with a 1/8 in downcut or 2 mm straight bit. Pocket layer names are unchanged (`POCKET_EM6_D*`); their labels now mention the corner bit.

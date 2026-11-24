@@ -48,7 +48,9 @@
         const btns = []; for (let v = o.min; v <= o.max; v++) btns.push(`<button type="button" data-v="${v}" aria-pressed="${vals[o.key] === v}">${v}</button>`);
         return `<div class="opt"><span class="top">${esc(o.label)}</span><div class="seg" role="group" aria-label="${esc(o.label)}" data-opt="${o.key}" data-int="1">${btns.join("")}</div>${o.help ? `<span class="hint">${esc(o.help)}</span>` : ""}</div>`;
       }
-      return `<div class="opt"><label class="top" for="${id}">${esc(o.label)} <output id="${id}-out">${vals[o.key]} mm</output></label><input type="range" id="${id}" data-opt="${o.key}" min="${o.min}" max="${o.max}" step="${o.step}" value="${vals[o.key]}">${o.help ? `<span class="hint">${esc(o.help)}</span>` : ""}</div>`;
+      // A slider and a number box that update each other.
+      return `<div class="opt"><div class="top"><label for="${id}">${esc(o.label)}</label><span class="numbox"><input type="number" id="${id}-num" data-opt="${o.key}" data-pair="${id}" inputmode="decimal" min="${o.min}" max="${o.max}" step="${o.step}" value="${vals[o.key]}" aria-label="${esc(o.label)} in mm"><span>mm</span></span></div>` +
+        `<input type="range" id="${id}" data-opt="${o.key}" data-pair="${id}-num" min="${o.min}" max="${o.max}" step="${o.step}" value="${vals[o.key]}">${o.help ? `<span class="hint">${esc(o.help)}</span>` : ""}</div>`;
     }).join("");
   }
 
@@ -119,8 +121,9 @@
   });
   $("opts").addEventListener("input", (e) => {
     const t = e.target; if (!t.dataset.opt) return;
+    if (t.value === "") return; // let the customer clear the box while typing
     state.opts[state.design][t.dataset.opt] = Number(t.value);
-    const out = $(t.id + "-out"); if (out) out.textContent = t.value + " mm";
+    const other = t.dataset.pair && $(t.dataset.pair); if (other) other.value = t.value;
     update();
   });
   $("opts").addEventListener("click", (e) => {
