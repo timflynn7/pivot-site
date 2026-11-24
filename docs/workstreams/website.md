@@ -69,6 +69,9 @@ A site that makes a visitor want to order: clear about what Pivot makes, shows t
 The key is the design id (slab, shaker, skinny, bevelled, beaded, newcountry, georgian, tvgroove, tbgroove, fluted, reeded, lattice, arched). `"illustration": true` adds the Illustration label, which **must** be set on every AI render. Committing to `main` publishes it.
 A later option: upload and edit pictures from /admin. That needs file storage that survives deploys (e.g. in the database or a storage bucket).
 
+## Test wording removed (24 Nov 2026)
+The yellow "Test version, prices provisional" bar is gone from the Shop (it only shows on /test-designs, which the server now marks noindex with an X-Robots-Tag header). "Estimated total" is now "Total", the quote-mode hint says "We check every order and confirm the price, including delivery, before you pay", the terms no longer call design-time prices estimates, and the customer email says "Total". The Shop page no longer has `noindex`, so search engines can list it. Admin-only notices (test mode, temporary storage) are unchanged; they only appear when they're true.
+
 ## Next tasks (24 Nov 2026)
 1. Tim to check the new story wording and the test page; merge the branch to `main` to go live.
 2. Pictures: real photos and labelled AI renders per design, including inside-corner close-ups.

@@ -10,7 +10,7 @@ Each workstream has its own brief. Work on one per Claude session, and update it
 | 3a | Toolpath lab: moulding toolpath and round-over bits | [toolpath-lab.md](toolpath-lab.md) | **Active.** Proven settings go back into designs.md |
 | 4 | Orders and payments | [orders.md](orders.md) | **Active.** **Live**: real payments, emails, terms. Next: refund tracking, set Extra large price |
 | 5 | Business setup | [business.md](business.md) | Open questions |
-| 6 | Trade portal | [trade-portal.md](trade-portal.md) | Later |
+| 6 | Trade portal | [trade-portal.md](trade-portal.md) | Backlog: Tim's idea of a password-protected trade page with discounted online ordering (24 Nov 2026) |
 
 ## Starting a session
 

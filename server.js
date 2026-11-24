@@ -84,7 +84,7 @@ app.use(require("./lib/address.js")().router);
 // The test page: the configurator showing archived and draft designs (not linked, not orderable).
 // Pages: the HTML is shown with the wording for the current payment mode (lib/site.js).
 const sendPage = (res, name) => res.set("Cache-Control", "no-cache").type("html").send(site.renderPage(path.join(PUBLIC, name + ".html")));
-app.get(["/test-designs", "/test-designs/"], (req, res) => sendPage(res, "configurator"));
+app.get(["/test-designs", "/test-designs/"], (req, res) => sendPage(res.set("X-Robots-Tag", "noindex"), "configurator")); // unlisted test page: keep it out of search engines
 app.get(/^\/([a-z0-9-]*?)(?:\.html)?$/, (req, res, next) => {
   const name = req.params[0] || "index";
   if (!fs.existsSync(path.join(PUBLIC, name + ".html"))) return next();

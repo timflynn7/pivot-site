@@ -236,7 +236,9 @@
     document.title = "Test designs | Pivot Designs";
     document.querySelector(".cfg-head h1").textContent = "Test designs";
     document.querySelector(".cfg-head .lede").textContent = "Archived and draft designs for fine-tuning before they go live. Use Download test DXF to try them in VCarve.";
-    document.querySelector(".testbar .inner").textContent = "Test page. Not linked from the site, and these designs can't be ordered.";
+    const bar = document.createElement("div");
+    bar.className = "testbar"; bar.innerHTML = '<div class="inner">Test page. Not linked from the site, and these designs can\'t be ordered.</div>';
+    document.querySelector(".site-head").after(bar);
     const cur = document.querySelector('.nav [aria-current="page"]'); if (cur) cur.removeAttribute("aria-current");
   }
 
