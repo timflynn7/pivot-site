@@ -90,6 +90,20 @@ Superseded list. Still wanted: shaker family, Georgian, New Country, Tongue & V 
 ## Home page photo layout (24 Nov 2026)
 Tim said the home photos were too large and uneven. Now: the main photo is square, capped at 480 px tall so it sits level with the text (4:3 on phones); the range uses four matching square tiles, each a hand-picked 640 × 640 crop of the design itself (`public/img/tile-fluted|reeded|arched|tongue-and-bead.jpg`, made from Tim's originals). New range photos should get the same treatment: a square crop of the pattern, 640 px.
 
+## Polish and accessibility review (24 Nov 2026)
+Checked every public page plus the sign-in page with axe-core (WCAG 2.1 AA and best practice), on desktop and an iPhone-sized screen, plus keyboard use and tap-target sizes by hand.
+Fixed:
+- Gold text (eyebrow labels, step numbers) was 2.8:1 contrast; now `--tan-ink` #805C2A (4.7:1 or better on every background). The lighter `--tan` stays for lines.
+- "Skip to content" link on every page (first Tab stop); `<main id="main">`.
+- Contact: "For a quick price, send us" is an h2 (was h3 straight after h1).
+- WhatsApp button inside an `<aside aria-label="Chat with us">`.
+- Shop page has a meta description.
+- Width and height fields are linked to their error messages (`aria-describedby`).
+- Bigger touch targets: footer links, Remove buttons, slider handles, the measurements tick box.
+Result: no axe violations left. Remaining "small" targets are links inside sentences (allowed) and the hidden anti-spam field.
+Already fine: one h1 per page, alt text on every image, labelled form fields, visible focus outlines, no sideways scrolling on phones, the photo pop-up moves focus in and back out, reduced-motion respected.
+Suggestions for Tim (not changed): the "5.0 ★ rated by our customers" fact comes from 4 Etsy reviews the site can't show, so collect reviews directly or drop it; the Contact card says "Workshop: United Kingdom" (could say Surrey); the home buttons say "Design your door" while the menu says "Shop".
+
 ## Next tasks (24 Nov 2026)
 1. Tim to check the new story wording and the test page; merge the branch to `main` to go live.
 2. Pictures: real photos and labelled AI renders per design, including inside-corner close-ups.

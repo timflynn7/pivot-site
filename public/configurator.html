@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Design your door | Pivot Designs</title>
+<meta name="description" content="Design made-to-measure MDF cabinet doors online: choose a design, enter your sizes, see each door drawn to scale with its price, and order.">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -12,6 +13,7 @@
 <link rel="stylesheet" href="/css/configurator.css">
 </head>
 <body data-mode="__PIVOT_MODE__">
+<a class="skip" href="#main">Skip to content</a>
 <header class="site-head">
   <div class="inner">
     <a class="brand" href="/" aria-label="Pivot Designs home"><span class="word">PIVOT</span><span class="sub">DESIGNS</span></a>
@@ -25,7 +27,7 @@
 </header>
 
 
-<main class="cfg inner">
+<main id="main" tabindex="-1" class="cfg inner">
   <header class="cfg-head">
     <span class="eyebrow">Made to measure</span>
     <h1>Design your door</h1>
@@ -58,8 +60,8 @@
       <fieldset class="step">
         <legend><span class="n">02</span> Size</legend>
         <div class="pair">
-          <div class="field"><label for="width">Width</label><div class="mm"><input id="width" type="number" inputmode="numeric" min="300" max="1000" step="1" value="450"></div><span class="hint" id="widthMsg"></span></div>
-          <div class="field"><label for="height">Height</label><div class="mm"><input id="height" type="number" inputmode="numeric" min="300" max="1200" step="1" value="700"></div><span class="hint" id="heightMsg"></span></div>
+          <div class="field"><label for="width">Width</label><div class="mm"><input id="width" aria-describedby="widthMsg" type="number" inputmode="numeric" min="300" max="1000" step="1" value="450"></div><span class="hint" id="widthMsg"></span></div>
+          <div class="field"><label for="height">Height</label><div class="mm"><input id="height" aria-describedby="heightMsg" type="number" inputmode="numeric" min="300" max="1200" step="1" value="700"></div><span class="hint" id="heightMsg"></span></div>
         </div>
         <p class="hint">Measure the existing door, not the cabinet opening. Doors are 18 mm MDF.</p>
       </fieldset>
@@ -157,7 +159,7 @@
   <button type="button" class="lb-nav prev" id="lbPrev" aria-label="Previous photo">‹</button>
   <button type="button" class="lb-nav next" id="lbNext" aria-label="Next photo">›</button>
 </dialog>
-<!--wa--><a class="wa-float" href="__WA_URL__?text=Hi%20Pivot%20Designs%2C%20I%20have%20a%20question%20about%20some%20doors." target="_blank" rel="noopener" aria-label="Message us on WhatsApp"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M12 3a9 9 0 0 0-7.8 13.5L3 21l4.6-1.2A9 9 0 1 0 12 3Zm0 1.8a7.2 7.2 0 1 1-3.7 13.4l-.3-.2-2.7.7.7-2.6-.2-.3A7.2 7.2 0 0 1 12 4.8Zm-3.1 3.6c-.2 0-.5 0-.7.3-.2.3-.9.9-.9 2.1s.9 2.4 1 2.6c.1.2 1.8 2.8 4.4 3.8 2.2.9 2.6.7 3.1.6.5 0 1.5-.6 1.7-1.2.2-.6.2-1.1.1-1.2l-.4-.3-1.6-.8c-.2-.1-.4-.1-.6.1l-.7.9c-.1.2-.3.2-.5.1-.3-.1-1-.4-2-1.2-.7-.6-1.2-1.4-1.3-1.7-.1-.2 0-.4.1-.5l.4-.5.3-.4v-.4l-.7-1.8c-.2-.5-.4-.4-.6-.4h-.5Z"/></svg><span>Message us on WhatsApp</span></a><!--/wa-->
+<!--wa--><aside class="chat-aside" aria-label="Chat with us"><a class="wa-float" href="__WA_URL__?text=Hi%20Pivot%20Designs%2C%20I%20have%20a%20question%20about%20some%20doors." target="_blank" rel="noopener" aria-label="Message us on WhatsApp"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M12 3a9 9 0 0 0-7.8 13.5L3 21l4.6-1.2A9 9 0 1 0 12 3Zm0 1.8a7.2 7.2 0 1 1-3.7 13.4l-.3-.2-2.7.7.7-2.6-.2-.3A7.2 7.2 0 0 1 12 4.8Zm-3.1 3.6c-.2 0-.5 0-.7.3-.2.3-.9.9-.9 2.1s.9 2.4 1 2.6c.1.2 1.8 2.8 4.4 3.8 2.2.9 2.6.7 3.1.6.5 0 1.5-.6 1.7-1.2.2-.6.2-1.1.1-1.2l-.4-.3-1.6-.8c-.2-.1-.4-.1-.6.1l-.7.9c-.1.2-.3.2-.5.1-.3-.1-1-.4-2-1.2-.7-.6-1.2-1.4-1.3-1.7-.1-.2 0-.4.1-.5l.4-.5.3-.4v-.4l-.7-1.8c-.2-.5-.4-.4-.6-.4h-.5Z"/></svg><span>Message us on WhatsApp</span></a></aside><!--/wa-->
 
 
 <footer class="site-foot">
