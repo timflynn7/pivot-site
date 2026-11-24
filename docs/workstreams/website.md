@@ -87,6 +87,9 @@ The arched photo was cropped to leave out a lattice panel (archived). The carous
 **Renders (24 Nov 2026):** Tim asked for AI renders of the designs without photos. No AI image tool is available here, so Claude made computer renders from the exact cutting geometry instead (`scripts/render-geometry.js` + `scripts/render_designs.py`): Slab (warm white), Traditional shaker (sage) plus an inside-corner close-up showing the 1.5 mm radius, Skinny shaker (navy), Bevelled (stone), Beaded (deep green), New Country (cream, exact 80 mm boards), Georgian (putty grey), Tongue & V groove (blue grey). Badged "Render" in the Shop. Tim can still add AI lifestyle images later with `"illustration": true`.
 Superseded list. Still wanted: shaker family, Georgian, New Country, Tongue & V groove, slab, inside-corner close-ups, and better originals for the home page (`public/img/*.jpg` are soft Etsy crops).
 
+## Home page photo layout (24 Nov 2026)
+Tim said the home photos were too large and uneven. Now: the main photo is square, capped at 480 px tall so it sits level with the text (4:3 on phones); the range uses four matching square tiles, each a hand-picked 640 × 640 crop of the design itself (`public/img/tile-fluted|reeded|arched|tongue-and-bead.jpg`, made from Tim's originals). New range photos should get the same treatment: a square crop of the pattern, 640 px.
+
 ## Next tasks (24 Nov 2026)
 1. Tim to check the new story wording and the test page; merge the branch to `main` to go live.
 2. Pictures: real photos and labelled AI renders per design, including inside-corner close-ups.
