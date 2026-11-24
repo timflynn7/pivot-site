@@ -142,7 +142,7 @@ button.btn { font: inherit; font-weight: 600; cursor: pointer; }
    4. Width and height side by side.  5. A one-line intro. */
 .lede-short, .bar-price, .bar-basket, .photos-btn { display: none; }
 @media (max-width: 900px) {
-  .cfg { gap: 20px; padding-block: 16px 110px; }
+  .cfg { gap: 20px; padding-block: 16px 32px; }
   .cfg-head { gap: 6px; }
   .cfg-head .lede { display: none; }
   .lede-short { display: block; color: var(--muted); }
@@ -154,19 +154,20 @@ button.btn { font: inherit; font-weight: 600; cursor: pointer; }
   .pv-note { display: none; }
   .thumbs { display: none !important; }
   .photos-btn:not([hidden]) { display: inline-flex; align-items: center; min-height: 32px; padding: 4px 12px; border: 1.5px solid var(--line); border-radius: 16px; background: var(--paper); font: inherit; font-size: 0.85rem; font-weight: 600; color: var(--ink); cursor: pointer; }
-  .cfg-steps :is(input, select, textarea, button) { scroll-margin-top: 300px; } /* don't hide a field under the pinned preview */
+  .cfg-steps :is(input, select, textarea, button, fieldset) { scroll-margin-top: calc(var(--pv-h, 260px) + 16px); } /* never under the pinned preview */
+  body.typing .stage svg { height: 84px; }
+  body.typing .pv-tools { display: none; }
+  body:has(.addbar) .site-foot { padding-bottom: calc(40px + 76px + env(safe-area-inset-bottom)); } /* footer clear of the bottom bar */
   .designs { display: flex; gap: 8px; overflow-x: auto; scroll-snap-type: x proximity; padding: 2px 2px 8px; -webkit-overflow-scrolling: touch; }
   .dz { flex: 0 0 96px; scroll-snap-align: center; padding: 6px 4px; }
   .dz svg { height: 64px; }
   .dz span { font-size: 0.72rem; }
   .addbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; margin: 0; background: var(--paper); border-top: 1px solid var(--line); box-shadow: 0 -8px 18px rgba(0, 0, 0, .08);
     padding: 10px max(16px, env(safe-area-inset-right)) calc(10px + env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
-    display: grid; grid-template-columns: 1fr auto; grid-template-areas: "price add" "basket add"; align-items: center; gap: 0 12px; transition: transform .2s ease; }
-  .addbar.bar-away { transform: translateY(110%); }
+    display: grid; grid-template-columns: 1fr auto; grid-template-areas: "price add" "basket add"; align-items: center; gap: 0 12px; }
   .bar-price { display: block; grid-area: price; font-family: var(--font-display); font-size: 1.2rem; font-variant-numeric: tabular-nums; }
   .bar-basket { display: block; grid-area: basket; font-size: 0.85rem; color: var(--muted); }
   #addBtn { grid-area: add; }
   #addMsg { display: none; }
   .wa-float { bottom: calc(84px + env(safe-area-inset-bottom)); }
 }
-@media (prefers-reduced-motion: reduce) { .addbar { transition: none; } }

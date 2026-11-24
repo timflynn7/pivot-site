@@ -130,10 +130,24 @@
     if (!tile || row.scrollWidth <= row.clientWidth) return;
     row.scrollTo({ left: tile.offsetLeft - row.offsetLeft - (row.clientWidth - tile.offsetWidth) / 2, behavior: "smooth" });
   }
-  // The bar with the price and Add to basket steps aside once the basket itself is on screen.
-  if ("IntersectionObserver" in window) {
-    new IntersectionObserver((entries) => { for (const e of entries) document.querySelector(".addbar").classList.toggle("bar-away", e.isIntersecting); }, { threshold: 0.05 }).observe(document.querySelector(".list"));
-  }
+  // The pinned preview's height, so a field that's scrolled to never ends up underneath it.
+  const pv = document.querySelector(".preview");
+  const notePv = () => document.documentElement.style.setProperty("--pv-h", pv.getBoundingClientRect().height + "px");
+  if ("ResizeObserver" in window) new ResizeObserver(notePv).observe(pv); else notePv();
+  // Phones: while typing in a box (keyboard open) the drawing shrinks, and the box is
+  // brought to the middle of the space below the preview.
+  const phone = window.matchMedia("(max-width: 900px)");
+  const typingField = (el) => el && el.matches && el.matches('#doorForm input:not([type=range]):not([type=checkbox]), #doorForm select, #doorForm textarea');
+  document.addEventListener("focusin", (e) => {
+    if (!phone.matches || !typingField(e.target)) return;
+    document.body.classList.add("typing");
+    setTimeout(() => {
+      const r = e.target.getBoundingClientRect(), top = pv.getBoundingClientRect().bottom + 12;
+      const room = (window.visualViewport ? window.visualViewport.height : window.innerHeight) - 80; // above the bottom bar
+      if (r.top < top || r.bottom > room) window.scrollBy({ top: r.top - top - Math.max(0, (room - top - r.height) / 2), behavior: "smooth" });
+    }, 300); // after the keyboard has opened
+  });
+  document.addEventListener("focusout", (e) => { if (typingField(e.target)) setTimeout(() => { if (!typingField(document.activeElement)) document.body.classList.remove("typing"); }, 50); });
 
   /* ---------- pay online, or send a quote request ---------- */
   // Addresses outside the delivery area (Northern Ireland, the islands, the Scottish

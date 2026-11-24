@@ -106,6 +106,7 @@ Tim removed the "5.0 ★ rated by our customers" fact (no way to collect reviews
 
 ## Shop on phones (24 Nov 2026)
 Tim found the phone layout meant scrolling up and down: the preview took 621 px, the design grid 831 px, and the options started 2291 px down (screen 664 px). Built his chosen fixes 1–5 for screens up to 900 px: pinned compact preview (drawing about a quarter of the screen tall, with price and a "Photos (n)" button), one-row swipeable design picker that centres the chosen design, a fixed bottom bar (price, Add to basket with "Added ✓", "Basket (n) · £total" link) that hides when the basket section is visible, width and height side by side, one-line intro. Options now start at 965 px and the page is 37% shorter. Desktop unchanged.
+Tim's follow-up: fields were hidden under the pinned preview when editing, and the bar hiding itself near the basket was confusing. Now the bar never hides (footer padded to clear it); while typing in any box the drawing shrinks to a strip and the box is scrolled into the space between the preview and the bar, checked with a simulated keyboard (viewport 374 px tall).
 
 ## Next tasks (24 Nov 2026)
 1. Tim to check the new story wording and the test page; merge the branch to `main` to go live.
