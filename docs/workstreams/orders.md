@@ -72,7 +72,8 @@ Tim's decisions: a switch on /admin/pricing between **Quote first** (as before) 
 - /admin has a search box (reference, name, email, phone, postcode, address, notes) and filter chips with counts: Current, Needs action, New requests, Awaiting payment, To cut, To dispatch, Dispatched, Archived, All.
 - Tick boxes and **Delete selected…** delete several orders at once, after a confirmation page; paid orders need DELETE typed. Tim clears the old test orders himself with this (Claude has no access to the live database).
 
-## Messaging (Tim asked 24 Nov 2026: options sent, waiting on his choice)
+## Messaging (Tim chose the WhatsApp button, 24 Nov 2026; built)
+Built: button on Shop and Contact, number set by Tim on /admin/pricing (hidden until saved), privacy note. Options that were considered:
 Tim uses Etsy's messages a lot. Options: WhatsApp click-to-chat button (free, no cookies, needs a number he's happy to publish, ideally WhatsApp Business), a live-chat widget such as Tawk.to (free, phone app, but third-party cookies so privacy page and possibly a consent banner), or order messages built into the site (a message box on the order/pay page, replies by email, thread on /admin: most like Etsy, more work).
 
 ## Key files

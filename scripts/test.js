@@ -528,6 +528,21 @@ async function payPath(ref) {
   assert((await page("/admin?deleted=2")).includes("2 orders deleted"));
   step("filters: search and what's-next views with counts; delete several orders at once, with DELETE typed for paid ones");
 
+  // ---------- WhatsApp button ----------
+  assert(!(await (await req("/contact")).text()).includes("wa.me") && !(await (await req("/configurator")).text()).includes("wa-float"), "no button until a number is saved");
+  const waSave = (n, origin) => req("/admin/whatsapp", { method: "POST", headers: { ...auth, Origin: origin || BASE, "Content-Type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ whatsapp: n }) });
+  assert.strictEqual((await waSave("07700 900123", "https://evil.example")).status, 403);
+  assert.strictEqual((await waSave("not a number")).status, 400);
+  assert((await (await waSave("07700 900123")).text()).includes("WhatsApp button is on, for +447700900123"));
+  const ct = await (await req("/contact")).text();
+  assert(ct.includes("https://wa.me/447700900123?text=") && ct.includes("wa-float") && !ct.includes("__WA_URL__") && !ct.includes("<!--wa"));
+  assert((await (await req("/configurator")).text()).includes("https://wa.me/447700900123?text="), "on the Shop page");
+  assert(!(await (await req("/")).text()).includes("wa.me"), "not on the home page");
+  assert((await (await req("/privacy")).text()).includes("<b>WhatsApp</b>"));
+  await waSave("");
+  assert(!(await (await req("/contact")).text()).includes("wa.me"), "empty number hides it again");
+  step("WhatsApp button: set on /admin/pricing, shown on Shop and Contact only, privacy note, hidden when cleared");
+
   // ---------- quote-only wording stays out of Pay online mode ----------
   await form("/admin/mode", { mode: "checkout" });
   assert(!(await (await req("/configurator")).text()).includes("We check every order and confirm the price, including delivery, before you pay."));
