@@ -25,7 +25,7 @@ Old orders keep their earlier geometry (each recipe checks `door.version`).
 - **Fluted**: side margins and top/bottom margins set separately (default 40 mm each). Old orders' single `margin` still works.
 - **Reeded**: fixed at 12.5 mm centre to centre (`REED_PITCH`), not editable. Old orders keep their own spacing.
 - **Arched**: "Move sideways" is replaced by **Side margin** (outside edge of the door to the outer arch). The arches stay mirrored about the centre line of the door, or of the gap for a pair, so each door of a pair carries exactly a quarter turn (90 degrees). The top stays where it's set when the width changes (the legs start lower or higher). Measurements: top, spacing, side margin, and innermost arch to the door's inner edge (opening width on a single door). To confirm with Tim: the arches are still circular, not elliptical.
-- **Not yet live**: committed on branch `claude/pensive-planck-hlap0l`, waiting for Tim to say merge.
+- Live on 24 Nov 2026 (merged to `main` at Tim's request).
 
 ## Changes on 24 Nov 2026 (engine VERSION 3)
 - **Skinny shaker**: frame 18–35 mm (Traditional is 40–120, so they no longer overlap), and the panel is pocketed **5 mm** (`POCKET_EM6_D5`) so hinge cups on the back don't weaken the face. Traditional shaker stays 8 mm. Orders saved before version 3 keep 8 mm (`door.version` is passed to `build`).
