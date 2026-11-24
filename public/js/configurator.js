@@ -16,6 +16,10 @@
   // /configurator?admin: Tim creating an order for a customer (from /admin → New order).
   // It posts to the password-protected /admin/orders and sends the customer nothing.
   const ADMIN = new URLSearchParams(location.search).has("admin");
+  // Pay online mode (switched on /admin/pricing; the server marks the page).
+  // Tim's admin orders and the test page always work the old way.
+  const CHECKOUT = document.body.dataset.mode === "checkout" && !ADMIN && !LAB;
+  let wantQuote = false; // the customer chose "Ask for a quote instead"
   const LIST_KEY = LAB ? "pivot-door-list-lab" : ADMIN ? "pivot-door-list-admin" : "pivot-door-list";
   const offered = (d) => LAB || E.orderable(d);
   try { const saved = JSON.parse(localStorage.getItem(LIST_KEY) || "[]"); if (Array.isArray(saved)) list = saved.map((d) => E.normalizeDoor(d)).filter((r) => !Object.keys(r.errors).length && offered(E.designById(r.door.design))).map((r) => r.door); } catch (e) { list = []; }
@@ -111,6 +115,29 @@
     $("continueBtn").disabled = !list.length;
     if (LAB || (!list.length && !$("sendMsg").classList.contains("ok"))) $("sendSection").hidden = true;
     $("continueBtn").hidden = $("continueHint").hidden = LAB || !$("sendSection").hidden;
+    if (CHECKOUT) $("continueBtn").textContent = "Continue to checkout";
+    updateIntent();
+  }
+
+  /* ---------- pay online, or send a quote request ---------- */
+  // Addresses outside the delivery area (Northern Ireland, the islands, the Scottish
+  // Highlands, the Isle of Wight) can't pay online; the server checks this too.
+  const outsideArea = () => E.deliveryArea($("cPostcode").value);
+  const payingNow = () => CHECKOUT && !wantQuote && !outsideArea();
+  function updateIntent() {
+    if (!CHECKOUT) return;
+    const area = outsideArea(), t = E.priceOrder(list);
+    $("areaMsg").hidden = !area;
+    if (area) $("areaMsg").textContent = `We can't take payment online for delivery to ${area}. Send us a quote request and we'll email you a price that includes delivery.`;
+    $("intentToggle").hidden = !!area;
+    $("intentToggle").textContent = wantQuote ? "Pay online instead" : "Need something different? Ask for a quote instead";
+    $("payHint").hidden = !payingNow();
+    $("sendBtn").textContent = payingNow() ? `Continue to payment${list.length ? " (" + gbp(t.total) + ")" : ""}` : "Send quote request";
+    $("sendH").textContent = payingNow() ? "Your details and delivery address" : "Send a quote request";
+  }
+  if (CHECKOUT) {
+    $("intentToggle").addEventListener("click", () => { wantQuote = !wantQuote; updateIntent(); });
+    for (const ev of ["input", "change", "blur"]) $("cPostcode").addEventListener(ev, updateIntent);
   }
 
   /* ---------- events ---------- */
@@ -186,13 +213,18 @@
     if (!list.length) { msg.className = "send-msg bad"; msg.textContent = "Add at least one door to your list first."; return; }
     $("sendBtn").disabled = true; msg.className = "send-msg"; msg.textContent = "Sending…";
     try {
-      const r = await fetch(ADMIN ? "/admin/orders" : "/api/orders", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ customer, doors: list }) });
+      const paying = payingNow();
+      const r = await fetch(ADMIN ? "/admin/orders" : "/api/orders", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ customer, doors: list, intent: paying ? "pay" : "quote" }) });
       if (ADMIN && (r.status === 401 || r.status === 403)) throw new Error("You're not signed in to the orders page. Open /admin in this browser, sign in, then try again.");
       const data = await r.json().catch(() => ({}));
       if (!r.ok) throw new Error(data.error || "Something went wrong. Please try again, or email tim@pivotdesigns.co.uk.");
       if (ADMIN) { list = []; saveList(); location.href = "/admin?created=" + encodeURIComponent(data.ref) + "#" + encodeURIComponent(data.ref); return; }
+      if (data.payUrl) {
+        msg.className = "send-msg ok"; msg.textContent = "Taking you to our secure payment page…";
+        location.href = data.payUrl; return;
+      }
       msg.className = "send-msg ok";
-      msg.textContent = `Thank you. Your order request ${data.ref} has been sent. We'll email you to confirm the price and lead time, with a link to pay securely online.`;
+      msg.textContent = `Thank you. Your ${CHECKOUT ? "quote" : "order"} request ${data.ref} has been sent. We'll email you to confirm the price and lead time, with a link to pay securely online.`;
       list = []; saveList(); renderList();
     } catch (err) {
       msg.className = "send-msg bad"; msg.textContent = err.message;
@@ -265,7 +297,7 @@
         const r = await fetch("/api/address/resolve?id=" + encodeURIComponent(h.id));
         const a = await r.json().catch(() => ({}));
         if (!r.ok) return off(a.error);
-        $("cLine1").value = a.line1 || ""; $("cLine2").value = a.line2 || ""; $("cTown").value = a.town || ""; $("cPostcode").value = a.postcode || "";
+        $("cLine1").value = a.line1 || ""; $("cLine2").value = a.line2 || ""; $("cTown").value = a.town || ""; $("cPostcode").value = a.postcode || ""; updateIntent();
         hint.textContent = "Done. Check the address below and change anything that's not right.";
       } catch (e) { off("We couldn't fetch that address. Please type it in below."); }
     }

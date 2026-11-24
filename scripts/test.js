@@ -401,6 +401,63 @@ async function payPath(ref) {
   assert.deepStrictEqual(E.getPricing(), P0);
   step("pricing: Etsy bands less 10%, every orderable size under Etsy, oversize from sheet use, /admin/pricing saves and resets, Etsy kept off the public prices");
 
+  // ---------- payment mode: Pay online ----------
+  assert.deepStrictEqual(["BT1 1AA", "IM1 1AA", "JE2 3AB", "TR21 0AA", "PO30 1AA", "IV2 3AA", "HS1 2AA", "KW15 1AA", "PA60 7AA", "HR5 3DJ", "SW1A 1AA", "PO1 1AA", "PH1 1AA"].map(E.deliveryArea),
+    ["Northern Ireland", "Isle of Man", "the Channel Islands", "the Isles of Scilly", "the Isle of Wight", "the Scottish Highlands", "the Scottish islands", "the Scottish islands", "the Scottish islands", null, null, null, null]);
+  const postOrder = (customer, intent) => req("/api/orders", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ customer: { name: "Pat Payer", email: "pat@example.com", line1: "1 Road", town: "Leeds", ...customer }, doors: [{ design: "shaker", width: 500, height: 720, qty: 2 }], intent }) });
+  let home = await (await req("/")).text();
+  assert(home.includes("confirm the price before you pay") && !home.includes("pay securely online") && !home.includes("<!--mode"), "quote wording in Quote first mode");
+  assert.strictEqual((await (await req("/api/pricing")).json()).mode, "quote");
+  const qp = await postOrder({ postcode: "LS1 4AB" }, "pay");
+  const qpd = await qp.json();
+  assert(qp.status === 201 && !qpd.payUrl && (await spec(qpd.ref)).status === "new", "no paying online in Quote first mode");
+  assert.strictEqual((await form("/admin/mode", { mode: "checkout" }, "https://evil.example")).status, 403);
+  assert((await (await form("/admin/mode", { mode: "checkout" })).text()).includes("Payment mode is now <b>Pay online</b>"));
+  home = await (await req("/")).text();
+  assert(home.includes("pay securely online") && !home.includes("confirm the price before you pay") && !home.includes("<!--mode"));
+  const terms = await (await req("/terms")).text();
+  assert(terms.includes("Quote requests.") && !terms.includes("Order request.</b>") && terms.includes("send us a quote request instead of paying online"));
+  const cfgPage = await (await req("/configurator")).text();
+  assert(cfgPage.includes('data-mode="checkout"') && !cfgPage.includes("testbar") && cfgPage.includes("intentToggle"));
+  assert((await (await req("/terms.html")).text()).includes("Quote requests."), "the .html address gets the same wording");
+  // a mainland customer pays online: no emails until they've paid
+  await settle(); emails.length = 0;
+  const co = await postOrder({ postcode: "ls1 4ab" }, "pay");
+  const cod = await co.json();
+  assert(co.status === 201 && cod.payUrl, "checkout returns a payment address");
+  await settle();
+  assert.strictEqual(emails.length, 0, "no emails before payment");
+  o = await spec(cod.ref);
+  assert(o.checkout && o.status === "quoted" && o.quote === Math.round(o.totals.total * 100) && o.quote === 12500, "priced at the website price: 2 x £54 + £17 delivery");
+  assert((await page("/admin")).includes("Awaiting payment (online checkout)"));
+  const coGo = await req(cod.payUrl);
+  assert.strictEqual(coGo.status, 303);
+  const coSid = coGo.headers.get("location").split("/").pop();
+  assert.strictEqual(sessions[coSid].params.line_items[0].price_data.unit_amount, 12500);
+  sessions[coSid].payment_status = "paid";
+  const coDone = await (await req(`/pay/${cod.ref}/done?t=${cod.payUrl.split("t=")[1]}&s=${coSid}`)).text();
+  assert(coDone.includes("has gone through") && coDone.includes("order confirmation"));
+  await settle();
+  assert.strictEqual((await spec(cod.ref)).status, "paid");
+  assert(emails.some((m) => m.to[0] === "pat@example.com" && m.subject.startsWith("Order confirmed")) && emails.some((m) => m.subject.startsWith("New paid order")), "confirmation to the customer and a paid notice to Tim");
+  // outside the delivery area: can't pay online, can send a quote request
+  for (const pc of ["BT1 1AA", "PO30 5AA", "HS1 2AA", "IV2 3AA"]) {
+    const no = await postOrder({ postcode: pc }, "pay");
+    assert(no.status === 400 && /can't take payment online/.test((await no.json()).error), pc + " can't pay online");
+  }
+  emails.length = 0;
+  const oq = await postOrder({ postcode: "BT1 1AA" }, "quote");
+  const oqd = await oq.json();
+  assert(oq.status === 201 && !oqd.payUrl);
+  await settle();
+  o = await spec(oqd.ref);
+  assert(o.status === "new" && !o.checkout && o.history.some((h) => /Northern Ireland: outside the online delivery area/.test(h.what)) && emails.length === 2, "quote request from outside the area, emails as usual");
+  const mq = await postOrder({ postcode: "LS1 4AB" }, "quote");
+  assert((await spec((await mq.json()).ref)).status === "new", "anyone can still ask for a quote");
+  await form("/admin/mode", { mode: "quote" });
+  assert((await (await req("/")).text()).includes("confirm the price before you pay"));
+  step("payment mode: switch on /admin/pricing, page wording follows it, mainland checkout pays at once with emails after payment, outside-area and chosen quotes come in as requests");
+
   const dxf = await req(`/admin/orders/${ref}.dxf`, { headers: auth });
   assert(dxf.status === 200 && (await dxf.text()).includes("CUTOUT"));
   step("DXF still downloads");

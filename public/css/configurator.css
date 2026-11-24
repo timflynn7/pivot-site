@@ -117,3 +117,7 @@ button.btn { font: inherit; font-weight: 600; cursor: pointer; }
 .opt .top label { font-weight: 600; }
 .summary .free { color: var(--sage); font-weight: 600; }
 .summary .free:empty { display: none; }
+.area-msg { background: #F3E6C8; color: #5A4210; padding: 10px 14px; border-radius: 3px; font-size: 0.95rem; }
+.area-msg[hidden] { display: none; }
+#intentToggle[hidden] { display: none; }
+.actions #intentToggle { margin-left: 14px; }

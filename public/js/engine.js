@@ -50,6 +50,33 @@
     chamfer:  { layer: "CHAMFER_D3",   label: "Edge chamfer, 45 degrees, 3 mm",                     width: 6,    color: 6 }
   };
 
+  /* ---------- delivery area ---------- */
+  // Online payment is for mainland Great Britain only. These postcode districts
+  // (Tim, 24 Nov 2026) get a quote instead, because couriers charge extra or
+  // need a ferry. Returns the area's name, or null when the postcode is fine.
+  const OUTSIDE = [
+    ["Northern Ireland", "BT"], ["Isle of Man", "IM"], ["the Channel Islands", "JE GY"],
+    ["the Isles of Scilly", "TR21-25"], ["the Isle of Wight", "PO30-41"],
+    ["the Scottish islands", "HS ZE KW15-17 IV41-51 IV55-56 KA27-28 PA20 PA41-49 PA60-78 PH42-44"],
+    ["the Scottish Highlands", "AB31-38 AB44-56 FK17-21 G83 IV1-40 IV52-54 IV63 KW1-14 PA21-40 PH4-41 PH49-50"]
+  ];
+  function deliveryArea(postcode) {
+    const m = String(postcode || "").toUpperCase().replace(/\s+/g, "").match(/^([A-Z]{1,2})(\d{1,2})[A-Z]?\d[A-Z]{2}$/) ||
+      String(postcode || "").toUpperCase().trim().match(/^([A-Z]{1,2})(\d{1,2})[A-Z]?$/); // a part postcode (outward code only) is checked too
+    if (!m) return null;
+    const area = m[1], district = Number(m[2]);
+    for (const [name, list] of OUTSIDE) {
+      for (const item of list.split(" ")) {
+        const r = item.match(/^([A-Z]+)(?:(\d+)(?:-(\d+))?)?$/);
+        if (r[1] !== area) continue;
+        if (r[2] === undefined) return name;
+        const lo = Number(r[2]), hi = r[3] !== undefined ? Number(r[3]) : lo;
+        if (district >= lo && district <= hi) return name;
+      }
+    }
+    return null;
+  }
+
   /* ---------- prices: size bands (Tim, 24 Nov 2026) ---------- */
   // Every door in a band costs the same, whatever the design. Doors bigger than
   // the largest band are priced by how much of a half sheet they use, scaled from
@@ -859,5 +886,5 @@
     return Array.from(seen, ([layer, label]) => ({ layer, label }));
   }
 
-  return { VERSION, LIMITS, TOOLS, PRICING_DEFAULTS, setPricing, getPricing, sheetShare, bandFor, minDoorPrice, DESIGNS, designById, orderable, optShown, doorParts, designNote, normalizeDoor, buildDoor, hingeDefault, priceDoor, priceOrder, describe, doorSVG, orderDXF, layerList };
+  return { VERSION, LIMITS, TOOLS, PRICING_DEFAULTS, setPricing, getPricing, deliveryArea, sheetShare, bandFor, minDoorPrice, DESIGNS, designById, orderable, optShown, doorParts, designNote, normalizeDoor, buildDoor, hingeDefault, priceDoor, priceOrder, describe, doorSVG, orderDXF, layerList };
 });

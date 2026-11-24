@@ -12,7 +12,7 @@
 <link rel="stylesheet" href="/css/site.css">
 <link rel="stylesheet" href="/css/configurator.css">
 </head>
-<body>
+<body data-mode="__PIVOT_MODE__">
 <header class="site-head">
   <div class="inner">
     <a class="brand" href="/" aria-label="Pivot Designs home"><span class="word">PIVOT</span><span class="sub">DESIGNS</span></a>
@@ -25,13 +25,13 @@
   </div>
 </header>
 
-<div class="testbar"><div class="inner">Test version. Prices are provisional and order requests are not yet final.</div></div>
+<!--mode:quote--><div class="testbar"><div class="inner">Test version. Prices are provisional and order requests are not yet final.</div></div><!--/mode-->
 
 <main class="cfg inner">
   <header class="cfg-head">
     <span class="eyebrow">Made to measure</span>
     <h1>Design your door</h1>
-    <p class="lede">Choose a design, enter your sizes and add each door to your list. When the list is ready, send it to us and we'll confirm the price and lead time.</p>
+    <!--mode:quote--><p class="lede">Choose a design, enter your sizes and add each door to your list. When the list is ready, send it to us and we'll confirm the price and lead time.</p><!--/mode--><!--mode:checkout--><p class="lede">Choose a design, enter your sizes and add each door to your basket. Your total, including delivery, adds up as you go, and you pay securely online when you're ready.</p><!--/mode-->
   </header>
 
   <div class="bench">
@@ -118,7 +118,7 @@
         <div class="row"><span>Delivery</span><span id="sShip">£0.00</span></div>
         <p class="hint free" id="sFree"></p>
         <div class="row total"><span>Estimated total</span><span id="sTotal">£0.00</span></div>
-        <p class="hint">Provisional prices. We confirm the final price before you pay.</p>
+        <!--mode:quote--><p class="hint">Provisional prices. We confirm the final price before you pay.</p><!--/mode--><!--mode:checkout--><p class="hint">Prices include everything except delivery, shown above. Most orders are dispatched within 5–7 working days of payment.</p><!--/mode-->
         <button type="button" class="btn" id="continueBtn" disabled>Continue to your details</button>
         <p class="hint" id="continueHint">Add all your doors first. You can add more, or remove them, after this step.</p>
       </div>
@@ -126,7 +126,7 @@
   </section>
 
   <section class="send" aria-labelledby="sendH" id="sendSection" hidden>
-    <h2 id="sendH">Send your order request</h2>
+    <h2 id="sendH"><!--mode:quote-->Send your order request<!--/mode--><!--mode:checkout-->Your details and delivery address<!--/mode--></h2>
     <form id="orderForm" class="order-form" novalidate>
       <div class="field"><label for="cName">Your name</label><input id="cName" autocomplete="name" required></div>
       <div class="field"><label for="cEmail">Email</label><input id="cEmail" type="email" autocomplete="email" required></div>
@@ -144,8 +144,9 @@
       <div class="field wide"><label for="cNotes">Notes for the maker (optional)</label><textarea id="cNotes" rows="3" placeholder="e.g. Pair for a wall unit, grooves to line up"></textarea></div>
       <div class="hp" aria-hidden="true"><label for="cWebsite">Leave this empty</label><input id="cWebsite" tabindex="-1" autocomplete="off"></div>
       <div class="field wide">
-        <p class="hint">We use these details only to quote and deliver your order (<a href="/privacy">privacy</a>). Sending a request costs nothing; you pay only once we've confirmed the price. Doors are made to measure, so please read our <a href="/terms">terms and refund policy</a>.</p>
-        <div class="actions"><button class="btn" type="submit" id="sendBtn">Send order request</button></div>
+        <!--mode:quote--><p class="hint">We use these details only to quote and deliver your order (<a href="/privacy">privacy</a>). Sending a request costs nothing; you pay only once we've confirmed the price. Doors are made to measure, so please read our <a href="/terms">terms and refund policy</a>.</p><!--/mode--><!--mode:checkout--><p class="hint" id="payHint">We use these details only to deliver your order (<a href="/privacy">privacy</a>). You'll pay on a secure page run by Stripe, by card, Apple Pay or Google Pay. Most orders are dispatched within 5–7 working days of payment. Doors are made to measure, so please read our <a href="/terms">terms and refund policy</a> before you pay.</p>
+        <p class="area-msg" id="areaMsg" role="status" hidden></p><!--/mode-->
+        <div class="actions"><button class="btn" type="submit" id="sendBtn">Send order request</button><!--mode:checkout--><button type="button" class="linkbtn" id="intentToggle" hidden></button><!--/mode--></div>
         <p id="sendMsg" role="status" class="send-msg"></p>
       </div>
     </form>
