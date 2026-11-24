@@ -15,6 +15,8 @@ The non-code decisions and paperwork needed before taking real orders.
 - Goal: price each door by the share of a 1200 × 1200 sheet it uses, including spacing and margins, then add a per-design uplift for machining time and tool changes. Tim edits the uplifts in /admin.
 - Rule: an extra door must never cost more than the earlier ones, even when a design leaves no usable offcut. So charge a share of the sheet (area plus spacing), not whole sheets, and possibly a small fixed setup fee per order.
 - Questions: sheet cost, machine hourly rate, spacing and margin, setup fee, uplifts per design.
+- **Sheet costs (Tim, 24 Nov 2026):** standard MDF £36 a full sheet, worked in half sheets, so £17.50 per 1200 × 1200 unit. The website will use **moisture-resistant (MR) MDF**: £42 a full sheet (Tim wrote 2400 × 2400; probably 2440 × 1220, to confirm), so about £21 per half sheet. The machine takes 1200 × 1200.
+- Proposed model (waiting on Tim's numbers): door footprint = (width + gap) × (height + gap); sheet share = footprint ÷ usable half-sheet area; price = sheet share × target price per half sheet (material, waste and machine time) + the design's uplift, with a minimum per door. Linear, so an extra door never costs more than earlier ones.
 - Delivery: free over a threshold? Max order size or bulk discount? (Tim to decide.)
 
 ## Where the background is
