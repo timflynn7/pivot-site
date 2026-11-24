@@ -102,7 +102,7 @@ Fixed:
 - Bigger touch targets: footer links, Remove buttons, slider handles, the measurements tick box.
 Result: no axe violations left. Remaining "small" targets are links inside sentences (allowed) and the hidden anti-spam field.
 Already fine: one h1 per page, alt text on every image, labelled form fields, visible focus outlines, no sideways scrolling on phones, the photo pop-up moves focus in and back out, reduced-motion respected.
-Tim removed the "5.0 ★ rated by our customers" fact (no way to collect reviews on this site yet); it's replaced by "5–7 days" dispatch. Possible later task: a way for customers to leave reviews. Other suggestions (not changed): the Contact card says "Workshop: United Kingdom" (could say Surrey); the home buttons say "Design your door" while the menu says "Shop".
+Tim removed the "5.0 ★ rated by our customers" fact (no way to collect reviews on this site yet); it's replaced by "5–7 days" dispatch. Possible later task: a way for customers to leave reviews. Done at Tim's request: the Contact card says "Workshop: Surrey, delivering UK-wide", and the home page button says "Shop", matching the menu.
 
 ## Next tasks (24 Nov 2026)
 1. Tim to check the new story wording and the test page; merge the branch to `main` to go live.
