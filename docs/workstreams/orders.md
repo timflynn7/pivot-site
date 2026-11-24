@@ -62,7 +62,7 @@ Order requests are stored safely, Tim is emailed for each one, and customers pay
 5. Optional: database backups or export from `/admin` (Render basic plans keep daily backups).
 
 ## Tim's questions (24 Nov 2026)
-- **Admin security**: /admin uses one shared password (HTTP basic auth over HTTPS) plus a same-site check on buttons. Gaps: no limit on password guesses, no sign-out, the browser remembers the password, and no second factor. Options, from least to most effort: a long random password + login rate limiting + a sign-in log; a proper sign-in page with a session cookie, sign-out and a timeout; a two-step code (authenticator app); or putting /admin behind Cloudflare Access (Google sign-in) on the free plan. Waiting on Tim's choice.
+- **Admin security (built 24 Nov 2026):** Tim chose A + B + C with a phone app, just him, 30 days. Sign-in page with password, then an authenticator-app code (set up on the first sign-in after the deploy, with 10 printed backup codes), a 30-day HttpOnly cookie, Sign out and Sign out everywhere, a lock-out after 10 wrong tries in 15 minutes, a sign-in log on /admin/security, and an email to Tim for every sign-in. See `lib/auth.js`. Recovery: `ADMIN_RESET_2FA=yes` in Render. Tested in `npm test` (both storage types) and in a browser.
 - **Shipping**: courier APIs exist (Parcel2Go, ParcelHero, Packlink, Royal Mail Click & Drop, DPD/DHL with a business account) for live quotes. Doors up to 1000 × 1200 mm are oversize for many couriers, so live quotes need the packed size and weight. Free delivery over a threshold is easy to build. See business.md for the pricing side.
 
 ## Payment mode switch (built 24 Nov 2026)

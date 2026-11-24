@@ -20,7 +20,8 @@ const pay = require("./lib/payments.js")({ store, E, siteUrl: SITE_URL, onPaid: 
   await orders.mail(o.ref, "Payment received, to customer", () => email.paidCustomer(o));
   await orders.mail(o.ref, "Paid notice to Tim", () => email.paidAdmin(o));
 } });
-const admin = require("./lib/admin.js")({ store, E, email, pay, orders, site, siteUrl: SITE_URL });
+const auth = require("./lib/auth.js")({ store, email });
+const admin = require("./lib/admin.js")({ store, E, email, pay, orders, site, auth, siteUrl: SITE_URL });
 // Wraps async routes so a database error shows the error page instead of hanging.
 const wrap = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 
@@ -78,6 +79,7 @@ app.post("/api/orders", express.json({ limit: "200kb" }), wrap(async (req, res) 
 
 /* ---------- payments (lib/payments.js) and the orders pages (lib/admin.js) ---------- */
 app.use(pay.router);
+app.use(auth.router);
 app.use(admin.router);
 app.use(require("./lib/address.js")().router);
 
@@ -106,6 +108,7 @@ store.init().then(async () => {
   // Prices saved on /admin/pricing; the engine's defaults until Tim saves any.
   E.setPricing(await store.getSetting("pricing"));
   await site.load();
+  await auth.load();
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`Pivot Designs running on port ${PORT}. Orders kept in ${store.kind}. Mode: ${site.mode()}. Payments ${pay.enabled ? (pay.testMode ? "on (test mode)" : "on (LIVE)") : "off"}.`);
   });

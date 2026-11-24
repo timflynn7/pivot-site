@@ -64,7 +64,11 @@ globalThis.fetch = async (url, opts = {}) => {
 process.env.RESEND_API_KEY = "re_test_dummy";
 require("../server.js");
 
-const auth = { Authorization: "Basic " + Buffer.from("tim:pw").toString("base64") };
+// Filled in after signing in (password + phone code) at the start of the tests.
+const auth = {};
+const { totpNow } = require("../lib/auth.js");
+const cookieFrom = (r) => (r.headers.get("set-cookie") || "").split(";")[0];
+const field = (html, name) => { const m = html.match(new RegExp(`name="${name}" value="([^"]+)"`)); return m && m[1].replace(/&amp;/g, "&"); };
 const req = (p, o = {}) => fetch(BASE + p, { redirect: "manual", ...o });
 const form = (p, body, origin = BASE) => req(p, { method: "POST", headers: { ...auth, Origin: origin, "Content-Type": "application/x-www-form-urlencoded" }, body: new URLSearchParams(body) });
 const page = async (p) => (await req(p, { headers: auth })).text();
@@ -97,6 +101,44 @@ async function payPath(ref) {
   const unesc = (h) => h.replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, "&");
   let o;
 
+  // ---------- signing in: password, then set up the phone app ----------
+  const login = (body, path = "/admin/login") => req(path, { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: new URLSearchParams(body) });
+  assert.strictEqual((await req("/admin")).status, 303, "signed-out visitors are sent to the sign-in page");
+  assert.strictEqual((await req("/admin/orders/PD-X.json")).status, 401);
+  let lr = await login({ password: "nope" });
+  assert.strictEqual(lr.status, 401);
+  lr = await login({ password: "pw", next: "/admin" });
+  let lh = await lr.text();
+  assert(lh.includes("Set up your phone") && lh.includes("data:image/png;base64"), "first sign-in sets up the phone app");
+  const secret = lh.match(/<code>([A-Z2-7 ]+)<\/code>/)[1].replace(/ /g, "");
+  const ticket = field(lh, "ticket");
+  assert.strictEqual((await login({ ticket, code: "000000" }, "/admin/login/setup")).status, 401);
+  lr = await login({ ticket, code: totpNow(secret) }, "/admin/login/setup");
+  lh = await lr.text();
+  assert(lr.status === 200 && lh.includes("backup codes"));
+  const backups = [...lh.matchAll(/<div>([0-9a-f]{5}-[0-9a-f]{5})<\/div>/g)].map((m) => m[1]);
+  assert.strictEqual(backups.length, 10);
+  auth.Cookie = cookieFrom(lr);
+  assert(/HttpOnly/i.test(lr.headers.get("set-cookie")) && /Max-Age=2592000/i.test(lr.headers.get("set-cookie")), "30-day, script-proof cookie");
+  assert.strictEqual((await req("/admin", { headers: auth })).status, 200);
+  // a second browser: password, then a code; codes can't be reused; backup codes work once
+  lh = await (await login({ password: "pw" })).text();
+  assert(lh.includes("Enter your code"));
+  const t2 = field(lh, "ticket");
+  assert.strictEqual((await login({ ticket: t2, code: totpNow(secret) }, "/admin/login/code")).status, 401, "a code that was just used can't be used again");
+  lr = await login({ ticket: t2, code: backups[0] }, "/admin/login/code");
+  assert(lr.status === 303 && cookieFrom(lr).startsWith("pivot_admin="));
+  const second = { Cookie: cookieFrom(lr) };
+  lh = await (await login({ password: "pw" })).text();
+  assert.strictEqual((await login({ ticket: field(lh, "ticket"), code: backups[0] }, "/admin/login/code")).status, 401, "a backup code works once");
+  assert.strictEqual((await req("/admin", { headers: { Cookie: "pivot_admin=forged.token" } })).status, 303);
+  await settle();
+  assert(emails.filter((m) => m.subject.startsWith("Signed in to Pivot orders")).length === 2, "Tim is emailed for each sign-in");
+  const sec = await (await req("/admin/security", { headers: auth })).text();
+  assert(sec.includes("Backup codes left: <b>9</b>") && sec.includes("Wrong password") && sec.includes("Signed in with a backup code"));
+  assert.strictEqual((await req("/admin", { headers: second })).status, 200);
+  step("sign-in: password + phone code (set up on first sign-in), 30-day cookie, codes and backup codes work once, emails Tim, log on /admin/security");
+
   // ---------- customer request ----------
   emails.length = 0;
   const r1 = await req("/api/orders", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({
@@ -113,7 +155,7 @@ async function payPath(ref) {
   assert(emails.every((m) => !m.html.includes("<b>Jo</b>")), "customer text escaped in emails");
   step("customer request saved; it emails Tim and the customer automatically (escaped)");
 
-  assert.strictEqual((await req("/admin")).status, 401);
+  assert.strictEqual((await req("/admin")).status, 303);
   assert.strictEqual((await req(`/pay/${ref}?t=wrong`)).status, 404);
   let html = await page("/admin");
   assert(html.includes("Needs action (1)") && html.includes("Check the order and confirm the price"));
@@ -247,12 +289,17 @@ async function payPath(ref) {
   const pp3 = await payPath(ref3);
   const realNow = Date.now;
   Date.now = () => realNow() + 31 * 864e5;
+  const cookieBefore = auth.Cookie;
   try {
+    assert.strictEqual((await req("/admin", { headers: auth })).status, 303, "a sign-in lasts 30 days");
+    const tk = field(await (await login({ password: "pw" })).text(), "ticket");
+    auth.Cookie = cookieFrom(await login({ ticket: tk, code: backups[1] }, "/admin/login/code"));
     assert((await (await req(pp3)).text()).includes("This price has expired"));
     assert(!(await req(pp3, { method: "POST" })).headers.get("location").includes("stripe"));
     assert(!(await page("/admin")).includes(`id="${ref3}"`) && (await page("/admin?archived=1")).includes("Price expired"));
     assert((await page(`/admin/orders/${ref3}/email?kind=paylink`)).includes("This price has expired"));
   } finally { Date.now = realNow; }
+    auth.Cookie = cookieBefore;
   await admin(ref3, { action: "quote", price: "47" });
   assert((await (await req(pp3)).text()).includes("£47.00"));
   step("prices expire after 30 days (link stops, Archived, no payment email); Change price revives");
@@ -458,9 +505,25 @@ async function payPath(ref) {
   assert((await (await req("/")).text()).includes("confirm the price before you pay"));
   step("payment mode: switch on /admin/pricing, page wording follows it, mainland checkout pays at once with emails after payment, outside-area and chosen quotes come in as requests");
 
+  // ---------- quote-only wording stays out of Pay online mode ----------
+  await form("/admin/mode", { mode: "checkout" });
+  assert(!(await (await req("/configurator")).text()).includes("We check every order and confirm the price, including delivery, before you pay."));
+  await form("/admin/mode", { mode: "quote" });
+  assert((await (await req("/configurator")).text()).includes("We check every order and confirm the price, including delivery, before you pay."));
+  step("the \"we check every order\" note only shows in Quote first mode");
+
   const dxf = await req(`/admin/orders/${ref}.dxf`, { headers: auth });
   assert(dxf.status === 200 && (await dxf.text()).includes("CUTOUT"));
   step("DXF still downloads");
+
+  // ---------- sign out, sign out everywhere, and the lock-out (last: it blocks this address) ----------
+  let so = await req("/admin/logout", { method: "POST", headers: second });
+  assert(so.status === 303 && /pivot_admin=;/.test(so.headers.get("set-cookie")));
+  assert.strictEqual((await form("/admin/security", { do: "everywhere" })).status, 303);
+  assert.strictEqual((await req("/admin", { headers: auth })).status, 303, "sign out everywhere ends every session");
+  for (let i = 0; i < 10; i++) await login({ password: "wrong" + i });
+  assert.strictEqual((await login({ password: "pw" })).status, 429, "locked out after 10 wrong tries, even with the right password");
+  step("sign out, sign out everywhere, and 10 wrong passwords lock the visitor out for 15 minutes");
 
   console.log(`\nAll tests passed (orders kept in ${process.env.DATABASE_URL ? "Postgres" : "a file"}).`);
   process.exit(0);
