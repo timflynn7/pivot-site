@@ -10,6 +10,7 @@ const assert = require("assert");
 const os = require("os");
 const fs = require("fs");
 const path = require("path");
+const E = require("../public/js/engine.js");
 
 const RealStripe = require("stripe");
 const realStripe = new RealStripe("sk_test_dummy");
@@ -302,7 +303,7 @@ async function payPath(ref) {
   assert.strictEqual(hr.status, 201);
   const href = (await hr.json()).ref;
   o = await spec(href);
-  assert(o.doors[0].hingeTop === 120 && o.doors[0].hingeBottom === 90 && o.doors[0].hingeNotes === "Blum soft-close" && o.doors[0].version === 3);
+  assert(o.doors[0].hingeTop === 120 && o.doors[0].hingeBottom === 90 && o.doors[0].hingeNotes === "Blum soft-close" && o.doors[0].version === E.VERSION);
   assert((await page("/admin")).includes("120 mm from top, 90 mm from bottom · Hinge notes: Blum soft-close"));
   const hd = await (await req(`/admin/orders/${href}.dxf`, { headers: auth })).text();
   assert(hd.includes("HINGES RIGHT x3 TOP 120 BOTTOM 90") && hd.includes("HINGE NOTE: Blum soft-close") && hd.includes("BEVEL_D5") && hd.includes("POCKET_EM6_D5"));
@@ -312,7 +313,6 @@ async function payPath(ref) {
   step("archived designs refused; hinge distances and notes saved, shown on /admin and in the DXF; no hinges by default");
 
   // ---------- arched pairs, skinny depth, test page ----------
-  const E = require("../public/js/engine.js");
   const pr = await tryOrder([{ design: "arched", width: 450, height: 700, opts: { layout: "pair", count: 3 }, hingeSide: "left", qty: 2 }]);
   assert.strictEqual(pr.status, 201);
   const pref = (await pr.json()).ref;
@@ -326,6 +326,24 @@ async function payPath(ref) {
   assert(E.normalizeDoor({ design: "skinny", width: 400, height: 600, opts: { border: 40 } }).errors.border);
   const tp = await req("/test-designs");
   assert(tp.status === 200 && (await tp.text()).includes("configurator.js"));
+  // engine version 4 changes, with old orders kept as they were
+  const nd = (o) => E.normalizeDoor(o);
+  assert(E.layerList([nd({ design: "beaded", width: 450, height: 700 }).door]).some((l) => l.layer === "MOULD_ROUNDOVER13_RAIL"));
+  assert(E.layerList([{ ...nd({ design: "beaded", width: 450, height: 700 }).door, version: 3 }]).some((l) => l.layer === "BEAD_FORM6_D3"));
+  const bv = E.buildDoor(nd({ design: "bevelled", width: 450, height: 700 }).door).paths.find((p) => p.tool === "bevel");
+  assert.strictEqual(bv.inner[0][0] - bv.pts[0][0], 5, "bevel as wide as the 5 mm pocket is deep");
+  assert(E.layerList([nd({ design: "georgian", width: 450, height: 700, opts: { sdepth: "3" } }).door]).some((l) => l.layer === "POCKET_EM6_D3"));
+  assert(nd({ design: "georgian", width: 450, height: 700, opts: { border: 35 } }).errors.border, "Georgian frame minimum matches the shaker");
+  const ex = (w) => E.buildDoor(nd({ design: "tvgroove", width: w, height: 600, opts: { fit: "exact", spacing: 100 } }).door).paths.filter((p) => p.tool === "v90d4").map((p) => p.pts[0][0]);
+  for (const w of [450, 600, 733]) { const xs = ex(w); for (let i = 1; i < xs.length; i++) assert(Math.abs(xs[i] - xs[i - 1] - 100) < 1e-6, "exact boards are exactly 100 mm"); }
+  const rd = E.buildDoor(nd({ design: "reeded", width: 450, height: 600, opts: { spacing: 20 } }).door).paths.filter((p) => p.tool === "reed13").map((p) => p.pts[0][0]);
+  assert(Math.abs(rd[1] - rd[0] - 12.5) < 1e-6, "reed spacing fixed at 12.5 mm");
+  const arc4 = (layout, margin) => E.buildDoor(nd({ design: "arched", width: 450, height: 900, opts: { layout, margin } }).door).paths.filter((p) => p.tool === "reed13");
+  const topY = (paths) => Math.min(...paths.flatMap((p) => p.pts.map((q) => q[1])));
+  assert(Math.abs(topY(arc4("single", 50)) - topY(arc4("single", 90))) < 0.5, "arch top stays put when the width changes");
+  const L = arc4("left", 50), R = arc4("right", 50);
+  assert(Math.abs(Math.min(...L.flatMap((p) => p.pts.map((q) => q[0]))) - (450 - Math.max(...R.flatMap((p) => p.pts.map((q) => q[0])))) ) < 0.5, "left and right doors mirror each other");
+  step("engine 4: round-over beading, bevel = pocket depth, Georgian shoulder depth, exact boards, fixed reeds, mirrored arches; old orders unchanged");
   step("arched pair: two doors priced and in the DXF, hinges on outer edges; skinny 5 mm pocket (old orders keep 8 mm); test page served");
 
   // ---------- address lookup and checks ----------

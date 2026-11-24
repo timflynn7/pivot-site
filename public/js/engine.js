@@ -16,10 +16,12 @@
 })(typeof self !== "undefined" ? self : this, function () {
   "use strict";
 
-  const VERSION = 3; // 2: hinge distances and notes; bevelled shaker redrawn as a 5 mm recessed panel with a bevel. 3: skinny shaker pocket 5 mm deep (was 8); arched doors adjustable, with left, right and pair layouts
+  const VERSION = 4; // 4: bevel matches the 5 mm pocket (90 degree V-bit); beaded shaker uses a round-over moulding rail; arched sized by side margin, mirrored about the centre; fluted margins split; reeds fixed at 12.5 mm. 2: hinge distances and notes; bevelled shaker redrawn as a 5 mm recessed panel with a bevel. 3: skinny shaker pocket 5 mm deep (was 8); arched doors adjustable, with left, right and pair layouts
   const LIMITS = { wMin: 300, wMax: 1000, hMin: 300, hMax: 1200 }; // machine bed takes 1200 x 1200 sheets; 1000 x 1200 is the largest that can be held down safely
   const OVERCUT = 10;
-  const BEVEL_W = 12;            // bevelled shaker: width of the sloping bevel (placeholder until test cuts)
+  const BEVEL_W = 12;            // bevelled shaker before engine version 4. From version 4 a 90 degree V-bit makes the bevel, so its width equals the pocket depth.
+  const REED_PITCH = 12.5;       // reeded: centre-to-centre spacing, refined over time and fixed for customers
+  const CORNER_R = 1.5;          // inside-corner radius of pockets: finished with a 1/8 in downcut or 2 mm straight bit
   const HINGE = { def: 100, min: 50 }; // hinge cup centres from the top and bottom edges, mm            // grooves that run off the door go this far past the edge
   const LABEL_LAYER = "LABELS";
 
@@ -27,17 +29,20 @@
   // width = the groove width the tool leaves at its depth, used for spacing and the preview.
   const TOOLS = {
     cutout:   { layer: "CUTOUT_EM6",          label: "6 mm end mill, profile outside, with tabs", width: 6,    color: 7 },
-    pocket8:  { layer: "POCKET_EM6_D8",       label: "6 mm end mill pocket, 8 mm deep",           width: 6,    color: 5, pocket: true, depth: 8 },
-    pocket6:  { layer: "POCKET_EM6_D6",       label: "6 mm end mill pocket, 6 mm deep",           width: 6,    color: 5, pocket: true, depth: 6 },
-    pocket5:  { layer: "POCKET_EM6_D5",       label: "6 mm end mill pocket, 5 mm deep",           width: 6,    color: 5, pocket: true, depth: 5 },
-    pocket4:  { layer: "POCKET_EM6_D4",       label: "6 mm end mill pocket, 4 mm deep (first step)", width: 6, color: 150, pocket: true, depth: 4 },
+    pocket8:  { layer: "POCKET_EM6_D8",       label: "Pocket 8 mm deep: clear with the 6 mm end mill, finish the corners with a 1/8 in downcut or 2 mm straight bit (about 1.5 mm radius)",           width: 6,    color: 5, pocket: true, depth: 8 },
+    pocket6:  { layer: "POCKET_EM6_D6",       label: "Pocket 6 mm deep: clear with the 6 mm end mill, finish the corners with a 1/8 in downcut or 2 mm straight bit (about 1.5 mm radius)",           width: 6,    color: 5, pocket: true, depth: 6 },
+    pocket5:  { layer: "POCKET_EM6_D5",       label: "Pocket 5 mm deep: clear with the 6 mm end mill, finish the corners with a 1/8 in downcut or 2 mm straight bit (about 1.5 mm radius)",           width: 6,    color: 5, pocket: true, depth: 5 },
+    pocket3:  { layer: "POCKET_EM6_D3",       label: "Pocket 3 mm deep (first step): clear with the 6 mm end mill, finish the corners with a 1/8 in downcut or 2 mm straight bit (about 1.5 mm radius)", width: 6, color: 150, pocket: true, depth: 3 },
+    pocket2:  { layer: "POCKET_EM6_D2",       label: "Pocket 2 mm deep (first step): clear with the 6 mm end mill, finish the corners with a 1/8 in downcut or 2 mm straight bit (about 1.5 mm radius)", width: 6, color: 150, pocket: true, depth: 2 },
+    pocket4:  { layer: "POCKET_EM6_D4",       label: "Pocket 4 mm deep (first step): clear with the 6 mm end mill, finish the corners with a 1/8 in downcut or 2 mm straight bit (about 1.5 mm radius)", width: 6, color: 150, pocket: true, depth: 4 },
     flute16:  { layer: "FLUTE_CORE16_D5",     label: "16 mm fluting bit, 5 mm deep",              width: 16,   color: 3 },
     flute8:   { layer: "FLUTE_BALL8_D4",      label: "8 mm ball nose, 4 mm deep",                 width: 8,    color: 3 },
     reed13:   { layer: "REED_FORM13_D4",      label: "12.7 mm round-nose form tool, 4 mm deep",   width: 12.7, color: 4 },
     bead6:    { layer: "BEAD_FORM6_D3",       label: "6 mm bead form tool, 3 mm deep",            width: 6,    color: 4 },
     v90d4:    { layer: "GROOVE_V90_D4",       label: "90 degree V-bit, 4 mm deep",                width: 8,    color: 1 },
     v90d5:    { layer: "GROOVE_V90_D5",       label: "90 degree V-bit, 5 mm deep",                width: 10,   color: 1 },
-    bevel:    { layer: "BEVEL_D5",            label: "Bevel: slopes from this line (at the face) down to the 5 mm pocket edge. Set the bit and angle in VCarve.", width: 12, color: 6 },
+    bevel:    { layer: "BEVEL_D5",            label: "Bevel, 90 degree V-bit: slopes 45 degrees from this line (at the face) down to the 5 mm pocket edge.", width: 5, color: 6 },
+    roundover:{ layer: "MOULD_ROUNDOVER13_RAIL", label: "Moulding toolpath drive rail on the pocket edge, 12.7 mm round-over bit (the moulding toolpath squares the corners). Set the profile in VCarve.", width: 12.7, color: 30 },
     mould:    { layer: "MOULD_TBN_RAIL",      label: "Moulding toolpath drive rail (tapered ball nose). Draw the profile in VCarve.", width: 18, color: 30 },
     chamfer:  { layer: "EDGE_CHAMFER_V90_D3", label: "90 degree V-bit edge chamfer, 3 mm",        width: 6,    color: 6 }
   };
@@ -95,6 +100,32 @@
   // A measurement for the preview overlay: from a to b (door coordinates), with a label.
   const dim = (a, b, label, left) => ({ a, b, label, left: !!left }); // left: put a vertical label on the left of its line
   const mm = (v) => `${Math.round(v * 10) / 10} mm`;
+  // A text note for the preview overlay, with an optional leader line to a point.
+  const note = (at, label, to) => ({ at, label, to });
+  // Grooves dividing [x0, x1] into boards. fit "exact": every board is exactly
+  // `spacing` wide, centred, with the edge boards taking up the difference, so the
+  // pattern matches across doors of different widths. Otherwise boards are equal.
+  function boardLines(x0, x1, o) {
+    const L = x1 - x0, s = o.spacing;
+    if (o.fit === "exact") {
+      const n = Math.floor((L - s) / s + 1e-9) + 1; // edge boards at least half a board
+      if (n < 1) fail("The door is too narrow for this board width. Make the boards narrower.");
+      const edge = (L - (n - 1) * s) / 2;
+      return { xs: Array.from({ length: n }, (_, k) => x0 + edge + k * s), board: s, edge, info: `${n - 1} boards of ${s} mm, plus edge boards of ${Math.round(edge * 10) / 10} mm` };
+    }
+    const boards = Math.max(2, Math.round(L / s)), b = L / boards;
+    return { xs: Array.from({ length: boards - 1 }, (_, k) => x0 + (k + 1) * b), board: b, edge: b, info: `${boards} boards, ${Math.round(b * 10) / 10} mm each` };
+  }
+  function boardDims(x0, x1, bl, y) {
+    const out = [];
+    const k = Math.max(0, Math.floor(bl.xs.length / 2) - 1);
+    if (bl.xs.length > 1) out.push(dim([bl.xs[k], y], [bl.xs[k + 1], y], mm(bl.board)));
+    if (bl.xs.length && Math.abs(bl.edge - bl.board) > 0.05) out.push(dim([x0, y + 60], [bl.xs[0], y + 60], `edge ${mm(bl.edge)}`));
+    else if (bl.xs.length === 1) out.push(dim([x0, y], [bl.xs[0], y], mm(bl.board)));
+    return out;
+  }
+  const fitOpt = () => choice("fit", "Board widths", "even", [["even", "Fit evenly"], ["exact", "Exact width"]],
+    "Fit evenly: all boards equal, as close as possible to the width below. Exact: every board is exactly that width, centred on the door, so the pattern matches across doors of different widths (the edge boards take up the difference).");
   function frameDims(W, H, border, rails) {
     const out = [dim([0, H * 0.3], [border, H * 0.3], mm(border)), dim([W * 0.3, 0], [W * 0.3, border], mm(border))];
     if (rails) {
@@ -151,6 +182,20 @@
     return panels;
   }
 
+  // Arched doors as drawn by engine version 3 (sideways shift instead of a side margin), kept for old orders.
+  function archedV3(W, H, o, layout, gap, box) {
+    const span = layout === "single" ? W : 2 * W + gap;
+    const cx = (layout === "single" ? W / 2 : layout === "left" ? W + gap / 2 : -gap / 2) + (o.shift || 0);
+    const R = Math.min(span * 0.38, H - o.top - 40), cy = o.top + R;
+    if (R < 40 || R - (o.count - 1) * o.spacing < 15) fail("The arches don't fit.");
+    const paths = [];
+    for (let i = 0; i < o.count; i++) {
+      const r = R - i * o.spacing;
+      for (const pts of clipPolyline([[cx - r, H + OVERCUT]].concat(arc(cx, cy, r, 180, 360, 90), [[cx + r, H + OVERCUT]]), box)) paths.push({ tool: "reed13", pts });
+    }
+    return { outline: rect(0, 0, W, H), paths, info: `${o.count} arches` };
+  }
+
   /* ---------- the design recipes ---------- */
   // showIf: { otherKey: [values] } shows the option only when another option has one of those values.
   const num = (key, label, def, min, max, step, help, showIf) => ({ key, type: "number", label, def, min, max, step: step || 1, unit: "mm", help, showIf });
@@ -204,39 +249,39 @@
     {
       id: "fluted", name: "Fluted", family: "Your current range", adjustable: true,
       blurb: "Rounded flutes stopped inside a plain margin.",
-      opts: [num("margin", "Plain margin", 40, 25, 80, 1), num("spacing", "Flute spacing", 22, 18, 32, 1, "Centre to centre. The flutes are 16 mm wide.")],
+      opts: [num("mside", "Side margins", 40, 25, 80, 1), num("mend", "Top and bottom margins", 40, 25, 120, 1), num("spacing", "Flute spacing", 22, 18, 32, 1, "Centre to centre. The flutes are 16 mm wide.")],
       build(W, H, o) {
-        const m = o.margin;
-        if (W - 2 * m < 40 || H - 2 * m < 80) fail("The margin is too wide for this size. Make the margin smaller or the door bigger.");
-        const flutes = stoppedFlutes(m, m, W - m, H - m, o.spacing, TOOLS.flute16.width);
-        const dims = [dim([0, H * 0.25], [m, H * 0.25], mm(m)), dim([W * 0.5, 0], [W * 0.5, m], mm(m))];
+        // Orders before engine version 4 had one margin for all four sides.
+        const ms = o.mside != null ? o.mside : o.margin != null ? o.margin : 40, me = o.mend != null ? o.mend : o.margin != null ? o.margin : 40;
+        if (W - 2 * ms < 40 || H - 2 * me < 80) fail("The margins are too wide for this size. Make the margins smaller or the door bigger.");
+        const flutes = stoppedFlutes(ms, me, W - ms, H - me, o.spacing, TOOLS.flute16.width);
+        const dims = [dim([0, H * 0.25], [ms, H * 0.25], mm(ms)), dim([W * 0.5, 0], [W * 0.5, me], mm(me))];
         if (flutes.length > 1) { const k = Math.floor(flutes.length / 2) - 1, x = flutes[k][0][0]; dims.push(dim([x, H * 0.5], [x + o.spacing, H * 0.5], mm(o.spacing))); }
         return { outline: rect(0, 0, W, H), paths: flutes.map((pts) => ({ tool: "flute16", pts })), dims };
       }
     },
     {
-      id: "reeded", name: "Reeded", family: "Your current range", adjustable: true,
-      blurb: "Reeds running the full height of the door.",
-      opts: [num("spacing", "Reed spacing", 17, 15, 25, 0.5, "Centre to centre. The reeds are cut with a 12.7 mm form tool.")],
+      id: "reeded", name: "Reeded", family: "Your current range", adjustable: false,
+      blurb: "Reeds 12.5 mm apart, running the full height of the door.",
+      opts: [],
       build(W, H, o) {
-        const n = Math.floor(W / o.spacing + 1e-9);
-        if (n < 2) fail("The door is too narrow for this reed spacing.");
-        const start = W / 2 - ((n - 1) * o.spacing) / 2;
+        const pitch = o.spacing || REED_PITCH; // orders before engine version 4 chose their own spacing
+        const n = Math.floor(W / pitch + 1e-9);
+        if (n < 2) fail("The door is too narrow for reeds.");
+        const start = W / 2 - ((n - 1) * pitch) / 2;
         const paths = [];
-        for (let k = 0; k < n; k++) paths.push({ tool: "reed13", pts: fullHeight(start + k * o.spacing, H) });
-        const x = start + (Math.floor(n / 2) - 1) * o.spacing;
-        return { outline: rect(0, 0, W, H), paths, dims: [dim([x, H * 0.5], [x + o.spacing, H * 0.5], mm(o.spacing))] };
+        for (let k = 0; k < n; k++) paths.push({ tool: "reed13", pts: fullHeight(start + k * pitch, H) });
+        const x = start + (Math.floor(n / 2) - 1) * pitch;
+        return { outline: rect(0, 0, W, H), paths, dims: [dim([x, H * 0.5], [x + pitch, H * 0.5], mm(pitch))] };
       }
     },
     {
       id: "tvgroove", name: "Tongue & V groove", family: "Grooved slab", adjustable: true,
-      blurb: "A flat door divided into equal boards by V-grooves.",
-      opts: [num("spacing", "Board width (approx.)", 100, 50, 200, 5, "Boards are made equal, so the actual width is the nearest even split.")],
+      blurb: "A flat door divided into boards by V-grooves.",
+      opts: [fitOpt(), num("spacing", "Board width", 100, 50, 200, 5)],
       build(W, H, o) {
-        const boards = Math.max(2, Math.round(W / o.spacing));
-        const paths = [];
-        for (let k = 1; k < boards; k++) paths.push({ tool: "v90d4", pts: fullHeight((k * W) / boards, H) });
-        return { outline: rect(0, 0, W, H), paths, dims: [dim([0, H * 0.5], [W / boards, H * 0.5], mm(W / boards))], info: `${boards} boards, ${Math.round((W / boards) * 10) / 10} mm each` };
+        const bl = boardLines(0, W, o);
+        return { outline: rect(0, 0, W, H), paths: bl.xs.map((x) => ({ tool: "v90d4", pts: fullHeight(x, H) })), dims: boardDims(0, W, bl, H * 0.45), info: bl.info };
       }
     },
     {
@@ -264,36 +309,40 @@
     /* ----- draft designs for the first test cuts ----- */
     {
       id: "bevelled", name: "Bevelled shaker", family: "Shaker family", adjustable: true, draft: true,
-      blurb: "A flat frame with an angled bevel down to a centre panel set about 5 mm below the face.",
+      blurb: "A flat frame with a 45 degree bevel down to a centre panel set 5 mm below the face.",
       opts: [num("border", "Frame width", 70, 40, 120, 5)],
-      build(W, H, o) {
+      build(W, H, o, door) {
         // Frame (full thickness) → bevel sloping down → flat panel 5 mm deep.
+        // From engine version 4 the bevel is cut with a 90 degree V-bit, so it is as wide as the pocket is deep.
         const [p] = shakerPanels(W, H, o.border, 0);
-        const b = BEVEL_W;
+        const b = door && door.version < 4 ? BEVEL_W : TOOLS.pocket5.depth;
         const inner = rect(p[0] + b, p[1] + b, p[2] - b, p[3] - b);
-        return { outline: rect(0, 0, W, H), paths: [{ tool: "pocket5", pts: inner, closed: true }, { tool: "bevel", pts: rect(...p), inner, closed: true }], dims: frameDims(W, H, o.border, 0).concat([dim([p[0], H * 0.6], [p[0] + b, H * 0.6], `bevel ${mm(b)}`)]) };
+        return { outline: rect(0, 0, W, H), paths: [{ tool: "pocket5", pts: inner, closed: true }, { tool: "bevel", pts: rect(...p), inner, closed: true }],
+          dims: frameDims(W, H, o.border, 0).concat([note([p[2] - 8, p[1] + (p[3] - p[1]) * 0.75], `45° bevel, ${mm(b)}`, [p[2] - b / 2, p[1] + (p[3] - p[1]) * 0.75])]) };
       }
     },
     {
       id: "beaded", name: "Beaded shaker", family: "Shaker family", adjustable: true, draft: true,
-      blurb: "A shaker with a small bead round the inside of the frame.",
+      blurb: "A shaker with a rounded edge round the inside of the frame.",
       opts: [num("border", "Frame width", 70, 40, 120, 5)],
-      build(W, H, o) {
+      build(W, H, o, door) {
         const [p] = shakerPanels(W, H, o.border, 0);
-        const bead = 6;
-        return { outline: rect(0, 0, W, H), paths: [{ tool: "pocket8", pts: rect(...p), closed: true }, { tool: "bead6", pts: rect(p[0] - bead, p[1] - bead, p[2] + bead, p[3] + bead), closed: true }], dims: frameDims(W, H, o.border, 0) };
+        const paths = [{ tool: "pocket8", pts: rect(...p), closed: true }];
+        if (door && door.version < 4) { const bead = 6; paths.push({ tool: "bead6", pts: rect(p[0] - bead, p[1] - bead, p[2] + bead, p[3] + bead), closed: true }); }
+        else paths.push({ tool: "roundover", pts: rect(...p), closed: true }); // 12.7 mm round-over, moulding toolpath for square corners
+        return { outline: rect(0, 0, W, H), paths, dims: frameDims(W, H, o.border, 0).concat([note([p[2] - 8, p[1] + (p[3] - p[1]) * 0.75], "12.7 mm round-over", [p[2] + 4, p[1] + (p[3] - p[1]) * 0.75])]) };
       }
     },
     {
       id: "newcountry", name: "New Country", family: "Shaker family", adjustable: true, draft: true,
       blurb: "A shaker with V-grooved boards in the panel.",
-      opts: [num("border", "Frame width", 70, 40, 120, 5), num("spacing", "Board width (approx.)", 80, 50, 150, 5, "Boards are made equal across the panel.")],
+      opts: [num("border", "Frame width", 70, 40, 120, 5), fitOpt(), num("spacing", "Board width", 80, 50, 150, 5)],
       build(W, H, o) {
         const [p] = shakerPanels(W, H, o.border, 0);
-        const pw = p[2] - p[0], boards = Math.max(2, Math.round(pw / o.spacing));
+        const bl = boardLines(p[0], p[2], o);
         const paths = [{ tool: "pocket8", pts: rect(...p), closed: true }];
-        for (let k = 1; k < boards; k++) { const x = p[0] + (k * pw) / boards; paths.push({ tool: "v90d4", pts: [[x, p[1]], [x, p[3]]] }); }
-        return { outline: rect(0, 0, W, H), paths, dims: frameDims(W, H, o.border, 0).concat([dim([p[0], H * 0.5], [p[0] + pw / boards, H * 0.5], mm(pw / boards))]), info: `${boards} boards in the panel` };
+        for (const x of bl.xs) paths.push({ tool: "v90d4", pts: [[x, p[1]], [x, p[3]]] });
+        return { outline: rect(0, 0, W, H), paths, dims: frameDims(W, H, o.border, 0).concat(boardDims(p[0], p[2], bl, H * 0.62)), info: bl.info + " in the panel" };
       }
     },
     {
@@ -320,39 +369,43 @@
       }
     },
     {
-      id: "georgian", name: "Georgian", family: "Frame with pattern", adjustable: false, draft: true,
+      id: "georgian", name: "Georgian", family: "Frame with pattern", adjustable: true, draft: true,
       blurb: "A frame that steps down twice to the panel.",
-      opts: [],
+      opts: [
+        num("border", "Frame width", 55, 40, 120, 5),
+        num("shoulder", "Shoulder width", 20, 10, 40, 1, "The step between the frame and the panel."),
+        choice("sdepth", "Shoulder depth", "4", [["2", "2 mm"], ["3", "3 mm"], ["4", "4 mm"], ["5", "5 mm"], ["6", "6 mm"]], "4 mm is half the 8 mm panel depth.")
+      ],
       build(W, H, o) {
-        const [outer] = shakerPanels(W, H, o.outer || 55, 0), [inner] = shakerPanels(W, H, o.inner || 75, 0);
-        return { outline: rect(0, 0, W, H), paths: [{ tool: "pocket4", pts: rect(...outer), closed: true }, { tool: "pocket8", pts: rect(...inner), closed: true }] };
+        // Orders before engine version 4 were fixed at 55 + 20 mm and a 4 mm shoulder, the same as the defaults.
+        const fw = o.border || o.outer || 55, sw = o.shoulder || (o.inner ? o.inner - fw : 20), sd = Number(o.sdepth) || 4;
+        const [outer] = shakerPanels(W, H, fw, 0), [inner] = shakerPanels(W, H, fw + sw, 0);
+        return { outline: rect(0, 0, W, H), paths: [{ tool: "pocket" + sd, pts: rect(...outer), closed: true }, { tool: "pocket8", pts: rect(...inner), closed: true }],
+          dims: frameDims(W, H, fw, 0).concat([dim([outer[0], H * 0.45], [inner[0], H * 0.45], mm(sw))]) };
       }
     },
     {
       id: "tbgroove", name: "Tongue & bead groove", family: "Grooved slab", adjustable: true, draft: true,
-      blurb: "Equal boards, each groove with a bead beside it.",
-      opts: [num("spacing", "Board width (approx.)", 100, 50, 200, 5, "Boards are made equal, so the actual width is the nearest even split.")],
+      blurb: "Boards divided by grooves, each with a bead beside it.",
+      opts: [fitOpt(), num("spacing", "Board width", 100, 50, 200, 5)],
       build(W, H, o) {
-        const boards = Math.max(2, Math.round(W / o.spacing));
+        const bl = boardLines(0, W, o);
         const paths = [];
-        for (let k = 1; k < boards; k++) {
-          const x = (k * W) / boards;
-          paths.push({ tool: "v90d4", pts: fullHeight(x, H) }, { tool: "bead6", pts: fullHeight(x + 9, H) });
-        }
-        return { outline: rect(0, 0, W, H), paths, dims: [dim([0, H * 0.5], [W / boards, H * 0.5], mm(W / boards))], info: `${boards} boards, ${Math.round((W / boards) * 10) / 10} mm each` };
+        for (const x of bl.xs) paths.push({ tool: "v90d4", pts: fullHeight(x, H) }, { tool: "bead6", pts: fullHeight(x + 9, H) });
+        return { outline: rect(0, 0, W, H), paths, dims: boardDims(0, W, bl, H * 0.45), info: bl.info };
       }
     },
     {
       id: "arched", name: "Arched", family: "Your current range", adjustable: true, draft: true,
-      blurb: "Concentric arches rising from the bottom edge. Designed to flow across a pair of doors, or on one door.",
+      blurb: "Concentric arches rising from the bottom edge. Designed to flow across a pair of doors (a quarter turn on each), or on one door.",
       opts: [
         choice("layout", "Doors", "single", [["single", "Single door"], ["left", "Left of a pair"], ["right", "Right of a pair"], ["pair", "Both doors"]],
           "The arches are centred on the gap between a pair of doors. Both doors are the size you enter."),
         num("gap", "Gap between the doors", 3, 0, 10, 0.5, "The gap you'll leave between the pair when they're hung.", { layout: ["left", "right", "pair"] }),
         int("count", "Number of arches", 4, 1, 5),
         num("spacing", "Arch spacing", 30, 16, 60, 1, "Centre to centre. The grooves are cut with a 12.7 mm form tool."),
-        num("top", "Top of the arches from the top edge", 100, 20, 600, 5),
-        num("shift", "Move sideways", 0, -200, 200, 5, "Moves the centre of the arches left (minus) or right (plus).")
+        num("top", "Top of the arches from the top edge", 100, 20, 600, 5, "Stays where you set it when you change the width."),
+        num("margin", "Side margin", 50, 15, 300, 5, "From the outside edge of the door to the outer arch. The arches stay centred on the door, or on the gap between a pair, so both sides match.")
       ],
       build(W, H, o, door) {
         if (door && door.version < 3) { // the fixed design from before engine version 3, kept for old orders
@@ -366,24 +419,32 @@
           return { outline: rect(0, 0, W, H), paths, info: "4 arches" };
         }
         const layout = o.layout === "pair" ? "left" : o.layout, gap = layout === "single" ? 0 : o.gap;
-        const span = layout === "single" ? W : 2 * W + gap;
-        const cx = (layout === "single" ? W / 2 : layout === "left" ? W + gap / 2 : -gap / 2) + o.shift;
-        const R = Math.min(span * 0.38, H - o.top - 40), cy = o.top + R;
-        const inner = R - (o.count - 1) * o.spacing;
-        if (R < 40) fail("The arches don't fit. Make the door taller or move the arches up.");
-        if (inner < 15) fail("There isn't room for that many arches. Use fewer arches, closer spacing, or move the arches up.");
         const box = { x0: -OVERCUT, y0: -OVERCUT, x1: W + OVERCUT, y1: H + OVERCUT };
+        const tw = TOOLS.reed13.width;
+        if (door && door.version < 4) return archedV3(W, H, o, layout, gap, box);
+        // Version 4: the arches are mirrored about the centre line of the door, or of the
+        // gap for a pair. The side margin sets their width; the top stays where it's set.
+        const cx = layout === "single" ? W / 2 : layout === "left" ? W + gap / 2 : -gap / 2;
+        const reach = layout === "single" ? W / 2 : W + gap / 2; // from the outer edge to the centre line
+        const R = reach - o.margin - tw / 2, cy = o.top + tw / 2 + R, rIn = R - (o.count - 1) * o.spacing;
+        if (R < 40) fail("The side margin is too wide for this door. Make the margin smaller.");
+        if (rIn - tw / 2 < 10) fail("There isn't room for that many arches. Use fewer arches, closer spacing or a smaller side margin.");
+        if (cy > H - 30) fail("The arches don't fit at this height. Move them up, make the side margin wider, or make the door taller.");
         const paths = [];
         for (let i = 0; i < o.count; i++) {
           const r = R - i * o.spacing;
           for (const pts of clipPolyline([[cx - r, H + OVERCUT]].concat(arc(cx, cy, r, 180, 360, 90), [[cx + r, H + OVERCUT]]), box)) paths.push({ tool: "reed13", pts });
         }
-        if (!paths.some((p) => p.pts.some((q) => q[0] > 0 && q[0] < W))) fail("The arches have moved off this door. Move them back towards the centre.");
-        // Measure at the top of the arches, or near the meeting edge when that's on the other door.
-        const mx = cx > 30 && cx < W - 30 ? cx : cx >= W - 30 ? W - 30 : 30, left = cx >= W - 30;
+        // Measurements: top, spacing, side margin, and from the innermost arch to the door's inner edge.
+        const mx = layout === "single" ? cx : layout === "left" ? W - 30 : 30, left = layout === "left";
         const yAt = (r) => cy - Math.sqrt(Math.max(0, r * r - (mx - cx) * (mx - cx)));
-        const dims = [dim([mx, 0], [mx, yAt(R)], mm(o.top), left)];
+        const yl = (cy + H) / 2;
+        const dims = [dim([mx, 0], [mx, yAt(R) - tw / 2], mm(o.top), left)];
         if (o.count > 1) dims.push(dim([mx, yAt(R)], [mx, yAt(R - o.spacing)], mm(o.spacing), left));
+        if (layout === "right") dims.push(dim([cx + R + tw / 2, yl], [W, yl], mm(o.margin)), dim([0, yl - 60], [cx + rIn - tw / 2, yl - 60], mm(cx + rIn - tw / 2)));
+        else dims.push(dim([0, yl], [cx - R - tw / 2, yl], mm(o.margin)));
+        if (layout === "left") dims.push(dim([cx - rIn + tw / 2, yl - 60], [W, yl - 60], mm(W - (cx - rIn + tw / 2))));
+        if (layout === "single") dims.push(dim([cx - rIn + tw / 2, yl - 60], [cx + rIn - tw / 2, yl - 60], mm(2 * (rIn - tw / 2))));
         return { outline: rect(0, 0, W, H), paths, dims, info: `${o.count} arch${o.count === 1 ? "" : "es"}` };
       }
     },
@@ -548,9 +609,8 @@
     const pockets = buildDoor(door).paths.map((p) => TOOLS[p.tool]).filter((t) => t.pocket && t.depth);
     if (!pockets.length) return "";
     const depths = Array.from(new Set(pockets.map((t) => t.depth))).sort((a, b) => a - b);
-    const r = Math.max(...pockets.map((t) => t.width)) / 2;
     const depth = depths.length > 1 ? `The frame steps down ${depths.slice(0, -1).join(" mm, then ")} mm, then ${depths[depths.length - 1]} mm to the panel.` : `The panel is recessed ${depths[0]} mm.`;
-    return `${depth} The inside corners are rounded by the cutter to a ${r} mm radius, so they're tight but not perfectly square.`;
+    return `${depth} The inside corners of the recess have a ${CORNER_R} mm radius, left by the cutter, so they're tight but not perfectly square.`;
   }
 
   /* ---------- SVG preview ---------- */
@@ -588,6 +648,12 @@
           for (const [a, b, c, d2, op] of faces) s += `<polygon points="${ptsAttr([a, b, c, d2])}" fill="#000" fill-opacity="${op}"/>`;
           s += `<polygon points="${ptsAttr([o[1], o[2], i[2], i[1]])}" fill="#fff" fill-opacity=".10"/><polygon points="${ptsAttr([o[2], o[3], i[3], i[2]])}" fill="#fff" fill-opacity=".16"/>`;
           s += `<polygon points="${ptsAttr(o)}" fill="none" stroke="#000" stroke-opacity=".30" stroke-width="1.5"/><polygon points="${ptsAttr(i)}" fill="none" stroke="#000" stroke-opacity=".22" stroke-width="1"/>`;
+        } else if (p.tool === "roundover" && p.pts.length === 4) {
+          // A rounded edge on the frame, just outside the pocket: shaded band, lit from the top left.
+          const w = t.width, [a, , c] = p.pts, o = rect(a[0] - w, a[1] - w, c[0] + w, c[1] + w), i = p.pts;
+          const faces = [[o[0], o[1], i[1], i[0], ".10"], [o[1], o[2], i[2], i[1], ".04"], [o[2], o[3], i[3], i[2], ".03"], [o[3], o[0], i[0], i[3], ".08"]];
+          for (const [q1, q2, q3, q4, op] of faces) s += `<polygon points="${ptsAttr([q1, q2, q3, q4])}" fill="#000" fill-opacity="${op}"/>`;
+          s += `<polygon points="${ptsAttr(o)}" fill="none" stroke="#fff" stroke-opacity=".35" stroke-width="2"/>`;
         } else if (p.tool === "chamfer") {
           s += `<polygon points="${ptsAttr(p.pts)}" fill="none" stroke="#fff" stroke-opacity=".45" stroke-width="5"/>`;
         } else {
@@ -606,6 +672,7 @@
           const inLeft = hx > W / 2;
           list.push(dim([hx, 0], [hx, ys[0]], mm(ys[0]), inLeft), dim([hx, ys[ys.length - 1]], [hx, H], mm(H - ys[ys.length - 1]), inLeft));
         }
+        if (!k || !pair) for (const m of pocketNotes(g, fs)) list.push(m);
         for (const m of list) s += measureSVG(m, fs);
       }
       s += `</g>`;
@@ -621,8 +688,30 @@
     }
     return s + `</svg>`;
   }
-  // One measurement line with end ticks and a haloed label.
+  // Depth labels for each pocket depth, and the inside-corner radius on the deepest pocket.
+  function pocketNotes(g, fs) {
+    const bb = (pts) => { const xs = pts.map((q) => q[0]), ys = pts.map((q) => q[1]); return [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)]; };
+    const pk = g.paths.filter((p) => TOOLS[p.tool].pocket).map((p) => ({ d: TOOLS[p.tool].depth, b: bb(p.pts), rect: p.pts.length === 4 }));
+    const out = [], seen = new Set();
+    for (const p of pk) {
+      if (seen.has(p.d)) continue;
+      seen.add(p.d);
+      const inner = pk.find((q) => q.d > p.d && q.b[0] >= p.b[0] && q.b[2] <= p.b[2] && q.b[1] >= p.b[1] && q.b[3] <= p.b[3]);
+      const y = inner ? (p.b[1] + inner.b[1]) / 2 + fs * 0.35 : (p.b[1] + p.b[3]) / 2;
+      out.push(note([(p.b[0] + p.b[2]) / 2, y], `${p.d} mm deep`));
+    }
+    const deep = pk.filter((p) => p.rect).sort((a, b) => b.d - a.d)[0];
+    if (deep) out.push(note([deep.b[0] + fs * 1.4, deep.b[1] + fs * 2.6], `R ${CORNER_R} mm corners`, [deep.b[0] + 1, deep.b[1] + 1]));
+    return out;
+  }
+  // One measurement line with end ticks and a haloed label, or a note (m.at) with an optional leader.
   function measureSVG(m, fs) {
+    if (m.at) {
+      const ink = "#1F2A22", [x, y] = m.at, right = m.to && m.to[0] > x;
+      let s = m.to ? `<line x1="${f1(x)}" y1="${f1(y - fs * 0.35)}" x2="${f1(m.to[0])}" y2="${f1(m.to[1])}" stroke="${ink}" stroke-width="${f1(fs * 0.07)}"/><circle cx="${f1(m.to[0])}" cy="${f1(m.to[1])}" r="${f1(fs * 0.15)}" fill="${ink}"/>` : "";
+      s += `<text x="${f1(x)}" y="${f1(y)}" text-anchor="${m.to ? (right ? "end" : "start") : "middle"}" font-size="${f1(fs)}" font-weight="600" fill="${ink}" stroke="#fff" stroke-width="${f1(fs * 0.28)}" paint-order="stroke" stroke-linejoin="round" font-family="system-ui, sans-serif">${m.label}</text>`;
+      return s;
+    }
     const [x0, y0] = m.a, [x1, y1] = m.b, horiz = Math.abs(x1 - x0) >= Math.abs(y1 - y0);
     const tk = fs * 0.4, ink = "#1F2A22", lw = f1(fs * 0.08);
     const ticks = horiz ? [[x0, y0 - tk, x0, y0 + tk], [x1, y1 - tk, x1, y1 + tk]] : [[x0 - tk, y0, x0 + tk, y0], [x1 - tk, y1, x1 + tk, y1]];
