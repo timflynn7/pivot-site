@@ -61,5 +61,9 @@ Order requests are stored safely, Tim is emailed for each one, and customers pay
 4. Terms of sale and a refunds/cancellation policy page, needed before taking live payments for made-to-measure goods (see business workstream).
 5. Optional: database backups or export from `/admin` (Render basic plans keep daily backups).
 
+## Tim's questions (24 Nov 2026)
+- **Admin security**: /admin uses one shared password (HTTP basic auth over HTTPS) plus a same-site check on buttons. Gaps: no limit on password guesses, no sign-out, the browser remembers the password, and no second factor. Options, from least to most effort: a long random password + login rate limiting + a sign-in log; a proper sign-in page with a session cookie, sign-out and a timeout; a two-step code (authenticator app); or putting /admin behind Cloudflare Access (Google sign-in) on the free plan. Waiting on Tim's choice.
+- **Shipping**: courier APIs exist (Parcel2Go, ParcelHero, Packlink, Royal Mail Click & Drop, DPD/DHL with a business account) for live quotes. Doors up to 1000 × 1200 mm are oversize for many couriers, so live quotes need the packed size and weight. Free delivery over a threshold is easy to build. See business.md for the pricing side.
+
 ## Key files
 `server.js`, `lib/orders.js`, `lib/admin.js`, `lib/store.js`, `lib/payments.js`, `lib/email.js`, `scripts/test.js`, `render.yaml`.

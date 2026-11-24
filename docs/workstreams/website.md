@@ -40,5 +40,20 @@ A site that makes a visitor want to order: clear about what Pivot makes, shows t
 5. **Terms and privacy pages: written 20 Nov 2026** (`public/terms.html`, `public/privacy.html`), with Tim's answers: sole trader; bare MDF; ±1 mm; mainland GB (other areas ask first); check on delivery and report transit damage within 48 hours with photos, with no transport-damage claims once doors are painted, cut, drilled or fitted (statutory rights for hidden faults kept); cancel after payment before cutting = refund less reasonable costs, capped at 50%; prices valid 30 days and can be withdrawn before payment; unpaid requests archived after 30 days, deleted after 2 years. Linked from every footer, the order form, the pay page and the emails. Published address: 61 Bridge Street, Kington, HR5 3DJ (a geographic address is legally required; a PO box isn't enough).
 6. Basic SEO: page titles and descriptions, Google Business Profile link, a sitemap. Remove `noindex` from the configurator when it's ready.
 
+## Tim's notes (24 Nov 2026), not yet built
+Agreed plan and answers to the questions go in this section once Tim replies.
+- **Terms**: "which you can pay for 30 days" → "the quote remains valid for 30 days" (also section 3). "Who we are": the Kington business address is too prominent, because the story is a workshop in Surrey. The law (E-Commerce Regulations 2002) needs a geographic address on the site, so it can't be removed. Move it to a small "Business details" note at the bottom of the terms page.
+- **Configurator (Design your door)**:
+  - Remove the door name field for now.
+  - Customers should add several doors of different sizes before they're asked for name and address. The list already allows this, but the contact form shows underneath from the start. Hide it until the list has a door, behind a "Continue to your details" step.
+  - "Dashed circles show hinge holes on the back": only show it when hinge holes are chosen.
+  - Optional image carousel per design (photos, labelled AI renders, close-ups of internal corners). None exist yet, so it must hide when empty, and adding or editing images must be easy (probably from /admin).
+  - Toggle on the preview to overlay measurements (width, height, frame width, rails, groove spacing and other options).
+  - Shaker: frame ranges overlap (Traditional 40–120 mm, Skinny 18–40 mm). Show the pocket depth (8 mm now, placeholder) and the internal corner radius (3 mm with the 6 mm end mill) so customers expect tight but rounded corners. Same for other pocketed designs.
+  - Arched: designed to flow across a pair of doors, but a single door is allowed. Choose left door, right door or a pair. Adjustable number of grooves (1–5), spacing, and horizontal and vertical position.
+- **New Test page**: an unlisted page (noindex) holding the archived designs plus new drafts (two-panel doors, vented doors, the raised-profile designs) to fine-tune the configurator before they go live.
+- **Our story**: tone down the DIY and self-taught background, which may hurt confidence in Pivot as a manufacturer.
+- **Home**: remove "Engraved icon" (not in the configurator). Rename the "Design your door" menu link to "Shop" (all page headers).
+
 ## Key files
 `public/*.html`, `public/css/site.css`, `public/img/`, `public/configurator.html`.

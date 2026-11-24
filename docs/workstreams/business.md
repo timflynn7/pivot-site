@@ -11,6 +11,12 @@ The non-code decisions and paperwork needed before taking real orders.
 - **VAT.** Check registration with an accountant before setting final prices.
 - **Google Business Profile.** Create it with photos, and link it from the site and Etsy.
 
+## Pricing by sheet use (Tim's notes, 24 Nov 2026)
+- Goal: price each door by the share of a 1200 × 1200 sheet it uses, including spacing and margins, then add a per-design uplift for machining time and tool changes. Tim edits the uplifts in /admin.
+- Rule: an extra door must never cost more than the earlier ones, even when a design leaves no usable offcut. So charge a share of the sheet (area plus spacing), not whole sheets, and possibly a small fixed setup fee per order.
+- Questions: sheet cost, machine hourly rate, spacing and margin, setup fee, uplifts per design.
+- Delivery: free over a threshold? Max order size or bulk discount? (Tim to decide.)
+
 ## Where the background is
 The Trade Portal Plan (pricing, legal, VAT) and the Configurator Scope (open questions). Links are in `docs/LINKS.md`.
 
