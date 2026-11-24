@@ -98,14 +98,14 @@
     $("hingeCount").value = String(state.hingeCount);
   }
 
-  /* ---------- door list ---------- */
+  /* ---------- basket (the door list) ---------- */
   function renderList() {
     $("items").innerHTML = list.length ? list.map((door, i) => {
       const d = E.designById(door.design), p = E.priceDoor(door);
       const pair = E.doorParts(door).length > 1;
       return `<div class="item">${E.doorSVG(door)}<div><div class="t">${i + 1}. ${esc(door.name || d.name)}${pair ? " (pair)" : ""}</div><div class="s">${pair ? "Each " : ""}${door.width} × ${door.height} mm</div><div class="s">${esc(E.describe(door))}</div></div>` +
         `<div class="r"><span>${door.qty} × ${gbp(p)}</span><button type="button" class="linkbtn" data-remove="${i}">Remove</button></div></div>`;
-    }).join("") : `<div class="empty">No doors yet. Design one above and press Add to door list.</div>`;
+    }).join("") : `<div class="empty">Your basket is empty. Design a door above and press Add to basket.</div>`;
     const t = E.priceOrder(list);
     $("sCount").textContent = t.count; $("sSub").textContent = gbp(t.sub); $("sShip").textContent = t.freeDelivery ? "Free" : gbp(t.ship); $("sTotal").textContent = gbp(t.total);
     $("sFree").textContent = !t.freeOver ? "" : t.freeDelivery ? "Your order qualifies for free delivery." : t.count ? `Add ${gbp(t.freeOver - t.sub)} more for free delivery.` : `Free delivery on orders over ${gbp(t.freeOver).replace(".00", "")}.`;
@@ -179,7 +179,7 @@
     const { door, errors } = current();
     if (Object.keys(errors).length) return;
     list.push(door); saveList(); renderList();
-    $("addMsg").textContent = `Added ${door.qty} × ${E.designById(door.design).name}. Change the sizes to add another, or continue below when your list is complete.`;
+    $("addMsg").textContent = `Added ${door.qty} × ${E.designById(door.design).name}. Change the sizes to add another, or continue below when your basket is complete.`;
   });
   $("continueBtn").addEventListener("click", () => {
     $("sendSection").hidden = false; renderList();
@@ -210,7 +210,7 @@
     if (!customer.town) missing.push("your town or city");
     if (!customer.postcode) missing.push("your postcode");
     if (missing.length) { msg.className = "send-msg bad"; msg.textContent = "Please add " + missing.join(", ") + "."; return; }
-    if (!list.length) { msg.className = "send-msg bad"; msg.textContent = "Add at least one door to your list first."; return; }
+    if (!list.length) { msg.className = "send-msg bad"; msg.textContent = "Add at least one door to your basket first."; return; }
     $("sendBtn").disabled = true; msg.className = "send-msg"; msg.textContent = "Sending…";
     try {
       const paying = payingNow();

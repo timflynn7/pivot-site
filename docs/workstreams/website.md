@@ -72,6 +72,9 @@ A later option: upload and edit pictures from /admin. That needs file storage th
 ## Test wording removed (24 Nov 2026)
 The yellow "Test version, prices provisional" bar is gone from the Shop (it only shows on /test-designs, which the server now marks noindex with an X-Robots-Tag header). "Estimated total" is now "Total", the quote-mode hint says "We check every order and confirm the price, including delivery, before you pay", the terms no longer call design-time prices estimates, and the customer email says "Total". The Shop page no longer has `noindex`, so search engines can list it. Admin-only notices (test mode, temporary storage) are unchanged; they only appear when they're true.
 
+## Basket wording (24 Nov 2026)
+The Shop calls the door list the **basket** in both payment modes: "Add to basket", "Your basket", "Your basket is empty…", and the home, contact and privacy pages match. Admin pages still say "door list" (internal).
+
 ## Next tasks (24 Nov 2026)
 1. Tim to check the new story wording and the test page; merge the branch to `main` to go live.
 2. Pictures: real photos and labelled AI renders per design, including inside-corner close-ups.
