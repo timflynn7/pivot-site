@@ -36,3 +36,4 @@
 ## Reference material on Tim's PC
 
 - `C:\Users\timfl\OneDrive\Pivot\Website`: screenshots of competitor configurators (Freebird, Frontly, JMF Doors, Furnfab) and design ideas.
+- Home page style mock-ups (three directions, 24 Nov 2026): https://claude.ai/artifact/XAqw4JbiDtuQ93iN57bUri
