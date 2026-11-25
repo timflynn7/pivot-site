@@ -12,6 +12,8 @@ Each workstream has its own brief. Work on one per Claude session, and update it
 | 5 | Business setup | [business.md](business.md) | Open questions |
 | 6 | Trade portal | [trade-portal.md](trade-portal.md) | Backlog: Tim's idea of a password-protected trade page with discounted online ordering (24 Nov 2026) |
 
+**The prioritised list of everything still open is in [../BACKLOG.md](../BACKLOG.md).**
+
 ## Starting a session
 
 Start a new Claude Code session with the `timflynn7/pivot-site` repository selected, and name it after the workstream (e.g. "Pivot – Website content"). Open with:

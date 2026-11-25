@@ -2,7 +2,7 @@
 
 Pivot Designs (Tim) makes decorative made-to-measure MDF cabinet doors and panels on a CNC router in a UK workshop, cut in VCarve Pro. It also sells on Etsy as PivotGB, but **the website must never mention or link to Etsy** (Etsy takes a large cut). This repo is the website pivotdesigns.co.uk: holding pages, a door configurator, and order requests that produce one DXF per order for VCarve.
 
-The work is split into workstreams. **Read `docs/workstreams/README.md` first, then the brief for the workstream you've been asked to work on.** Before ending a session, update that brief (status, decisions, next tasks) so the next session can pick up without the chat history. Where everything lives (live site, Render, docs, artifacts) is in `docs/LINKS.md`.
+The work is split into workstreams. **Read `docs/workstreams/README.md` and `docs/BACKLOG.md` (priorities) first, then the brief for the workstream you've been asked to work on.** Before ending a session, update that brief (status, decisions, next tasks) so the next session can pick up without the chat history. Where everything lives (live site, Render, docs, artifacts) is in `docs/LINKS.md`.
 
 ## How the code fits together
 
