@@ -9,7 +9,7 @@ The non-code decisions and paperwork needed before taking real orders.
 - **Privacy policy.** Needed because the order form collects names, emails and addresses (UK GDPR).
 - **Terms of sale.** Made-to-measure goods are generally excluded from the 14-day cancellation right; say so clearly. Also lead times, delivery and damage.
 - **VAT.** Check registration with an accountant before setting final prices.
-- **Google Business Profile.** Create it with photos, and link it from the site and Etsy.
+- **Google Business Profile (backlog, 25 Nov 2026).** Step-by-step guide and ready-to-paste description and products were sent to Tim. On hold while Tim decides between a separate business phone number and his personal one. Points agreed: name "Pivot Designs" exactly; category Cabinet maker; no customer-visitable location shown (service-area business, home workshop hidden); service areas around Surrey; verify with the real workshop address (not a mail address) by video; eligibility rests on **local collection by arrangement**, now on the site (FAQ, contact card, terms section 6). Once live: add photos, products from £27, and send Claude the review link for the order/dispatch emails; a Google rating could then return to the home page.
 
 ## Pricing by sheet use (Tim's notes, 24 Nov 2026)
 - Goal: price each door by the share of a 1200 × 1200 sheet it uses, including spacing and margins, then add a per-design uplift for machining time and tool changes. Tim edits the uplifts in /admin.
