@@ -26,27 +26,39 @@
 </header>
 
 <main id="main" tabindex="-1">
-  <section>
+  <section class="hero">
     <div class="inner split">
-      <div class="prose">
+      <div class="hero-copy">
         <span class="eyebrow">Contact</span>
-        <h1>Tell us what you need.</h1>
+        <h1>Tell us <em>what you need.</em></h1>
         <!--mode:quote--><p class="lede">Design your doors online and send us your basket, or email us your sizes and we'll send you a price.</p><!--/mode--><!--mode:checkout--><p class="lede">Design and order your doors online, or email us your sizes and we'll send you a price.</p><!--/mode-->
-        <h2 class="h3">For a quick price, send us</h2>
-        <ul class="checklist">
-          <li>The design you'd like</li>
-          <li>Width × height of each door in millimetres</li>
-          <li>How many of each size</li>
-          <li>Your postcode for delivery</li>
-        </ul>
-        <p>Measure your existing doors, not the cabinet openings. A photo of the room always helps.</p>
+        <div class="actions">
+          <a class="btn" href="mailto:tim@pivotdesigns.co.uk">Email us</a>
+          <a class="text-link" href="/configurator">Or design your doors in the Shop</a>
+        </div>
       </div>
       <div class="card">
         <div class="contact-line"><span class="label">Email</span><a class="value" href="mailto:tim@pivotdesigns.co.uk">tim@pivotdesigns.co.uk</a></div>
         <!--wa--><div class="contact-line"><span class="label">WhatsApp</span><a class="value" href="__WA_URL__?text=Hi%20Pivot%20Designs%2C%20" target="_blank" rel="noopener">Message us on WhatsApp</a></div><!--/wa-->
         <div class="contact-line"><span class="label">Workshop</span><span class="value">Surrey, delivering UK-wide</span></div>
-        <p style="color:var(--muted);font-size:.92rem">Trade enquiries welcome. Mention your business name and roughly how many doors you fit a month.</p>
+        <p class="spec">Trade enquiries welcome. Mention your business name and roughly how many doors you fit a month.</p>
       </div>
+    </div>
+  </section>
+
+  <div class="inner" aria-hidden="true"><div class="grooves"></div></div>
+
+  <section>
+    <div class="inner">
+      <div class="section-head">
+        <h2>For a quick price, <em>send us</em></h2>
+      </div>
+      <ol class="steps">
+        <li><h3>The design</h3><p>Which pattern you'd like. The <a href="/configurator">Shop</a> shows them all, drawn to scale.</p></li>
+        <li><h3>Width × height</h3><p>Of each door, in millimetres. Measure your existing doors, not the cabinet openings.</p></li>
+        <li><h3>How many</h3><p>Of each size, and which way each door hinges if you'd like hinge holes.</p></li>
+        <li><h3>Your postcode</h3><p>For delivery. A photo of the room always helps too.</p></li>
+      </ol>
     </div>
   </section>
 </main>

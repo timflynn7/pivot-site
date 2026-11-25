@@ -190,3 +190,15 @@ main:focus { outline: none; }
 .site-foot a.brand { display: flex; gap: 10px; padding-block: 0; } /* keep the logo's spacing in the footer */
 .chat-aside { display: contents; }
 h2.h3 { font-size: var(--step-1); }
+
+/* Story and contact (style C, 25 Nov 2026) */
+.pull { font-family: var(--font-display); font-size: clamp(2rem, 3.6vw, 3.2rem); line-height: 1.06; max-width: 16ch; }
+.pull em { font-style: italic; }
+.feature .copy p:not(.statement):not(.eyebrow) { color: #DCE3DD; line-height: 1.6; }
+.steps.two { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 40px; }
+.steps.two li { counter-increment: none; gap: 14px; }
+.steps.two li::before { content: none; }
+.steps.two h2, .steps.two h3 { font-size: 2rem; }
+.steps.two h3 em, .steps h3 em { font-style: italic; }
+.hero .split { align-items: start; }
+@media (max-width: 900px) { .steps.two { grid-template-columns: minmax(0, 1fr); } }
