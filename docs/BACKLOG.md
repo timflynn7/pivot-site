@@ -18,7 +18,7 @@ Suggested batch:
 - Send the photos here; Claude swaps them in for the renders and makes the thumbnails. Afterwards the doors can be showroom pieces for trade conversations (item 13).
 
 ### 2. Quick jobs for Tim (minutes each)
-- Stripe → Developers → Webhooks → your endpoint → add the event `charge.refunded` (so refunds mark the order automatically). [orders.md](workstreams/orders.md)
+- ~~Stripe webhook `charge.refunded`~~ **Done 25 Nov 2026** (Pivot Hk-Live now listens to 3 events).
 - Save the WhatsApp number on /admin/pricing if you want the button to show.
 - Try the address search on the live Shop once; if suggestions don't appear, tell Claude (the field names were written from memory).
 
