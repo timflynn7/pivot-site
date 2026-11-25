@@ -4,16 +4,19 @@ One list of everything still open, in priority order. The detail stays in each w
 
 ## Now: the next two weeks
 
-### 1. Make example doors to photograph (Tim, new 25 Nov 2026)
-Eight designs on the Shop have no real photo yet and show a computer render instead:
-Slab, Traditional shaker, Skinny shaker, Bevelled shaker, Beaded shaker, Georgian, New Country, Tongue & V groove.
-(Fluted, Reeded, Arched and Tongue & bead groove already have photos.)
+### 1a. Test panels in standard MDF first (Tim, 25 Nov 2026, proposed)
+Before using MR MDF, cut one test sheet in standard MDF to prove the bits and depths.
+- **Nine panels, 370 × 370 mm, in a 3 × 3 grid**: 3 × 370 + 2 × 25 mm gaps + 2 × 20 mm border = 1200 mm (on a true 1220 half sheet the border is Tim's usual 30 mm). Ten or more won't fit at the 300 mm minimum size.
+- Chosen so every cut layer is tested once: Skinny shaker (`POCKET_D5`), Bevelled (`POCKET_D8`, `BEVEL_D8`), Beaded (`ROUNDOVER`), New Country (`VGROOVE_D4`), Georgian (`POCKET_D4`), Tongue & V, Tongue & bead (`BEAD_D3`), Fluted (`FLUTE_D5`), Reeded (`REED_D4`).
+- Left off: Slab (self-explanatory), Traditional shaker (its 8 mm pocket is tested by Bevelled, Beaded, New Country and Georgian), Arched (same reed bit as Reeded; already has a photo).
+- Write down the depths and bits that look right; they replace the placeholders in `TOOLS` (item 5).
 
-Suggested batch:
-- **One door of each, 400 × 500 mm.** Four fit on a 1220 × 1220 half sheet (30 mm border, 25 mm gap), so all eight come from **one sheet of MR MDF (about £42)**, and every photo is the same shape.
+### 1b. Example doors in MR MDF to photograph
+Seven designs need real photos (they show a computer render now): Traditional shaker, Skinny shaker, Bevelled shaker, Beaded shaker, Georgian, New Country, Tongue & V groove. Slab isn't needed (Tim, 25 Nov). Fluted, Reeded, Arched and Tongue & bead groove already have photos.
+
+- **One door of each, 400 × 500 mm.** Four fit on a 1220 × 1220 half sheet (30 mm border, 25 mm gap), so all seven come from **one sheet of MR MDF (about £42)**, and every photo is the same shape.
 - **Order them through the site** (/admin → New order) so the DXFs come from the real engine. That tests the whole route from configurator to VCarve at the same time.
-- **Write down the real depths and bits** that look right as you cut. Those replace the placeholder figures in `TOOLS` (item 5), so this one batch does two jobs.
-- **Paint six, keep two bare** (one shaker, one Tongue & V) for close-ups of the machining and the 1.5 mm inside corners.
+- **Paint five, keep two bare** (one shaker, one Tongue & V) for close-ups of the machining and the 1.5 mm inside corners.
 - Photograph with the checklist in [workstreams/website.md](workstreams/website.md) (side light, plain wall, same angle each time, one straight-on and one angled, one close-up).
 - Send the photos here; Claude swaps them in for the renders and makes the thumbnails. Afterwards the doors can be showroom pieces for trade conversations (item 13).
 
@@ -35,6 +38,7 @@ Suggested batch:
 ## Later
 
 10. **Moulding and round-over designs**: work out the VCarve toolpaths in the toolpath lab. [toolpath-lab.md](workstreams/toolpath-lab.md)
+10a. **\"I can fit your handles\" service** (Tim, 25 Nov 2026): customers choose handle or knob positions in the configurator and Tim drills the holes. To work out: handle types (one hole for knobs, two holes with a centre distance for bar handles), positions (edge distance, height, centred or offset), whether customers send their own handles or Tim supplies them, price per door, and how it goes on the DXF (like hinge holes: `LABELS` layer, or a drill layer). Needs wording in both payment modes and the terms.
 11. **New test designs** (two-panel, vented, raised profile; full-height fluted like the wardrobe) on the test page first.
 12. **Google Business Profile**: on hold until Tim decides on a business phone number. Guide already written. [business.md](workstreams/business.md)
 13. **Trade portal** for local fitters: talk to 2 or 3 local trades first. [trade-portal.md](workstreams/trade-portal.md)
