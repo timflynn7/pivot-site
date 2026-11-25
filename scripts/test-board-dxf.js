@@ -7,7 +7,8 @@ const fs = require("fs");
 const path = require("path");
 const E = require("../public/js/engine.js");
 
-const BOARD = { width: 1220, height: 500 };
+// Board size per plan (see BOARDS below); the original drafts board is a 1220 x 500 offcut.
+const BOARDS = { all: { width: 1220, height: 500 }, beads: { width: 1220, height: 1220 } };
 const GAP = 20;
 
 // pos = bottom-left corner on the board, in mm.
@@ -27,21 +28,23 @@ const PLANS = {
     { design: "victorian",    width: 260, height: 235, pos: [540, 0],   opts: { border: 50, inset: 20 } },
     { design: "mouldedflute", width: 280, height: 235, pos: [820, 0],   opts: { border: 45, step: 22, spacing: 12 } }
   ],
+  // 360 x 360 doors in a 3 x 3 grid on a 1220 x 1220 sheet, 20 mm apart, standard 70 mm frame.
   beads: [
-    { design: "beaded",     width: 200, height: 235, pos: [0, 255],   opts: { border: 50, leg: 3 } },
-    { design: "beaded",     width: 200, height: 235, pos: [220, 255], opts: { border: 50, leg: 5 } },
-    { design: "beaded",     width: 200, height: 235, pos: [440, 255], opts: { border: 50, leg: 10 } },
-    { design: "beaded",     width: 200, height: 235, pos: [660, 255], opts: { border: 50, leg: 5, pocket: 6 } },
-    { design: "beaded",     width: 200, height: 235, pos: [880, 255], opts: { border: 50, leg: 5, pocket: 8 } },
-    { design: "singlebead", width: 200, height: 235, pos: [0, 0],     opts: { border: 50, top: 0 } },
-    { design: "singlebead", width: 200, height: 235, pos: [220, 0],   opts: { border: 50, top: 1 } },
-    { design: "singlebead", width: 200, height: 235, pos: [440, 0],   opts: { border: 50, top: 2 } },
-    { design: "singlebead", width: 200, height: 235, pos: [660, 0],   opts: { border: 50, top: 1, pocket: 8 } }
+    { design: "beaded",     width: 360, height: 360, pos: [0, 760],   opts: { border: 70, leg: 3 } },
+    { design: "beaded",     width: 360, height: 360, pos: [380, 760], opts: { border: 70, leg: 5 } },
+    { design: "beaded",     width: 360, height: 360, pos: [760, 760], opts: { border: 70, leg: 10 } },
+    { design: "beaded",     width: 360, height: 360, pos: [0, 380],   opts: { border: 70, leg: 5, pocket: 6 } },
+    { design: "beaded",     width: 360, height: 360, pos: [380, 380], opts: { border: 70, leg: 5, pocket: 8 } },
+    { design: "singlebead", width: 360, height: 360, pos: [760, 380], opts: { border: 70, top: 0 } },
+    { design: "singlebead", width: 360, height: 360, pos: [0, 0],     opts: { border: 70, top: 1 } },
+    { design: "singlebead", width: 360, height: 360, pos: [380, 0],   opts: { border: 70, top: 2 } },
+    { design: "singlebead", width: 360, height: 360, pos: [760, 0],   opts: { border: 70, top: 1, pocket: 8 } }
   ]
 };
 const planName = process.argv[3] || "all";
 const PLAN = PLANS[planName];
 if (!PLAN) throw new Error(`Unknown plan "${planName}". Use one of: ${Object.keys(PLANS).join(", ")}`);
+const BOARD = BOARDS[planName];
 
 const outDir = process.argv[2] || "test-board-dxf";
 fs.mkdirSync(outDir, { recursive: true });
@@ -80,7 +83,7 @@ fs.writeFileSync(path.join(outDir, planName === "all" ? "00-test-board-all-desig
 const rows = [
   "Pivot test board",
   `Board ${BOARD.width} x ${BOARD.height} mm. Parts use ${ext.w} x ${ext.h} mm, ${GAP} mm apart. Origin is the board's bottom-left corner.`,
-  "Door sizes and frame widths are reduced for testing. Moulding, bead, flute and V-bit sizes are full size.",
+  planName === "all" ? "Door sizes and frame widths are reduced for testing. Moulding, bead, flute and V-bit sizes are full size." : "Doors 360 x 360 with the standard 70 mm frame. All details full size.",
   "",
   "No | Design | Size (mm) | Position x, y (mm) | Test settings | Layers"
 ];

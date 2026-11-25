@@ -67,6 +67,7 @@ How to get the moulding toolpath to work correctly with Tim's round-over bits, a
 - Rails and profiles are not shown in the website preview.
 - `node scripts/test-board-dxf.js <folder> beads` writes a beads test board (10 doors): Beaded with legs 3/5/10, pocket level, pocket 8, and round-over 5 deep; Single bead with top 0, top 1, top 1 with the pocket level, top 1 with an 8 mm pocket. It also writes `form-tool-roundover-12.7-R4.7.dxf` (the bit's right half for the tool database). `... <folder>` alone still writes the original all-drafts board.
 - Checked: read back with ezdxf (no errors), drawn, and the rail direction confirmed.
+- **Beads board is now 1220 x 1220 (2026-11-25, Tim's request):** 9 doors at 360 x 360 with the standard 70 mm frame, in a 3 x 3 grid 20 mm apart (`BOARDS` and `PLANS.beads` in scripts/test-board-dxf.js). Top row: beaded, legs 3/5/10. Middle: beaded with 6 and 8 mm pockets, single bead top 0. Bottom: single bead top 1, top 2, top 1 with an 8 mm pocket. Pockets are level unless stated.
 - **Files for Tim:** `test-boards/beads/` (one file each, on branch `claude/fervent-ride-vmspcn`) and `test-boards/beads-test-board.zip`. Regenerate them with the script after engine changes.
 
 ### Found while building
