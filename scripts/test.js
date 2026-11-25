@@ -555,6 +555,7 @@ async function payPath(ref) {
   const sm = await req("/sitemap.xml");
   const smx = await sm.text();
   assert(sm.status === 200 && /xml/.test(sm.headers.get("content-type")) && smx.includes("<loc>https://pivotdesigns.co.uk/configurator</loc>") && !smx.includes("admin"));
+  assert.strictEqual(await (await req("/googlea5060464aae04fbe.html")).text(), "google-site-verification: googlea5060464aae04fbe.html", "Google Search Console verification file served exactly");
   step("robots.txt and sitemap.xml for search engines");
 
   // ---------- quote-only wording stays out of Pay online mode ----------
