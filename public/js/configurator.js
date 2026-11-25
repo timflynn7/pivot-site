@@ -375,6 +375,33 @@
     fetch("/api/address/status").then((r) => r.json()).then((d) => { if (d.enabled) $("addrFind").hidden = false; }).catch(() => {});
   })();
 
+  /* ---------- free postcode check (postcodes.io, through our server) ---------- */
+  // Confirms the postcode is real and tidies it to "GU1 1AA". It only warns; it never blocks an order.
+  (function postcodeCheck() {
+    const input = $("cPostcode"), hint = $("pcHint");
+    let timer = 0, last = "";
+    const say = (text, bad) => { hint.textContent = text; hint.classList.toggle("bad", !!bad); if (bad) input.setAttribute("aria-invalid", "true"); else input.removeAttribute("aria-invalid"); };
+    async function check() {
+      const pc = input.value.toUpperCase().replace(/[^A-Z0-9]/g, "");
+      if (pc === last) return;
+      last = pc;
+      if (!pc) return say("");
+      if (!/^[A-Z]{1,2}\d[A-Z\d]?\d[A-Z]{2}$/.test(pc)) return say(pc.length >= 5 ? "That doesn't look like a UK postcode yet." : "", pc.length >= 5);
+      try {
+        const d = await (await fetch("/api/postcode?pc=" + encodeURIComponent(pc))).json();
+        if (input.value.toUpperCase().replace(/[^A-Z0-9]/g, "") !== pc) return; // changed while checking
+        if (d.found) {
+          if (d.postcode && document.activeElement !== input) input.value = d.postcode;
+          say("\u2713 Postcode found" + (d.area ? ": " + d.area : "") + ".");
+          if (typeof updateIntent === "function") updateIntent();
+        } else if (d.found === false) say("We can't find that postcode. Please check it, as a wrong postcode is the most common reason deliveries go astray.", true);
+        else say("");
+      } catch (e) { say(""); }
+    }
+    input.addEventListener("input", () => { clearTimeout(timer); timer = setTimeout(check, 500); });
+    input.addEventListener("blur", () => { clearTimeout(timer); last = ""; check(); });
+  })();
+
   renderDesigns(); renderOpts(); update(); renderList();
   setTimeout(centreDesign, 50);
   // Prices are set on /admin/pricing; redraw once the current ones arrive.

@@ -20,7 +20,7 @@ Suggested batch:
 ### 2. Quick jobs for Tim (minutes each)
 - ~~Stripe webhook `charge.refunded`~~ **Done 25 Nov 2026** (Pivot Hk-Live now listens to 3 events).
 - Save the WhatsApp number on /admin/pricing if you want the button to show.
-- Address search: **never switched on** (no `IDEAL_POSTCODES_KEY` in Render), so the box is hidden and customers type their address. Options sent to Tim 25 Nov 2026: leave off (free), pay for Ideal Postcodes (10 min setup), or a free postcodes.io check that fills in the town.
+- ~~Address search~~ Paid search left off; **free postcode check built and live 25 Nov 2026** (confirms the postcode is real, tidies it, warns if not found).
 
 ## Next: once photos are in
 

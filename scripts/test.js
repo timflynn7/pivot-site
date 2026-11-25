@@ -43,6 +43,7 @@ const emails = [];
 const idealCalls = [];
 process.env.IDEAL_POSTCODES_KEY = "ak_test_dummy";
 let failNextEmail = false;
+const pcioCalls = [];
 const realFetch = globalThis.fetch;
 globalThis.fetch = async (url, opts = {}) => {
   if (String(url).startsWith("https://api.ideal-postcodes.co.uk/")) {
@@ -52,6 +53,13 @@ globalThis.fetch = async (url, opts = {}) => {
     if (u.pathname === "/v1/autocomplete/addresses") return new Response(JSON.stringify({ code: 2000, result: { hits: [{ id: "paf_123", suggestion: "61 Bridge Street, Kington, HR5" }, { id: "paf_456", suggestion: "63 Bridge Street, Kington, HR5" }] } }), { status: 200 });
     if (u.pathname === "/v1/autocomplete/addresses/paf_123/gbr") return new Response(JSON.stringify({ code: 2000, result: { line_1: "61 Bridge Street", line_2: "Flat 2", line_3: "", post_town: "KINGTON", postcode: "HR5 3DJ" } }), { status: 200 });
     return new Response(JSON.stringify({ message: "Not found" }), { status: 404 });
+  }
+  if (String(url).startsWith("https://api.postcodes.io/")) {
+    const u = new URL(url); pcioCalls.push(u.pathname);
+    if (u.pathname === "/postcodes/HR53DJ") return new Response(JSON.stringify({ status: 200, result: { postcode: "HR5 3DJ", country: "England", admin_district: "Herefordshire, County of" } }), { status: 200 });
+    if (u.pathname === "/terminated_postcodes/AB12CD") return new Response(JSON.stringify({ status: 200, result: { postcode: "AB1 2CD" } }), { status: 200 });
+    if (u.pathname === "/postcodes/GU11ZZ") return new Response("down", { status: 500 });
+    return new Response(JSON.stringify({ status: 404, error: "Postcode not found" }), { status: 404 });
   }
   if (String(url).startsWith("https://api.resend.com/")) {
     assert.strictEqual(opts.headers.Authorization, "Bearer re_test_dummy");
@@ -408,6 +416,16 @@ async function payPath(ref) {
   let limited = 0;
   for (let i = 0; i < 16; i++) if ((await req("/api/address/resolve?id=paf_123")).status === 429) limited++;
   assert(limited >= 1, "address picks are rate limited");
+  const pc = async (q) => (await req("/api/postcode?pc=" + encodeURIComponent(q))).json();
+  assert.deepStrictEqual(await pc("hr5 3dj"), { found: true, postcode: "HR5 3DJ", area: "Herefordshire, England" });
+  const n = pcioCalls.length; await pc("HR53DJ"); assert.strictEqual(pcioCalls.length, n, "postcode results are cached");
+  assert.strictEqual((await pc("ab1 2cd")).found, true, "a retired postcode still counts as found");
+  assert.strictEqual((await pc("SW9 9ZZ")).found, false);
+  assert.strictEqual((await pc("hello")).found, false);
+  assert.strictEqual((await pc("GU1 1ZZ")).found, null, "an outage never blocks the form");
+  assert.strictEqual((await pc("JE2 3AB")).found, null, "Crown dependencies are not checked");
+  assert(!pcioCalls.some((p) => /JE23AB|HELLO/.test(p)), "bad or unsupported postcodes are never sent");
+  step("postcode check: real, retired, unknown and badly formed postcodes; cached; outages don't block");
   step("address lookup: key stays on the server, suggestions and full address returned, bad ids refused, picks limited");
 
   const addrOrder = (c) => req("/api/orders", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ customer: { name: "Addr Test", email: "a@example.com", ...c }, doors: [{ design: "slab", width: 400, height: 500 }] }) });

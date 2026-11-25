@@ -128,3 +128,4 @@ Photo checklist for painted doors (sent to Tim 25 Nov): natural side light, no d
 
 ## Key files
 `public/*.html`, `public/css/site.css`, `public/img/`, `public/configurator.html`.
+- **Free postcode check (25 Nov 2026):** the order form checks the postcode with postcodes.io through our server and shows the council area, or a warning. Never blocks an order. Privacy page lists postcodes.io. Paid Ideal Postcodes search still off (no key).
