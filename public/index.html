@@ -8,14 +8,14 @@
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jost:wght@400;500&family=Inter:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Hanken+Grotesk:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <link rel="stylesheet" href="/css/site.css">
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
 <header class="site-head">
   <div class="inner">
-    <a class="brand" href="/" aria-label="Pivot Designs home"><span class="word">PIVOT</span><span class="sub">DESIGNS</span></a>
+    <a class="brand" href="/" aria-label="Pivot Designs home"><span class="word">Pivot</span><span class="sub">DESIGNS</span></a>
     <nav class="nav" aria-label="Main">
       <a href="/" aria-current="page">Home</a>
       <a href="/configurator">Shop</a>
@@ -29,36 +29,57 @@
   <section class="hero">
     <div class="inner">
       <div class="hero-copy">
-        <span class="eyebrow">Made to measure in the UK</span>
-        <h1>Decorative MDF doors, cut to your exact size.</h1>
-        <p class="lede">Fluted, reeded, arched and shaker doors and panels for kitchens, wardrobes and furniture. Give us your sizes in millimetres and we cut each door to order in our workshop.</p>
+        <h1>Made to measure, <em>to the millimetre.</em></h1>
+        <p class="lede">Fluted, reeded, arched and shaker cabinet doors, cut on our own CNC in Surrey from the sizes you give us. Supplied unfinished, ready for your paint.</p>
         <div class="actions">
           <a class="btn" href="/configurator">Shop</a>
-          <a class="btn line" href="/contact">Ask a question</a>
+          <a class="text-link" href="/contact">Ask a question</a>
         </div>
+        <p class="hero-specs"><span>18 mm MDF</span><span>±1 mm</span><span id="specFrom">From £27 a door</span><span id="specFree">Free delivery over £400</span></p>
         <p class="soon">Design your doors online and see each one drawn to scale. <!--mode:quote-->Send us your basket, and we check every order and confirm the price before you pay.<!--/mode--><!--mode:checkout-->See your total as you go, including delivery, and pay securely online.<!--/mode--></p>
       </div>
-      <figure class="hero-photo" style="margin:0">
-        <img src="/img/fluted-doors-selection.jpg" alt="Three unpainted MDF doors of different sizes, each with rounded flutes stopped inside a plain border" width="750" height="1000">
-        <figcaption>Fluted, our most popular design</figcaption>
+      <figure class="hero-photo">
+        <div class="frame">
+          <img src="/img/fluted-doors-selection.jpg" alt="Three unpainted MDF doors of different sizes, each with rounded flutes stopped inside a plain border" width="750" height="1000">
+          <svg class="dims" viewBox="0 0 100 125" preserveAspectRatio="none" aria-hidden="true">
+            <line class="draw" pathLength="1" x1="8" y1="118" x2="92" y2="118"></line>
+            <line x1="8" y1="116.5" x2="8" y2="119.5"></line><line x1="92" y1="116.5" x2="92" y2="119.5"></line>
+            <line class="draw" pathLength="1" x1="95" y1="8" x2="95" y2="112"></line>
+            <line x1="93.5" y1="8" x2="96.5" y2="8"></line><line x1="93.5" y1="112" x2="96.5" y2="112"></line>
+          </svg>
+          <span class="dim-label" aria-hidden="true">your width, to the mm</span>
+        </div>
+        <figcaption><span>Fluted, our most popular design</span><span>Photo</span></figcaption>
       </figure>
     </div>
   </section>
 
-  <section class="band">
+  <div class="inner" aria-hidden="true"><div class="grooves"></div></div>
+
+  <section>
     <div class="inner">
-      <div class="section-head">
-        <span class="eyebrow">The range</span>
-        <h2>Patterned doors, cut to any size within our limits</h2>
-        <p class="lede">Every door is cut from MDF and supplied unfinished, ready for you to paint. Patterns are fitted to your sizes, so grooves sit evenly on every door. For kitchens, utility rooms, wardrobes, media units, van conversions and bespoke furniture.</p>
+      <div class="section-row">
+        <h2>Patterns, fitted to <em>each door.</em></h2>
+        <a class="text-link" href="/configurator">See every design</a>
       </div>
       <div class="designs">
-        <article class="design"><img src="/img/tile-fluted.jpg" alt="Painted fluted doors on a fitted wardrobe" loading="lazy" width="640" height="640"><h3>Fluted</h3><p>Rounded flutes for kitchens, wardrobes and furniture.</p></article>
-        <article class="design"><img src="/img/tile-reeded.jpg" alt="A reeded MDF panel lying on the CNC machine bed" loading="lazy" width="640" height="640"><h3>Reeded</h3><p>Reeds that run edge to edge and line up across doors.</p></article>
-        <article class="design"><img src="/img/tile-arched.jpg" alt="A painted pair of doors with concentric arches running across both" loading="lazy" width="640" height="640"><h3>Arched</h3><p>Concentric arches that span a pair of doors.</p></article>
-        <article class="design"><img src="/img/tile-tongue-and-bead.jpg" alt="Two tall unpainted MDF panels with tongue and bead grooves" loading="lazy" width="640" height="640"><h3>Tongue &amp; bead</h3><p>Boards divided by grooves, each with a bead beside it.</p></article>
+        <a class="design" href="/configurator"><img src="/img/tile-fluted.jpg" alt="Painted fluted doors on a fitted wardrobe" loading="lazy" width="640" height="640"><h3>Fluted</h3><span class="spec">16 mm flutes · <span class="pmin">from £27</span></span></a>
+        <a class="design" href="/configurator"><img src="/img/tile-reeded.jpg" alt="A reeded MDF panel lying on the CNC machine bed" loading="lazy" width="640" height="640"><h3>Reeded</h3><span class="spec">12.5 mm reeds · <span class="pmin">from £27</span></span></a>
+        <a class="design" href="/configurator"><img src="/img/tile-arched.jpg" alt="A painted pair of doors with concentric arches running across both" loading="lazy" width="640" height="640"><h3>Arched</h3><span class="spec">Across a pair · <span class="pmin">from £27</span></span></a>
+        <a class="design" href="/configurator"><img src="/img/tile-tongue-and-bead.jpg" alt="Two tall unpainted MDF panels with tongue and bead grooves" loading="lazy" width="640" height="640"><h3>Tongue &amp; bead</h3><span class="spec">Boards with a bead · <span class="pmin">from £27</span></span></a>
       </div>
-      <p class="range-more">These are a few favourites. <a href="/configurator">See every design in the door designer</a>, drawn to your sizes.</p>
+      <p class="range-more">Every door is cut from 18 mm MDF and supplied unfinished. Patterns are fitted to your sizes, so grooves sit evenly on every door. <a href="/configurator">See every design in the Shop</a>.</p>
+    </div>
+  </section>
+
+  <section class="feature">
+    <div class="inner">
+      <img src="/img/feature-arched.jpg" alt="A painted pair of doors with concentric arches running across the gap between them" loading="lazy" width="1100" height="892">
+      <div class="copy">
+        <span class="eyebrow">Matched across a pair</span>
+        <p class="statement">Arches that flow from one door to the next, centred on the gap you'll hang them with.</p>
+        <a class="text-link" href="/configurator">Design an arched pair</a>
+      </div>
     </div>
   </section>
 
@@ -66,7 +87,7 @@
     <div class="inner">
       <div class="section-head">
         <span class="eyebrow">How it works</span>
-        <h2>From your measurements to your door</h2>
+        <h2>From your tape measure <em>to our router.</em></h2>
       </div>
       <ol class="steps">
         <li><h3>Choose a design</h3><p>Pick from the full range in our <a href="/configurator">door designer</a>, or ask us about something different.</p></li>
@@ -97,7 +118,7 @@
         <details><summary>Can you drill the hinge holes?</summary><p>Yes. When you design your door, choose which side the hinges go and how many (2 to 4), and we'll drill 35 mm cup holes for standard concealed kitchen hinges, 100 mm from the top and bottom. The preview shows exactly where they'll be. If your hinges need different positions, tell us in the notes.</p></details>
         <details><summary>How do I measure?</summary><p>Measure your existing doors, not the cabinet openings, and give us the width and height in millimetres. If you're unsure, email us and we'll help.</p></details>
         <details><summary>How long does it take?</summary><p>Most orders are dispatched within 5–7 working days of payment.<!--mode:quote--> We'll always confirm the timing with your price.<!--/mode--><!--mode:checkout--> We'll let you know if a large order will take longer.<!--/mode--></p></details>
-        <details><summary>Where do you deliver?</summary><p>Anywhere in mainland Great Britain, included in your price. For Northern Ireland, the islands or outside the UK, get in touch and we'll see what we can do.</p></details>
+        <details><summary>Where do you deliver?</summary><p>Anywhere in mainland Great Britain: <span id="faqDelivery">£12 for the first door and £5 for each extra, free on orders over £400</span>. For Northern Ireland, the islands, the Scottish Highlands, the Isle of Wight or outside the UK, get in touch and we'll see what we can do.</p></details>
         <details><summary>Can I return them?</summary><p>Because every door is cut to your measurements, we can't take returns for a change of mind. If anything arrives damaged or isn't as ordered, tell us straight away and we'll remake it or refund you. See our <a href="/terms">terms</a>.</p></details>
       </div>
     </div>
@@ -106,7 +127,7 @@
 
 <footer class="site-foot">
   <div class="inner">
-    <a class="brand" href="/"><span class="word">PIVOT</span><span class="sub">DESIGNS</span></a>
+    <a class="brand" href="/"><span class="word">Pivot</span><span class="sub">DESIGNS</span></a>
     <span><a href="mailto:tim@pivotdesigns.co.uk">tim@pivotdesigns.co.uk</a></span>
     <span><a href="/terms">Terms &amp; refunds</a> · <a href="/privacy">Privacy</a></span>
     <span>© 2026 Pivot Designs</span>
@@ -119,7 +140,13 @@ fetch("/api/pricing").then(function (r) { return r.ok ? r.json() : null; }).then
   var d = p.delivery, g = function (n) { return "£" + n; };
   document.getElementById("pMin").textContent = "From " + g(Math.min.apply(null, p.bands.map(function (b) { return b.price; })));
   document.getElementById("dBig").textContent = g(d.first) + " + " + g(d.extra);
-  document.getElementById("dText").textContent = "delivery: " + g(d.first) + " for the first door, " + g(d.extra) + " for each extra" + (d.freeOver > 0 ? ", free on orders over " + g(d.freeOver) : "");
+  var del = g(d.first) + " for the first door, " + g(d.extra) + " for each extra" + (d.freeOver > 0 ? ", free on orders over " + g(d.freeOver) : "");
+  var from = "from " + g(Math.min.apply(null, p.bands.map(function (b) { return b.price; })));
+  document.getElementById("dText").textContent = "delivery: " + del;
+  document.getElementById("faqDelivery").textContent = del;
+  document.getElementById("specFrom").textContent = from.charAt(0).toUpperCase() + from.slice(1) + " a door";
+  document.getElementById("specFree").textContent = d.freeOver > 0 ? "Free delivery over " + g(d.freeOver) : "Delivery from " + g(d.first);
+  document.querySelectorAll(".pmin").forEach(function (e) { e.textContent = from; });
 }).catch(function () {});
 </script>
 </body>
