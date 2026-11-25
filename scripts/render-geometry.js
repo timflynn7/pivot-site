@@ -16,6 +16,6 @@ const out = DOORS.map((d) => {
   if (Object.keys(errors).length) throw new Error(d.design + ": " + JSON.stringify(errors));
   const g = E.buildDoor(door);
   return { id: d.design, title: E.designById(d.design).name, colour: d.colour, colourName: d.name, W: g.W, H: g.H,
-    paths: g.paths.map((p) => ({ tool: p.tool, pts: p.pts, closed: !!p.closed, inner: p.inner || null, width: E.TOOLS[p.tool].width, depth: E.TOOLS[p.tool].depth || null })) };
+    paths: g.paths.filter((p) => !E.TOOLS[p.tool].ref).map((p) => ({ tool: p.tool, pts: p.pts, closed: !!p.closed, inner: p.inner || null, width: E.TOOLS[p.tool].width, depth: E.TOOLS[p.tool].depth || null })) };
 });
 process.stdout.write(JSON.stringify(out));

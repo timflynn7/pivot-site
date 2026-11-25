@@ -28,3 +28,6 @@ How to get the moulding toolpath to work correctly with Tim's round-over bits, a
 ## Tools available
 - `node scripts/test-board-dxf.js <folder>` writes all draft designs onto one 1220 x 500 mm offcut. Edit `PLAN` at the top to change which designs, sizes or positions.
 - The recipes and layer names are in `public/js/engine.js` (`TOOLS` and `DESIGNS`).
+
+## 25 Nov 2026: Beaded shaker DXF (Tim's choice: the single-rail style)
+Tim picked the "rail + profile" layout (bottom left of the lab images) for now. Engine version 6 writes, per beaded door: `MOULD_RAIL` (closed rectangle at the frame edge, where the round-over starts at the face), `POCKET_D8` (12.7 mm further in: the panel floor) and `MOULD_PROFILE` (an open quarter-round, 12.7 wide × 8 deep, in the middle of the panel; it isn't cut). Depths are placeholders until the test sheet is cut. A beaded shaker configurator with other moulding styles is on the backlog (10b).
