@@ -171,3 +171,37 @@ button.btn { font: inherit; font-weight: 600; cursor: pointer; }
   #addMsg { display: none; }
   .wa-float { bottom: calc(84px + env(safe-area-inset-bottom)); }
 }
+
+/* ---------- Style C for the Shop (25 Nov 2026) ----------
+   Same language as the rest of the site: serif headings and names, mono for
+   labels, measurements and prices in lists, soft 4 px corners, pill toggles,
+   ink outline for the chosen design, deep green for selected options. */
+.cfg-head h1 em { font-style: italic; }
+.preview { background: #ECE7DC; border-radius: 4px; padding: 24px; }
+.pv-info { font-family: var(--font-mono); font-size: 0.75rem; }
+.field label, .opt .top label, .thumbs-label { font-family: var(--font-mono); font-size: 0.72rem; font-weight: 400; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.opt .top { font-weight: 400; align-items: center; }
+.field input, .field select, .field textarea, .numbox input { border: 1px solid #CFC8B8; border-radius: 4px; background: var(--paper); }
+.field input:focus, .field select:focus, .field textarea:focus, .numbox input:focus { outline: none; border-color: var(--ink); box-shadow: 0 0 0 1px var(--ink); }
+.mm input, .numbox input { font-family: var(--font-mono); font-size: 1rem; }
+.mm::after, .numbox span { font-family: var(--font-mono); font-size: 0.75rem; }
+.seg { border: 1px solid #CFC8B8; border-radius: 999px; background: var(--paper); }
+.seg button { border-left: 1px solid #E3DDCF; padding: 10px 18px; background: transparent; }
+.seg button[aria-pressed="true"] { background: var(--sage); color: var(--sage-ink); font-weight: 500; }
+.dz { border: 1px solid var(--line); border-radius: 4px; padding: 10px 6px 8px; }
+.dz span { font-family: var(--font-display); font-size: 1.02rem; font-weight: 400; line-height: 1.05; }
+.dz:hover { border-color: var(--ink); }
+.dz[aria-pressed="true"] { border-color: var(--ink); box-shadow: 0 0 0 1px var(--ink) inset; background: #EFEAE0; }
+.toggle { font-weight: 500; }
+.photos-btn:not([hidden]) { font-family: var(--font-mono); font-size: 0.75rem; font-weight: 400; letter-spacing: 0.04em; }
+.thumb { border-radius: 4px; border-width: 1px; }
+.item .t { font-family: var(--font-display); font-size: 1.35rem; font-weight: 400; line-height: 1.1; }
+.item .r { font-family: var(--font-mono); font-size: 0.8rem; }
+.empty { border: 1px dashed #CFC8B8; border-radius: 4px; padding: 28px; }
+.summary { border-radius: 4px; padding: 24px; gap: 10px; }
+.row.total { font-family: var(--font-display); font-weight: 400; font-size: 1.7rem; align-items: baseline; border-top-color: var(--ink); }
+.summary .free { color: var(--sage); }
+.addr-list { border-radius: 4px; border-width: 1px; }
+.send-msg.ok { border-radius: 4px; }
+.cfg > .grooves { margin-block: -8px; }
+.opt > span.top { font-family: var(--font-mono); font-size: 0.72rem; font-weight: 400; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
