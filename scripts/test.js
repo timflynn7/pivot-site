@@ -550,6 +550,12 @@ async function payPath(ref) {
   }
   assert(!(await page("/admin")).includes("cloudflareinsights"), "admin pages aren't counted");
   step("Cloudflare Web Analytics on every public page, not on /admin");
+  const robots = await (await req("/robots.txt")).text();
+  assert(robots.includes("Disallow: /admin") && robots.includes("Sitemap: https://pivotdesigns.co.uk/sitemap.xml"));
+  const sm = await req("/sitemap.xml");
+  const smx = await sm.text();
+  assert(sm.status === 200 && /xml/.test(sm.headers.get("content-type")) && smx.includes("<loc>https://pivotdesigns.co.uk/configurator</loc>") && !smx.includes("admin"));
+  step("robots.txt and sitemap.xml for search engines");
 
   // ---------- quote-only wording stays out of Pay online mode ----------
   await form("/admin/mode", { mode: "checkout" });

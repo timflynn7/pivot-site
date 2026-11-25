@@ -1,0 +1,8 @@
+# Search engines: everything public may be listed; private and test pages may not.
+User-agent: *
+Disallow: /admin
+Disallow: /pay/
+Disallow: /api/
+Disallow: /test-designs
+
+Sitemap: https://pivotdesigns.co.uk/sitemap.xml

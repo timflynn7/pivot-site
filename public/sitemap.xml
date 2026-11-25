@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The public pages for search engines. Add any new public page here. -->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://pivotdesigns.co.uk/</loc><lastmod>2026-11-25</lastmod><priority>1.0</priority></url>
+  <url><loc>https://pivotdesigns.co.uk/configurator</loc><lastmod>2026-11-25</lastmod><priority>0.9</priority></url>
+  <url><loc>https://pivotdesigns.co.uk/story</loc><lastmod>2026-11-25</lastmod><priority>0.6</priority></url>
+  <url><loc>https://pivotdesigns.co.uk/contact</loc><lastmod>2026-11-25</lastmod><priority>0.6</priority></url>
+  <url><loc>https://pivotdesigns.co.uk/terms</loc><lastmod>2026-11-25</lastmod><priority>0.3</priority></url>
+  <url><loc>https://pivotdesigns.co.uk/privacy</loc><lastmod>2026-11-25</lastmod><priority>0.3</priority></url>
+</urlset>
