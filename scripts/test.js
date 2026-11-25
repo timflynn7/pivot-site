@@ -543,6 +543,14 @@ async function payPath(ref) {
   assert(!(await (await req("/contact")).text()).includes("wa.me"), "empty number hides it again");
   step("WhatsApp button: set on /admin/pricing, shown on Shop and Contact only, privacy note, hidden when cleared");
 
+  // ---------- visitor counting ----------
+  for (const path of ["/", "/configurator", "/story", "/contact", "/terms", "/privacy"]) {
+    const h = await (await req(path)).text();
+    assert.strictEqual((h.match(/static\.cloudflareinsights\.com\/beacon\.min\.js/g) || []).length, 1, path + " counts visits once");
+  }
+  assert(!(await page("/admin")).includes("cloudflareinsights"), "admin pages aren't counted");
+  step("Cloudflare Web Analytics on every public page, not on /admin");
+
   // ---------- quote-only wording stays out of Pay online mode ----------
   await form("/admin/mode", { mode: "checkout" });
   assert(!(await (await req("/configurator")).text()).includes("We check every order and confirm the price, including delivery, before you pay."));
