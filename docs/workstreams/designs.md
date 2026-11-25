@@ -70,4 +70,4 @@ Also: real layer names and depths for the settled designs, to replace the placeh
 ## Key files
 `public/js/engine.js` (`TOOLS`, `DESIGNS`, `orderDXF`), `scripts/test-board-dxf.js`, `scripts/sample-dxf.js`.
 - **Test sheet (25 Nov 2026):** `scripts/test-sheet-dxf.js` writes nine 360 × 360 test panels on a 1200 × 1200 sheet (one per cut layer) plus one file per panel and a README; see docs/BACKLOG.md item 1a. Sent to Tim; results go into `TOOLS`.
-- **Version 6 (25 Nov 2026, Tim's DXF review):** Tongue & bead = pair of `BEAD_D3` lines 9 mm apart (`BEAD_PAIR`) at each joint, no V-groove. Beaded shaker = `MOULD_RAIL` + `POCKET_D8` 12.7 mm in + `MOULD_PROFILE` vector. Older orders keep their geometry. Test sheet regenerated.
+- **Version 6 (25 Nov 2026, Tim's DXF review):** Tongue & bead = pair of `BEAD_D3` lines 9 mm apart (`BEAD_PAIR`) at each joint, no V-groove. Beaded shaker unchanged (on hold for the toolpath lab's beads test board). Older orders keep their geometry. Test sheet regenerated.

@@ -39,7 +39,7 @@ Seven designs need real photos (they show a computer render now): Traditional sh
 
 10. **Moulding and round-over designs**: work out the VCarve toolpaths in the toolpath lab. [toolpath-lab.md](workstreams/toolpath-lab.md)
 10a. **"I can fit your handles" service** (Tim, 25 Nov 2026): customers choose handle or knob positions in the configurator and Tim drills the holes. To work out: handle types (one hole for knobs, two holes with a centre distance for bar handles), positions (edge distance, height, centred or offset), whether customers send their own handles or Tim supplies them, price per door, and how it goes on the DXF (like hinge holes: `LABELS` layer, or a drill layer). Needs wording in both payment modes and the terms.
-10b. **Beaded shaker configurator** (Tim, 25 Nov 2026): choose the moulding style (other profiles from the toolpath-lab images), not just the frame width. For now the DXF has one rail, the pocket and one 12.7 × 8 mm round-over profile.
+10b. **Beaded shaker configurator** (Tim, 25 Nov 2026): choose the moulding style (other profiles from the toolpath-lab images), not just the frame width. First Tim tests the toolpath lab's beads test board (branch `claude/fervent-ride-vmspcn`) and feeds back which vectors the website must write; until then the beaded shaker DXF is unchanged.
 11. **New test designs** (two-panel, vented, raised profile; full-height fluted like the wardrobe) on the test page first.
 12. **Google Business Profile**: on hold until Tim decides on a business phone number. Guide already written. [business.md](workstreams/business.md)
 13. **Trade portal** for local fitters: talk to 2 or 3 local trades first. [trade-portal.md](workstreams/trade-portal.md)

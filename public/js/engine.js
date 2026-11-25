@@ -15,7 +15,7 @@
 })(typeof self !== "undefined" ? self : this, function () {
   "use strict";
 
-  const VERSION = 6; // 6: tongue & bead has a pair of beads at each joint (no V-groove); beaded shaker is a moulding (drive rail at the frame edge, 8 mm pocket 12.7 mm further in, plus a profile vector). 5: 5: bevelled shaker pocket 8 mm deep with an 8 mm bevel. 4: 4: bevel matches the 5 mm pocket (90 degree V-bit); beaded shaker uses a round-over moulding rail; arched sized by side margin, mirrored about the centre; fluted margins split; reeds fixed at 12.5 mm. 2: hinge distances and notes; bevelled shaker redrawn as a 5 mm recessed panel with a bevel. 3: skinny shaker pocket 5 mm deep (was 8); arched doors adjustable, with left, right and pair layouts
+  const VERSION = 6; // 6: tongue & bead has a pair of beads at each joint (no V-groove). (Beaded shaker waits for the toolpath lab.) 5: 5: bevelled shaker pocket 8 mm deep with an 8 mm bevel. 4: 4: bevel matches the 5 mm pocket (90 degree V-bit); beaded shaker uses a round-over moulding rail; arched sized by side margin, mirrored about the centre; fluted margins split; reeds fixed at 12.5 mm. 2: hinge distances and notes; bevelled shaker redrawn as a 5 mm recessed panel with a bevel. 3: skinny shaker pocket 5 mm deep (was 8); arched doors adjustable, with left, right and pair layouts
   const LIMITS = { wMin: 300, wMax: 1000, hMin: 300, hMax: 1200 }; // machine bed takes 1200 x 1200 sheets; 1000 x 1200 is the largest that can be held down safely
   const OVERCUT = 10;
   const BEAD_PAIR = 9; // tongue & bead: centre-to-centre distance of the two beads at each joint
@@ -47,8 +47,6 @@
     bevel:    { layer: "BEVEL_D5",     label: "Bevel, 45 degrees, from this line (at the face) down to the 5 mm pocket edge", width: 5, color: 6 },
     bevel8:   { layer: "BEVEL_D8",     label: "Bevel, 45 degrees, from this line (at the face) down to the 8 mm pocket edge", width: 8, color: 6 },
     roundover:{ layer: "ROUNDOVER",    label: "Round-over on the pocket edge (12.7 mm), corners squared", width: 12.7, color: 30 },
-    mouldrail:{ layer: "MOULD_RAIL",   label: "Moulding drive rail: the frame edge where the 12.7 mm round-over starts (runs down to the 8 mm pocket)", width: 12.7, color: 30 },
-    profile:  { layer: "MOULD_PROFILE",label: "Moulding profile: round-over cross-section, 12.7 mm wide x 8 mm deep (a drawing for VCarve, not a cut)", width: 0, color: 2, ref: true },
     mould:    { layer: "MOULD",        label: "Moulding rail: set the profile in VCarve",           width: 18,   color: 30 },
     chamfer:  { layer: "CHAMFER_D3",   label: "Edge chamfer, 45 degrees, 3 mm",                     width: 6,    color: 6 }
   };
@@ -392,16 +390,6 @@
       build(W, H, o, door) {
         const [p] = shakerPanels(W, H, o.border, 0);
         const v = door && door.version ? door.version : VERSION;
-        if (v >= 6) {
-          // Moulding: drive rail at the frame edge, the round-over runs 12.7 mm in and down to the
-          // 8 mm pocket floor. The profile vector (the cross-section) sits in the middle of the panel.
-          const r = TOOLS.mouldrail.width, q = [p[0] + r, p[1] + r, p[2] - r, p[3] - r];
-          const cx = (p[0] + p[2]) / 2, cy = (p[1] + p[3]) / 2, d = TOOLS.pocket8.depth;
-          const prof = [];
-          for (let i = 0; i <= 16; i++) { const a = (Math.PI / 2) * (i / 16); prof.push([cx - r / 2 + r * Math.sin(a), cy - d / 2 + d * (1 - Math.cos(a))]); }
-          return { outline: rect(0, 0, W, H), paths: [{ tool: "mouldrail", pts: rect(...p), closed: true, inner: rect(...q) }, { tool: "pocket8", pts: rect(...q), closed: true }, { tool: "profile", pts: prof }],
-            dims: frameDims(W, H, o.border, 0).concat([note([p[2] - 6, p[1] + (p[3] - p[1]) * 0.75], "12.7 mm round-over", [p[2] + 4, p[1] + (p[3] - p[1]) * 0.75])]) };
-        }
         const paths = [{ tool: "pocket8", pts: rect(...p), closed: true }];
         if (v < 4) { const bead = 6; paths.push({ tool: "bead6", pts: rect(p[0] - bead, p[1] - bead, p[2] + bead, p[3] + bead), closed: true }); }
         else paths.push({ tool: "roundover", pts: rect(...p), closed: true }); // 12.7 mm round-over, moulding toolpath for square corners
@@ -750,12 +738,6 @@
           for (const [a, b, c, d2, op] of faces) s += `<polygon points="${ptsAttr([a, b, c, d2])}" fill="#000" fill-opacity="${op}"/>`;
           s += `<polygon points="${ptsAttr([o[1], o[2], i[2], i[1]])}" fill="#fff" fill-opacity=".10"/><polygon points="${ptsAttr([o[2], o[3], i[3], i[2]])}" fill="#fff" fill-opacity=".16"/>`;
           s += `<polygon points="${ptsAttr(o)}" fill="none" stroke="#000" stroke-opacity=".30" stroke-width="1.5"/><polygon points="${ptsAttr(i)}" fill="none" stroke="#000" stroke-opacity=".22" stroke-width="1"/>`;
-        } else if (p.tool === "mouldrail" && p.inner) {
-          // The round-over between the frame edge (rail) and the pocket floor, lit from the top left.
-          const o = p.pts, i = p.inner;
-          const faces = [[o[0], o[1], i[1], i[0], ".10"], [o[1], o[2], i[2], i[1], ".04"], [o[2], o[3], i[3], i[2], ".03"], [o[3], o[0], i[0], i[3], ".08"]];
-          for (const [q1, q2, q3, q4, op] of faces) s += `<polygon points="${ptsAttr([q1, q2, q3, q4])}" fill="#000" fill-opacity="${op}"/>`;
-          s += `<polygon points="${ptsAttr(o)}" fill="none" stroke="#fff" stroke-opacity=".35" stroke-width="2"/>`;
         } else if (p.tool === "roundover" && p.pts.length === 4) {
           // A rounded edge on the frame, just outside the pocket: shaded band, lit from the top left.
           const w = t.width, [a, , c] = p.pts, o = rect(a[0] - w, a[1] - w, c[0] + w, c[1] + w), i = p.pts;

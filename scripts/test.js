@@ -383,12 +383,7 @@ async function payPath(ref) {
   assert(tp.status === 200 && (await tp.text()).includes("configurator.js"));
   // engine version 4 changes, with old orders kept as they were
   const nd = (o) => E.normalizeDoor(o);
-  const bl = (v) => { const d = { ...nd({ design: "beaded", width: 450, height: 700 }).door }; if (v) d.version = v; return E.layerList([d]).map((l) => l.layer).join(); };
-  assert.strictEqual(bl(), "CUTOUT,MOULD_RAIL,POCKET_D8,MOULD_PROFILE", "beaded shaker: moulding rail, pocket and profile vector");
-  assert(bl(5).includes("ROUNDOVER"), "version 5 beaded orders keep the round-over line");
-  const bg = E.buildDoor(nd({ design: "beaded", width: 450, height: 700 }).door);
-  assert(Math.abs(bg.paths.find((p) => p.tool === "pocket8").pts[0][0] - bg.paths.find((p) => p.tool === "mouldrail").pts[0][0] - 12.7) < 1e-9, "pocket starts 12.7 mm inside the rail");
-  assert(!E.doorSVG(nd({ design: "beaded", width: 450, height: 700 }).door).includes("NaN"));
+  assert(E.layerList([nd({ design: "beaded", width: 450, height: 700 }).door]).some((l) => l.layer === "ROUNDOVER"), "beaded shaker unchanged until the toolpath lab settles it");
   const tb = (v) => { const d = { ...nd({ design: "tbgroove", width: 400, height: 700 }).door }; if (v) d.version = v; return E.buildDoor(d).paths.filter((p) => p.tool !== "cutout"); };
   assert(tb().every((p) => p.tool === "bead6") && tb().length % 2 === 0 && Math.abs(tb()[1].pts[0][0] - tb()[0].pts[0][0] - 9) < 1e-9, "tongue & bead: a pair of beads 9 mm apart at each joint");
   assert(tb(5).some((p) => p.tool === "v90d4"), "version 5 tongue & bead orders keep the V-groove");
