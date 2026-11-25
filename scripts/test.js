@@ -547,6 +547,7 @@ async function payPath(ref) {
   for (const path of ["/", "/configurator", "/story", "/contact", "/terms", "/privacy"]) {
     const h = await (await req(path)).text();
     assert.strictEqual((h.match(/static\.cloudflareinsights\.com\/beacon\.min\.js/g) || []).length, 1, path + " counts visits once");
+    assert(h.includes('<meta name="google-site-verification" content="NojJCifZUdCLtJ8YbGHnGiaJHK_ztOtDh8CGmwDJ9cs">'), path + " has the Search Console tag");
   }
   assert(!(await page("/admin")).includes("cloudflareinsights"), "admin pages aren't counted");
   step("Cloudflare Web Analytics on every public page, not on /admin");
