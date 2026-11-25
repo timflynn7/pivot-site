@@ -187,5 +187,6 @@ a.design:hover h3 { text-decoration: underline; text-underline-offset: 5px; text
 .skip:focus { top: 12px; }
 main:focus { outline: none; }
 .site-foot a { display: inline-block; padding-block: 8px; }
+.site-foot a.brand { display: flex; gap: 10px; padding-block: 0; } /* keep the logo's spacing in the footer */
 .chat-aside { display: contents; }
 h2.h3 { font-size: var(--step-1); }
