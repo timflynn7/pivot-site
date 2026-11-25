@@ -6,7 +6,7 @@ One list of everything still open, in priority order. The detail stays in each w
 
 ### 1a. Test panels in standard MDF first (Tim, 25 Nov 2026, proposed)
 Before using MR MDF, cut one test sheet in standard MDF to prove the bits and depths.
-- **Nine panels, 370 × 370 mm, in a 3 × 3 grid**: 3 × 370 + 2 × 25 mm gaps + 2 × 20 mm border = 1200 mm (on a true 1220 half sheet the border is Tim's usual 30 mm). Ten or more won't fit at the 300 mm minimum size.
+- **DXF made 25 Nov 2026** (`node scripts/test-sheet-dxf.js <folder>`): nine **360 × 360** panels on 1200 × 1200, origin bottom-left. Columns at x 35 / 420 / 805 (35 mm side borders, 25 mm gaps); rows at y 820 / 420 / 20 (20 mm top and bottom borders, 40 mm gaps). Panels shrank from 370 to 360 so the three designs whose grooves overcut 10 mm past the top and bottom (Tongue & V, Tongue & bead, Reeded) sit in the middle row with room to spare. Standard settings for each design.
 - Chosen so every cut layer is tested once: Skinny shaker (`POCKET_D5`), Bevelled (`POCKET_D8`, `BEVEL_D8`), Beaded (`ROUNDOVER`), New Country (`VGROOVE_D4`), Georgian (`POCKET_D4`), Tongue & V, Tongue & bead (`BEAD_D3`), Fluted (`FLUTE_D5`), Reeded (`REED_D4`).
 - Left off: Slab (self-explanatory), Traditional shaker (its 8 mm pocket is tested by Bevelled, Beaded, New Country and Georgian), Arched (same reed bit as Reeded; already has a photo).
 - Write down the depths and bits that look right; they replace the placeholders in `TOOLS` (item 5).
