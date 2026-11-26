@@ -69,3 +69,19 @@ Also: real layer names and depths for the settled designs, to replace the placeh
 
 ## Key files
 `public/js/engine.js` (`TOOLS`, `DESIGNS`, `orderDXF`), `scripts/test-board-dxf.js`, `scripts/sample-dxf.js`.
+
+## First full test cut (25 Nov 2026): Tim's findings, awaiting decisions
+Tim cut the sample doors on 25 Nov 2026. **No engine changes until Tim approves** (his instruction, 26 Nov 2026). Organised notes and Claude's analysis were given in the chat; the summary:
+
+**Set-up first (affects every design):** Z flatness (reeds had flat spots where the board sat lower: surface the spoilboard, check the board's thickness and hold-down, consider a light facing pass on reeded doors before machining); calibrate the tool library (1/8 in downcut gave elongated corners, the 2 mm straight bit was better: measure the true cut width of each bit from a test slot); set pass depths in VCarve (bevel and V-grooves were too much in one pass).
+
+**Vector changes proposed (need Tim's approval, then bump `VERSION`):**
+1. Tongue & bead groove: bead line 12.5 mm from the V-groove line (now 9 mm), and its layer renamed to match the real bit and depth (now `BEAD_D3`, cut at 5 mm with the reed bit). Tim to confirm the 12.5 mm is V-line to bead centre line.
+2. Reeded: extend the 12.5 mm reed lines past both side edges so the edge reeds are fully formed (no flat border). Tim to send a past delivered reeded job to copy.
+3. V-groove depth: the 4 mm (8 mm wide) groove was too much on Tongue & V and New Country. New depth to come from a depth ladder test; the layer name changes with it (e.g. `VGROOVE_D2`).
+4. New Country: the V-groove lines run right up to the pocket wall, so the V-bit's cone cuts a notch into the frame wall at each groove end. Options: stop the lines short by the bit's radius, or use a smaller-diameter V-bit. Decide after the test.
+5. If the 2 mm bit replaces the 1/8 in bit for corners, the customer wording changes from a 1.5 mm to a 1 mm inside-corner radius (`CORNER_R`; wording only, the vectors have sharp corners).
+
+**VCarve-only (no vector change):** Georgian corners (vectors confirmed fine; shoulder 20 mm at 4 mm deep, 8 mm panel), bevelled shaker passes and corner overshoot (check V-bit angle and tip in the tool library and Z zero), beaded shaker lip (moulding profile should overlap the pocket line slightly, or a 2 mm tidy-up pass), tongue & bead two-stage depth.
+
+**Open questions:** Fluted spacing (DXF lines 22 mm apart, 16 mm flute assumed: what bit and spacing does Tim use now?); hinge cups on Skinny shaker (cup reaches 40 mm in from the edge, past the 18–35 mm frame, over the 5 mm pocket, leaving about 13 mm of board: a 13 mm deep cup would break through); back-side drilling would need a flip jig and a separate DXF layer or file.
