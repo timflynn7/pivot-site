@@ -25,7 +25,7 @@ The work is split into workstreams. **Read `docs/workstreams/README.md` and `doc
 - `scripts/sample-dxf.js`: writes one full-size test DXF per design plus one combined file.
 - `scripts/test-board-dxf.js`: writes one 1220 x 500 mm offcut board with the draft designs, hand-placed, with full-size details.
 - Hosting: Render web service `pivot-site` (Starter plan) deploys automatically from `main` within about a minute. Domain DNS is at 123-reg: the A record for `@` points to 216.24.57.1, and `www` is a CNAME to `pivot-site.onrender.com`. **Never touch the MX, SPF, DKIM, DMARC or autodiscover records;** they carry Tim's email. Resend's records (`resend._domainkey`, `rsend`, `send`) were added on 20 Nov 2026 for order emails.
-- Public business address (terms, privacy): 61 Bridge Street, Kington, HR5 3DJ. **Never publish Tim's home address.**
+- Public business address (terms, privacy): 61 Bridge Street, Kington, HR5 3DJ, a business address service. The workshop itself is in Surrey, and the site may say so (e.g. terms: "our workshop in Surrey"); both are correct. **Never publish Tim's home address.**
 
 ## Decisions that hold everywhere
 
