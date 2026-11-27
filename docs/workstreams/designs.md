@@ -126,3 +126,6 @@ Proposed engine change (needs Tim's OK, bump `VERSION`): New Country = `POCKET_D
 **Open questions for Tim:**
 1. **Five-piece joint groove ends** (New Country and Bevelled): in Tim's own experiments the groove ends lined up vertically with the top and bottom of the chamfer toolpath. The website's grooves stop 2 mm short of the frame's inner edge (the V-bit's tip), so the groove's tapered end just reaches that edge. Tim will test a website DXF and confirm whether the ends should move.
 2. **With a 2 mm step:** the step's corners keep the pocket's 1.5 mm radius under the bevel's sharp mitre; check it looks right on a test cut.
+
+**T12 result (Tim, 27 Nov 2026): the reed bit's correct depth is 5 mm** (the deepest it goes before the shoulder cuts in, confirmed on the 4 / 4.5 / 5 mm ladder). The DXF layers still say `REED_D4` (Reeded, Arched) and `BEAD_D3` (Tongue & bead groove's bead line, still 9 mm from the V-groove). Proposed and **awaiting Tim's OK**: rename to `REED_D5` and move the Tongue & bead line to 12.5 mm (item 1 of the test-cut list); reeded lines past the side edges (item 2) still need a past delivered reeded job to copy.
+- Bevelled shaker version 7 **live on 27 Nov 2026** (Tim's go-ahead).
