@@ -428,8 +428,9 @@
           // pocket line by the chamfer depth plus the groove depth, so each groove's inner edge meets the
           // chamfer's top edge.
           const off = NC.chamfer + NC.joint, xl = p[0] - off, xr = p[2] + off, yt = p[1] - off, yb = p[3] + off;
-          paths.push({ tool: "v90d2", pts: [[xl, -OVERCUT], [xl, yt]] }, { tool: "v90d2", pts: [[xr, -OVERCUT], [xr, yt]] },
-            { tool: "v90d2", pts: [[xl, yb], [xl, H + OVERCUT]] }, { tool: "v90d2", pts: [[xr, yb], [xr, H + OVERCUT]] });
+          // joint: the preview draws these half a groove width inwards, so they read as continuing the chamfer line (the DXF uses pts).
+          paths.push({ tool: "v90d2", joint: 1, pts: [[xl, -OVERCUT], [xl, yt]] }, { tool: "v90d2", joint: -1, pts: [[xr, -OVERCUT], [xr, yt]] },
+            { tool: "v90d2", joint: 1, pts: [[xl, yb], [xl, H + OVERCUT]] }, { tool: "v90d2", joint: -1, pts: [[xr, yb], [xr, H + OVERCUT]] });
         }
         return { outline: rect(0, 0, W, H), paths, dims: frameDims(W, H, o.border, 0).concat(boardDims(p[0], p[2], bl, H * 0.62)) };
       }
@@ -800,6 +801,11 @@
           s += `<polygon points="${ptsAttr(o)}" fill="none" stroke="#000" stroke-opacity=".28" stroke-width="1.5"/>`;
         } else if (p.tool === "chamfer") {
           s += `<polygon points="${ptsAttr(p.pts)}" fill="none" stroke="#fff" stroke-opacity=".45" stroke-width="5"/>`;
+        } else if (p.joint) {
+          // Five-piece joint groove: a fine shadow line on the chamfer's top edge.
+          const w = t.width, pts = p.pts.map((q) => [q[0] + p.joint * w / 2, q[1]]);
+          s += `<polyline points="${ptsAttr(pts)}" fill="none" stroke="#000" stroke-opacity=".30" stroke-width="${f1(w * 0.6)}"/>`;
+          s += `<polyline points="${ptsAttr(pts.map((q) => [q[0] + p.joint * w * 0.4, q[1]]))}" fill="none" stroke="#fff" stroke-opacity=".25" stroke-width="${f1(w * 0.25)}"/>`;
         } else {
           const w = t.width, el = p.closed ? "polygon" : "polyline";
           s += `<${el} points="${ptsAttr(p.pts)}" fill="none" stroke="#000" stroke-opacity="${p.tool === "mould" || p.tool === "bevel" ? ".14" : ".24"}" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round"/>`;

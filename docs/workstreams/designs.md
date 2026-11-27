@@ -114,3 +114,4 @@ Proposed engine change (needs Tim's OK, bump `VERSION`): New Country = `POCKET_D
 - Orders saved before version 6 keep the 8 mm pocket with 4 mm grooves (tested in `npm test`).
 - Checked: DXF read back with ezdxf and drawn; configurator option tested in a browser.
 - **Live on 27 Nov 2026** (merged to `main` at Tim's request, together with the discount-code and hinge-charge work already on `main`). Checked on pivotdesigns.co.uk: engine version 6 served, new render in place.
+- **Preview fix (27 Nov 2026, Tim's comment):** the configurator drew the five-piece joint grooves as a band centred on the cutting line, so they looked as if they sat outside the chamfer line. The preview now draws them as a fine line on the chamfer's top edge (paths marked `joint`). The DXF is unchanged: the grooves' inner edges meet the chamfer's top edge, as specified.
