@@ -15,13 +15,14 @@
 })(typeof self !== "undefined" ? self : this, function () {
   "use strict";
 
-  const VERSION = 7; // 7: bevelled shaker options: five-piece joints, and a bevel that stops 2 mm above the panel (a chamfer on the pocket line). 6: New Country redrawn from the test cuts (3 mm pocket, grooves 5 mm from the face, a 5 mm chamfer round the panel, frame width to the top of the chamfer, optional five-piece joint grooves). 5: bevelled shaker pocket 8 mm deep with an 8 mm bevel. 4: 4: bevel matches the 5 mm pocket (90 degree V-bit); beaded shaker uses a round-over moulding rail; arched sized by side margin, mirrored about the centre; fluted margins split; reeds fixed at 12.5 mm. 2: hinge distances and notes; bevelled shaker redrawn as a 5 mm recessed panel with a bevel. 3: skinny shaker pocket 5 mm deep (was 8); arched doors adjustable, with left, right and pair layouts
+  const VERSION = 8; // 8: tongue & bead groove: the bead is cut with the 12.7 mm reed bit at 5 mm (REED_D5), its line 12.5 mm from the V-groove line (was a 6 mm bead 9 mm away). 7: bevelled shaker options: five-piece joints, and a bevel that stops 2 mm above the panel (a chamfer on the pocket line). 6: New Country redrawn from the test cuts (3 mm pocket, grooves 5 mm from the face, a 5 mm chamfer round the panel, frame width to the top of the chamfer, optional five-piece joint grooves). 5: bevelled shaker pocket 8 mm deep with an 8 mm bevel. 4: 4: bevel matches the 5 mm pocket (90 degree V-bit); beaded shaker uses a round-over moulding rail; arched sized by side margin, mirrored about the centre; fluted margins split; reeds fixed at 12.5 mm. 2: hinge distances and notes; bevelled shaker redrawn as a 5 mm recessed panel with a bevel. 3: skinny shaker pocket 5 mm deep (was 8); arched doors adjustable, with left, right and pair layouts
   const LIMITS = { wMin: 300, wMax: 1000, hMin: 300, hMax: 1200 }; // machine bed takes 1200 x 1200 sheets; 1000 x 1200 is the largest that can be held down safely
   const OVERCUT = 10;
   const BEVEL_W = 12;            // bevelled shaker before engine version 4. From version 4 a 90 degree V-bit makes the bevel, so its width equals the pocket depth.
   const REED_PITCH = 12.5;       // reeded: centre-to-centre spacing, refined over time and fixed for customers
   const CORNER_R = 1.5;          // inside-corner radius of pockets: finished with a 1/8 in downcut or 2 mm straight bit
   const NC = { chamfer: 5 };  // New Country from version 6: chamfer depth round the panel
+  const TB_BEAD = 12.5;        // tongue & bead groove from version 8: V-groove line to bead line, mm (the same as the reed spacing)
   const BEVEL_STEP = 2;       // bevelled shaker "with a step": the vertical ridge left between the bevel and the panel, mm
   const HINGE = { def: 100, min: 50 }; // hinge cup centres from the top and bottom edges, mm            // grooves that run off the door go this far past the edge
   const LABEL_LAYER = "LABELS";
@@ -42,6 +43,7 @@
     flute16:  { layer: "FLUTE_D5",     label: "Flute, 16 mm wide, 5 mm deep",                       width: 16,   color: 3 },
     flute8:   { layer: "FLUTE_D4",     label: "Flute, 8 mm wide, 4 mm deep",                        width: 8,    color: 3 },
     reed13:   { layer: "REED_D4",      label: "Reed groove, 12.7 mm wide, 4 mm deep",               width: 12.7, color: 4 },
+    reed5:    { layer: "REED_D5",      label: "Reed bit (12.7 mm), 5 mm deep",                       width: 12.7, color: 4 },
     bead6:    { layer: "BEAD_D3",      label: "Bead, 6 mm wide, 3 mm deep",                         width: 6,    color: 4 },
     v90d4:    { layer: "VGROOVE_D4",   label: "V-groove, 90 degrees, 4 mm deep",                    width: 8,    color: 1 },
     v90d5:    { layer: "VGROOVE_D5",   label: "V-groove, 90 degrees, 5 mm deep",                    width: 10,   color: 1 },
@@ -494,10 +496,13 @@
       id: "tbgroove", name: "Tongue & bead groove", family: "Grooved slab", adjustable: true, draft: true,
       blurb: "Boards divided by grooves, each with a bead beside it.",
       opts: [num("spacing", "Board width", 100, 50, 200, 5), fitOpt()],
-      build(W, H, o) {
+      build(W, H, o, door) {
         const bl = boardLines(0, W, o);
         const paths = [];
-        for (const x of bl.xs) paths.push({ tool: "v90d4", pts: fullHeight(x, H) }, { tool: "bead6", pts: fullHeight(x + 9, H) });
+        // Version 8 (Tim's test cuts): the bead is cut with the reed bit at 5 mm, its line TB_BEAD mm from the V-groove line.
+        // Earlier orders: a 6 mm bead 9 mm away.
+        const old = door && door.version < 8;
+        for (const x of bl.xs) paths.push({ tool: "v90d4", pts: fullHeight(x, H) }, old ? { tool: "bead6", pts: fullHeight(x + 9, H) } : { tool: "reed5", pts: fullHeight(x + TB_BEAD, H) });
         return { outline: rect(0, 0, W, H), paths, dims: boardDims(0, W, bl, H * 0.45) };
       }
     },

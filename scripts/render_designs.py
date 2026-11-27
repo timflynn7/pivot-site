@@ -104,7 +104,7 @@ def height_map(door, X, Y):
             d = dist_polyline(X, Y, pts)
             Z = Z - np.clip(dp - d, 0, dp)       # grooves add to whatever is there (e.g. a pocket floor)
         else:                                      # rounded grooves: flutes, reeds, beads
-            w = p["width"]; dp = {"flute16": 5, "flute8": 4, "reed13": 4, "bead6": 3}.get(tool, 3)
+            w = p["width"]; dp = {"flute16": 5, "flute8": 4, "reed13": 4, "reed5": 5, "bead6": 3}.get(tool, 3)
             R = ((w / 2) ** 2 + dp * dp) / (2 * dp)
             d = dist_polyline(X, Y, pts)
             Z = Z - np.where(d < w / 2, np.sqrt(np.maximum(R * R - d * d, 0)) - (R - dp), 0)

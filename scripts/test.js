@@ -403,6 +403,13 @@ async function payPath(ref) {
   assert(E.layerList([ncDoor({ joints: "fivepiece" })]).some((l) => l.layer === "VGROOVE_D2"));
   const ncOld = E.buildDoor(ncDoor({ border: 70, joints: "fivepiece" }, 5));
   assert(ncOld.paths[1].tool === "pocket8" && ncOld.paths[1].pts[0][0] === 70 && ncOld.paths.slice(2).every((p) => p.tool === "v90d4"), "version 5 New Country orders keep their geometry");
+  // engine version 8: tongue & bead groove, bead on the reed bit 12.5 mm from the V-groove
+  const tb = (version) => { const d = { ...nd({ design: "tbgroove", width: 600, height: 720, opts: { fit: "exact", spacing: 100 } }).door }; if (version) d.version = version; return d; };
+  const tbP = E.buildDoor(tb()).paths, tbV = tbP.filter((p) => p.tool === "v90d4"), tbB = tbP.filter((p) => p.tool === "reed5");
+  assert(tbV.length && tbV.length === tbB.length && tbV.every((p, i) => Math.abs(tbB[i].pts[0][0] - p.pts[0][0] - 12.5) < 1e-9), "bead line 12.5 mm from each V-groove");
+  assert.strictEqual(E.layerList([tb()]).map((l) => l.layer).sort().join(), "CUTOUT,REED_D5,VGROOVE_D4");
+  const tbOld = E.buildDoor(tb(7)).paths;
+  assert(tbOld.filter((p) => p.tool === "bead6").every((p, i) => Math.abs(p.pts[0][0] - tbOld.filter((q) => q.tool === "v90d4")[i].pts[0][0] - 9) < 1e-9) && !tbOld.some((p) => p.tool === "reed5"), "version 7 tongue & bead orders keep the 6 mm bead 9 mm away");
   // engine version 7: bevelled shaker options
   const bv = (opts, version) => { const d = { ...nd({ design: "bevelled", width: 500, height: 720, opts }).door }; if (version) d.version = version; return d; };
   const bvLayers = (d) => E.layerList([d]).map((l) => l.layer).sort().join();

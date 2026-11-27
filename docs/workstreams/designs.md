@@ -129,3 +129,7 @@ Proposed engine change (needs Tim's OK, bump `VERSION`): New Country = `POCKET_D
 
 **T12 result (Tim, 27 Nov 2026): the reed bit's correct depth is 5 mm** (the deepest it goes before the shoulder cuts in, confirmed on the 4 / 4.5 / 5 mm ladder). The DXF layers still say `REED_D4` (Reeded, Arched) and `BEAD_D3` (Tongue & bead groove's bead line, still 9 mm from the V-groove). Proposed and **awaiting Tim's OK**: rename to `REED_D5` and move the Tongue & bead line to 12.5 mm (item 1 of the test-cut list); reeded lines past the side edges (item 2) still need a past delivered reeded job to copy.
 - Bevelled shaker version 7 **live on 27 Nov 2026** (Tim's go-ahead).
+
+## Changes on 27 Nov 2026 (engine VERSION 8): Tongue & bead groove (Tim approved)
+- Bead line **12.5 mm** to the right of each V-groove line (was 9 mm), on new layer **`REED_D5`** (the 12.7 mm reed bit at 5 mm). V-grooves unchanged on `VGROOVE_D4` (their depth waits for the T08 ladder result). Orders before version 8 keep the 6 mm bead (`BEAD_D3`) 9 mm away. Checked: DXF read back and drawn, preview drawn, `npm test` passes. Live on 27 Nov 2026.
+- Still on `REED_D4`: Reeded and Arched. Ask Tim whether they should move to 5 mm too (T12 was about the bead), and send a past delivered reeded job for the edge-overflow change.
