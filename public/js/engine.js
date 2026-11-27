@@ -15,12 +15,13 @@
 })(typeof self !== "undefined" ? self : this, function () {
   "use strict";
 
-  const VERSION = 5; // 5: bevelled shaker pocket 8 mm deep with an 8 mm bevel. 4: 4: bevel matches the 5 mm pocket (90 degree V-bit); beaded shaker uses a round-over moulding rail; arched sized by side margin, mirrored about the centre; fluted margins split; reeds fixed at 12.5 mm. 2: hinge distances and notes; bevelled shaker redrawn as a 5 mm recessed panel with a bevel. 3: skinny shaker pocket 5 mm deep (was 8); arched doors adjustable, with left, right and pair layouts
+  const VERSION = 6; // 6: New Country redrawn from the test cuts (3 mm pocket, grooves 5 mm from the face, a 5 mm chamfer round the panel, frame width to the top of the chamfer, optional five-piece joint grooves). 5: bevelled shaker pocket 8 mm deep with an 8 mm bevel. 4: 4: bevel matches the 5 mm pocket (90 degree V-bit); beaded shaker uses a round-over moulding rail; arched sized by side margin, mirrored about the centre; fluted margins split; reeds fixed at 12.5 mm. 2: hinge distances and notes; bevelled shaker redrawn as a 5 mm recessed panel with a bevel. 3: skinny shaker pocket 5 mm deep (was 8); arched doors adjustable, with left, right and pair layouts
   const LIMITS = { wMin: 300, wMax: 1000, hMin: 300, hMax: 1200 }; // machine bed takes 1200 x 1200 sheets; 1000 x 1200 is the largest that can be held down safely
   const OVERCUT = 10;
   const BEVEL_W = 12;            // bevelled shaker before engine version 4. From version 4 a 90 degree V-bit makes the bevel, so its width equals the pocket depth.
   const REED_PITCH = 12.5;       // reeded: centre-to-centre spacing, refined over time and fixed for customers
   const CORNER_R = 1.5;          // inside-corner radius of pockets: finished with a 1/8 in downcut or 2 mm straight bit
+  const NC = { chamfer: 5, joint: 2 };  // New Country from version 6: chamfer depth round the panel, and the depth of the five-piece joint grooves
   const HINGE = { def: 100, min: 50 }; // hinge cup centres from the top and bottom edges, mm            // grooves that run off the door go this far past the edge
   const LABEL_LAYER = "LABELS";
 
@@ -43,11 +44,14 @@
     bead6:    { layer: "BEAD_D3",      label: "Bead, 6 mm wide, 3 mm deep",                         width: 6,    color: 4 },
     v90d4:    { layer: "VGROOVE_D4",   label: "V-groove, 90 degrees, 4 mm deep",                    width: 8,    color: 1 },
     v90d5:    { layer: "VGROOVE_D5",   label: "V-groove, 90 degrees, 5 mm deep",                    width: 10,   color: 1 },
+    v90d5p:   { layer: "VGROOVE_D5",   label: "V-groove, 90 degrees, 5 mm deep from the face (2 mm below a 3 mm pocket floor)", width: 4, color: 1 },
+    v90d2:    { layer: "VGROOVE_D2",   label: "V-groove, 90 degrees, 2 mm deep",                    width: 4,    color: 1 },
     bevel:    { layer: "BEVEL_D5",     label: "Bevel, 45 degrees, from this line (at the face) down to the 5 mm pocket edge", width: 5, color: 6 },
     bevel8:   { layer: "BEVEL_D8",     label: "Bevel, 45 degrees, from this line (at the face) down to the 8 mm pocket edge", width: 8, color: 6 },
     roundover:{ layer: "ROUNDOVER",    label: "Round-over on the pocket edge (12.7 mm), corners squared", width: 12.7, color: 30 },
     mould:    { layer: "MOULD",        label: "Moulding rail: set the profile in VCarve",           width: 18,   color: 30 },
-    chamfer:  { layer: "CHAMFER_D3",   label: "Edge chamfer, 45 degrees, 3 mm",                     width: 6,    color: 6 }
+    chamfer:  { layer: "CHAMFER_D3",   label: "Edge chamfer, 45 degrees, 3 mm",                     width: 6,    color: 6 },
+    pchamfer5:{ layer: "CHAMFER_D5",   label: "Chamfer, 45 degrees, 5 mm deep: on this line (the pocket edge), outside, sloping up to the face 5 mm out", width: 5, color: 6, depth: 5 }
   };
 
   /* ---------- delivery area ---------- */
@@ -397,12 +401,31 @@
     {
       id: "newcountry", name: "New Country", family: "Shaker family", adjustable: true, draft: true, noNote: true,
       blurb: "A shaker with V-grooved boards in the panel.",
-      opts: [num("border", "Frame width", 70, 40, 120, 5), num("spacing", "Board width", 80, 50, 150, 5), fitOpt()],
-      build(W, H, o) {
-        const [p] = shakerPanels(W, H, o.border, 0);
+      opts: [num("border", "Frame width", 70, 40, 120, 5, "To the top of the chamfer round the panel."), num("spacing", "Board width", 80, 50, 150, 5), fitOpt(),
+        choice("joints", "Frame joints", "none", [["none", "None"], ["fivepiece", "Five-piece look"]], "Adds a groove where each rail meets a stile, so the frame looks like a traditional five-piece door.")],
+      build(W, H, o, door) {
+        if (door && door.version < 6) { // engine version 5 and earlier: 8 mm pocket at the frame width, 4 mm grooves
+          const [p] = shakerPanels(W, H, o.border, 0);
+          const bl = boardLines(p[0], p[2], o);
+          const paths = [{ tool: "pocket8", pts: rect(...p), closed: true }];
+          for (const x of bl.xs) paths.push({ tool: "v90d4", pts: [[x, p[1]], [x, p[3]]] });
+          return { outline: rect(0, 0, W, H), paths, dims: frameDims(W, H, o.border, 0).concat(boardDims(p[0], p[2], bl, H * 0.62)) };
+        }
+        // Version 6 (Tim's test cuts): 3 mm pocket; grooves 2 mm below its floor (5 mm from the face);
+        // a 5 mm chamfer on the pocket line rising to the face 5 mm out. The frame width runs to the
+        // top of the chamfer, so the pocket line is NC.chamfer further in.
+        const [p] = shakerPanels(W, H, o.border + NC.chamfer, 0);
         const bl = boardLines(p[0], p[2], o);
-        const paths = [{ tool: "pocket8", pts: rect(...p), closed: true }];
-        for (const x of bl.xs) paths.push({ tool: "v90d4", pts: [[x, p[1]], [x, p[3]]] });
+        const paths = [{ tool: "pocket3", pts: rect(...p), closed: true }, { tool: "pchamfer5", pts: rect(...p), closed: true }];
+        for (const x of bl.xs) paths.push({ tool: "v90d5p", pts: [[x, p[1]], [x, p[3]]] });
+        if (o.joints === "fivepiece") {
+          // Joint grooves from the corners of the chamfer to the top and bottom edges, set out from the
+          // pocket line by the chamfer depth plus the groove depth, so each groove's inner edge meets the
+          // chamfer's top edge.
+          const off = NC.chamfer + NC.joint, xl = p[0] - off, xr = p[2] + off, yt = p[1] - off, yb = p[3] + off;
+          paths.push({ tool: "v90d2", pts: [[xl, -OVERCUT], [xl, yt]] }, { tool: "v90d2", pts: [[xr, -OVERCUT], [xr, yt]] },
+            { tool: "v90d2", pts: [[xl, yb], [xl, H + OVERCUT]] }, { tool: "v90d2", pts: [[xr, yb], [xr, H + OVERCUT]] });
+        }
         return { outline: rect(0, 0, W, H), paths, dims: frameDims(W, H, o.border, 0).concat(boardDims(p[0], p[2], bl, H * 0.62)) };
       }
     },
@@ -741,6 +764,12 @@
           const faces = [[o[0], o[1], i[1], i[0], ".10"], [o[1], o[2], i[2], i[1], ".04"], [o[2], o[3], i[3], i[2], ".03"], [o[3], o[0], i[0], i[3], ".08"]];
           for (const [q1, q2, q3, q4, op] of faces) s += `<polygon points="${ptsAttr([q1, q2, q3, q4])}" fill="#000" fill-opacity="${op}"/>`;
           s += `<polygon points="${ptsAttr(o)}" fill="none" stroke="#fff" stroke-opacity=".35" stroke-width="2"/>`;
+        } else if (p.tool === "pchamfer5" && p.pts.length === 4) {
+          // A chamfer rising from the pocket edge to the frame face, lit from the top left.
+          const w = t.width, [a, , c] = p.pts, o = rect(a[0] - w, a[1] - w, c[0] + w, c[1] + w), i = p.pts;
+          const faces = [[o[0], o[1], i[1], i[0], ".20"], [o[1], o[2], i[2], i[1], ".05"], [o[2], o[3], i[3], i[2], ".02"], [o[3], o[0], i[0], i[3], ".14"]];
+          for (const [q1, q2, q3, q4, op] of faces) s += `<polygon points="${ptsAttr([q1, q2, q3, q4])}" fill="#000" fill-opacity="${op}"/>`;
+          s += `<polygon points="${ptsAttr(o)}" fill="none" stroke="#000" stroke-opacity=".28" stroke-width="1.5"/>`;
         } else if (p.tool === "chamfer") {
           s += `<polygon points="${ptsAttr(p.pts)}" fill="none" stroke="#fff" stroke-opacity=".45" stroke-width="5"/>`;
         } else {

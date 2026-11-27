@@ -391,6 +391,18 @@ async function payPath(ref) {
   assert(E.designById("lattice").archived && E.buildDoor(nd({ design: "lattice", width: 400, height: 680 }).door).dims.length === 2, "lattice archived, with diamond measurements");
   assert(!/tight but/.test(E.designNote(nd({ design: "shaker", width: 450, height: 700 }).door)) && E.designNote(nd({ design: "newcountry", width: 450, height: 700 }).door) === "");
   assert(E.layerList([nd({ design: "georgian", width: 450, height: 700, opts: { sdepth: "3" } }).door]).some((l) => l.layer === "POCKET_D3"));
+  // engine version 6: New Country from the test cuts, with old orders kept as they were
+  const ncDoor = (opts, version) => { const d = { ...nd({ design: "newcountry", width: 500, height: 720, opts }).door }; if (version) d.version = version; return d; };
+  const nc = E.buildDoor(ncDoor({ border: 70 })), ncPk = nc.paths.find((p) => p.tool === "pocket3");
+  assert.deepStrictEqual(ncPk.pts[0], [75, 75], "frame width runs to the top of the chamfer: pocket line 5 mm further in");
+  assert(nc.paths.some((p) => p.tool === "pchamfer5" && p.pts[0][0] === 75) && nc.paths.filter((p) => p.tool === "v90d5p").every((p) => p.pts[0][1] === 75 && p.pts[1][1] === 645));
+  assert.deepStrictEqual(E.layerList([ncDoor({})]).map((l) => l.layer).sort(), ["CHAMFER_D5", "CUTOUT", "POCKET_D3", "VGROOVE_D5"]);
+  assert(!nc.paths.some((p) => p.tool === "v90d2"), "no joint grooves unless chosen");
+  const j = E.buildDoor(ncDoor({ border: 70, joints: "fivepiece" })).paths.filter((p) => p.tool === "v90d2");
+  assert.deepStrictEqual(j.map((p) => p.pts), [[[68, -10], [68, 68]], [[432, -10], [432, 68]], [[68, 652], [68, 730]], [[432, 652], [432, 730]]], "joint grooves set out 5 + 2 mm from the pocket line, overcut past the edge");
+  assert(E.layerList([ncDoor({ joints: "fivepiece" })]).some((l) => l.layer === "VGROOVE_D2"));
+  const ncOld = E.buildDoor(ncDoor({ border: 70, joints: "fivepiece" }, 5));
+  assert(ncOld.paths[1].tool === "pocket8" && ncOld.paths[1].pts[0][0] === 70 && ncOld.paths.slice(2).every((p) => p.tool === "v90d4"), "version 5 New Country orders keep their geometry");
   assert(nd({ design: "georgian", width: 450, height: 700, opts: { border: 35 } }).errors.border, "Georgian frame minimum matches the shaker");
   const ex = (w) => E.buildDoor(nd({ design: "tvgroove", width: w, height: 600, opts: { fit: "exact", spacing: 100 } }).door).paths.filter((p) => p.tool === "v90d4").map((p) => p.pts[0][0]);
   for (const w of [450, 600, 733]) { const xs = ex(w); for (let i = 1; i < xs.length; i++) assert(Math.abs(xs[i] - xs[i - 1] - 100) < 1e-6, "exact boards are exactly 100 mm"); }
