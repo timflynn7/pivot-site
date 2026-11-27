@@ -15,10 +15,14 @@
 })(typeof self !== "undefined" ? self : this, function () {
   "use strict";
 
-  const VERSION = 9; // 9: reeded cut at 5 mm (REED_D5); arched grooves on FLUTE_D5 (same geometry, spaced for a 12.7 mm groove). 8: tongue & bead groove: the bead is cut with the 12.7 mm reed bit at 5 mm (REED_D5), its line 12.5 mm from the V-groove line (was a 6 mm bead 9 mm away). 7: bevelled shaker options: five-piece joints, and a bevel that stops 2 mm above the panel (a chamfer on the pocket line). 6: New Country redrawn from the test cuts (3 mm pocket, grooves 5 mm from the face, a 5 mm chamfer round the panel, frame width to the top of the chamfer, optional five-piece joint grooves). 5: bevelled shaker pocket 8 mm deep with an 8 mm bevel. 4: 4: bevel matches the 5 mm pocket (90 degree V-bit); beaded shaker uses a round-over moulding rail; arched sized by side margin, mirrored about the centre; fluted margins split; reeds fixed at 12.5 mm. 2: hinge distances and notes; bevelled shaker redrawn as a 5 mm recessed panel with a bevel. 3: skinny shaker pocket 5 mm deep (was 8); arched doors adjustable, with left, right and pair layouts
+  const VERSION = 10; // 10: fluted and arched use the 15.9 mm ball-nose bit at 5 mm, a 14.8 mm groove at the face (was 16 mm and 12.7 mm). 9: reeded cut at 5 mm (REED_D5); arched grooves on FLUTE_D5 (same geometry, spaced for a 12.7 mm groove). 8: tongue & bead groove: the bead is cut with the 12.7 mm reed bit at 5 mm (REED_D5), its line 12.5 mm from the V-groove line (was a 6 mm bead 9 mm away). 7: bevelled shaker options: five-piece joints, and a bevel that stops 2 mm above the panel (a chamfer on the pocket line). 6: New Country redrawn from the test cuts (3 mm pocket, grooves 5 mm from the face, a 5 mm chamfer round the panel, frame width to the top of the chamfer, optional five-piece joint grooves). 5: bevelled shaker pocket 8 mm deep with an 8 mm bevel. 4: 4: bevel matches the 5 mm pocket (90 degree V-bit); beaded shaker uses a round-over moulding rail; arched sized by side margin, mirrored about the centre; fluted margins split; reeds fixed at 12.5 mm. 2: hinge distances and notes; bevelled shaker redrawn as a 5 mm recessed panel with a bevel. 3: skinny shaker pocket 5 mm deep (was 8); arched doors adjustable, with left, right and pair layouts
   const LIMITS = { wMin: 300, wMax: 1000, hMin: 300, hMax: 1200 }; // machine bed takes 1200 x 1200 sheets; 1000 x 1200 is the largest that can be held down safely
   const OVERCUT = 10;
   const BEVEL_W = 12;            // bevelled shaker before engine version 4. From version 4 a 90 degree V-bit makes the bevel, so its width equals the pocket depth.
+  // The fluting bit (Tim, 27 Nov 2026): a 15.9 mm ball nose, 5 mm deep. It doesn't reach its full radius,
+  // so the groove at the face is narrower than the bit: 2 x sqrt(r^2 - (r - depth)^2) = 14.76 mm.
+  const FLUTE_BIT = { dia: 15.9, depth: 5 };
+  const FLUTE_W = Math.round(2 * Math.sqrt((FLUTE_BIT.dia / 2) ** 2 - (FLUTE_BIT.dia / 2 - FLUTE_BIT.depth) ** 2) * 100) / 100;
   const REED_PITCH = 12.5;       // reeded: centre-to-centre spacing, refined over time and fixed for customers
   const CORNER_R = 1.5;          // inside-corner radius of pockets: finished with a 1/8 in downcut or 2 mm straight bit
   const NC = { chamfer: 5 };  // New Country from version 6: chamfer depth round the panel
@@ -44,6 +48,7 @@
     flute8:   { layer: "FLUTE_D4",     label: "Flute, 8 mm wide, 4 mm deep",                        width: 8,    color: 3 },
     reed13:   { layer: "REED_D4",      label: "Reed groove, 12.7 mm wide, 4 mm deep",               width: 12.7, color: 4 },
     reed5:    { layer: "REED_D5",      label: "Reed bit (12.7 mm), 5 mm deep",                       width: 12.7, color: 4 },
+    flute5b:  { layer: "FLUTE_D5",     label: "Flute, 5 mm deep (15.9 mm ball nose: 14.8 mm wide at the face)", width: FLUTE_W, color: 3 },
     arch5:    { layer: "FLUTE_D5",     label: "Flute, 5 mm deep (arches spaced for a 12.7 mm wide groove)", width: 12.7, color: 3 },
     bead6:    { layer: "BEAD_D3",      label: "Bead, 6 mm wide, 3 mm deep",                         width: 6,    color: 4 },
     v90d4:    { layer: "VGROOVE_D4",   label: "V-groove, 90 degrees, 4 mm deep",                    width: 8,    color: 1 },
@@ -331,15 +336,16 @@
     {
       id: "fluted", name: "Fluted", family: "Your current range", adjustable: true,
       blurb: "Rounded flutes stopped inside a plain margin.",
-      opts: [num("mside", "Side margins", 40, 25, 80, 1), num("mend", "Top and bottom margins", 40, 25, 120, 1), num("spacing", "Flute spacing", 22, 18, 32, 1, "Centre to centre. The flutes are 16 mm wide.")],
-      build(W, H, o) {
+      opts: [num("mside", "Side margins", 40, 25, 80, 1), num("mend", "Top and bottom margins", 40, 25, 120, 1), num("spacing", "Flute spacing", 22, 18, 32, 1, `Centre to centre. The flutes are ${Math.round(FLUTE_W * 10) / 10} mm wide.`)],
+      build(W, H, o, door) {
+        const ft = door && door.version < 10 ? "flute16" : "flute5b"; // 15.9 mm ball nose from version 10
         // Orders before engine version 4 had one margin for all four sides.
         const ms = o.mside != null ? o.mside : o.margin != null ? o.margin : 40, me = o.mend != null ? o.mend : o.margin != null ? o.margin : 40;
         if (W - 2 * ms < 40 || H - 2 * me < 80) fail("The margins are too wide for this size. Make the margins smaller or the door bigger.");
-        const flutes = stoppedFlutes(ms, me, W - ms, H - me, o.spacing, TOOLS.flute16.width);
+        const flutes = stoppedFlutes(ms, me, W - ms, H - me, o.spacing, TOOLS[ft].width);
         const dims = [dim([0, H * 0.25], [ms, H * 0.25], mm(ms)), dim([W * 0.5, 0], [W * 0.5, me], mm(me))];
         if (flutes.length > 1) { const k = Math.floor(flutes.length / 2) - 1, x = flutes[k][0][0]; dims.push(dim([x, H * 0.5], [x + o.spacing, H * 0.5], mm(o.spacing))); }
-        return { outline: rect(0, 0, W, H), paths: flutes.map((pts) => ({ tool: "flute16", pts })), dims };
+        return { outline: rect(0, 0, W, H), paths: flutes.map((pts) => ({ tool: ft, pts })), dims };
       }
     },
     {
@@ -516,7 +522,7 @@
           "The arches are centred on the gap between a pair of doors. Both doors are the size you enter."),
         int("count", "Number of arches", 4, 1, 5),
         num("gap", "Gap between the doors", 3, 0, 10, 0.5, "The gap you'll leave between the pair when they're hung.", { layout: ["left", "right", "pair"] }),
-        num("spacing", "Arch spacing", 30, 16, 60, 1, "Centre to centre. The grooves are cut with a 12.7 mm form tool."),
+        num("spacing", "Arch spacing", 30, 16, 60, 1, `Centre to centre. The grooves are ${Math.round(FLUTE_W * 10) / 10} mm wide.`),
         num("top", "Top of the arches from the top edge", 100, 20, 600, 5, "Stays where you set it when you change the width."),
         num("margin", "Side margin", 50, 15, 300, 5, "From the outside edge of the door to the outer arch. The arches stay centred on the door, or on the gap between a pair, so both sides match.")
       ],
@@ -533,9 +539,11 @@
         }
         const layout = o.layout === "pair" ? "left" : o.layout, gap = layout === "single" ? 0 : o.gap;
         const box = { x0: -OVERCUT, y0: -OVERCUT, x1: W + OVERCUT, y1: H + OVERCUT };
-        const tw = TOOLS.reed13.width;
         if (door && door.version < 4) return archedV3(W, H, o, layout, gap, box);
-        const groove = door && door.version < 9 ? "reed13" : "arch5"; // FLUTE_D5 from version 9 (Tim); the same 12.7 mm spacing geometry
+        // Version 10: the fluting bit (14.8 mm groove at the face). Version 9: FLUTE_D5 spaced for 12.7 mm. Earlier: REED_D4.
+        const vv = door ? door.version : VERSION;
+        const groove = vv < 9 ? "reed13" : vv < 10 ? "arch5" : "flute5b";
+        const tw = TOOLS[groove].width;
         // Version 4: the arches are mirrored about the centre line of the door, or of the
         // gap for a pair. The side margin sets their width; the top stays where it's set.
         const cx = layout === "single" ? W / 2 : layout === "left" ? W + gap / 2 : -gap / 2;

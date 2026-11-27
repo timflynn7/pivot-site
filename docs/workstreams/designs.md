@@ -137,3 +137,10 @@ Proposed engine change (needs Tim's OK, bump `VERSION`): New Country = `POCKET_D
 ## Changes on 27 Nov 2026 (engine VERSION 9): reed and arch layers (Tim's instruction)
 - **Reeded** on `REED_D5` (the reed bit at 5 mm). **Arched** on `FLUTE_D5`. Geometry unchanged for both; orders before version 9 keep `REED_D4`. Checked: DXF read back and drawn, `npm test` passes. Live on 27 Nov 2026.
 - **Open question for Tim:** the arches are still spaced for a 12.7 mm wide groove (side margin and top are measured to the groove's edge), and the Arched help text tells customers "The grooves are cut with a 12.7 mm form tool". If the flute bit used for arches is a different width, give its width and Claude will update the spacing and the text. The Fluted design also still assumes a 16 mm flute (placeholder).
+
+## Changes on 27 Nov 2026 (engine VERSION 10): the fluting bit (Tim: Arched uses the same 15.9 mm ball nose as Fluted)
+- New tool `flute5b` on `FLUTE_D5`: 15.9 mm ball nose at 5 mm. It doesn't reach its full radius, so the groove at the face is 2 × √(r² − (r − 5)²) = **14.76 mm** (`FLUTE_W`, worked out in the engine from `FLUTE_BIT`).
+- **Fluted:** flutes stop half that width inside the margins (ends move 0.6 mm out compared with the 16 mm placeholder); help text "The flutes are 14.8 mm wide". Older orders keep 16 mm.
+- **Arched:** side margin and top are measured to the edge of a 14.8 mm groove (was 12.7 mm), so arches sit about 1 mm further in and lower for the same settings; help text "The grooves are 14.8 mm wide" (was "cut with a 12.7 mm form tool"). Version 9 orders keep 12.7 mm; earlier ones `REED_D4`.
+- Checked: DXF read back and drawn, `npm test` passes. Live on 27 Nov 2026.
+- **Still open (from the test cut):** Fluted spacing. The default is 22 mm centre to centre, which leaves a 7.2 mm flat between 14.8 mm flutes (range 18–32 mm). Tim to confirm the spacing used on his delivered fluted doors.

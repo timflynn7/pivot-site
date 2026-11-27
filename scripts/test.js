@@ -410,7 +410,18 @@ async function payPath(ref) {
   assert.strictEqual(lay("arched", {}), "CUTOUT,FLUTE_D5");
   assert.strictEqual(lay("arched", {}, 8), "CUTOUT,REED_D4", "version 8 arched orders keep REED_D4");
   const archPts = (version) => { const d = { ...nd({ design: "arched", width: 450, height: 900, opts: {} }).door }; if (version) d.version = version; return JSON.stringify(E.buildDoor(d).paths.slice(1).map((p) => p.pts)); };
-  assert.strictEqual(archPts(), archPts(8), "arched geometry unchanged, only the layer");
+  assert.strictEqual(archPts(9), archPts(8), "version 9 arched: same geometry as version 8, only the layer");
+  // engine version 10: fluted and arched on the 15.9 mm ball nose at 5 mm (14.76 mm wide at the face)
+  assert(Math.abs(E.TOOLS.flute5b.width - 14.76) < 0.01 && E.TOOLS.flute5b.layer === "FLUTE_D5");
+  const outer = (version, margin) => { const d = { ...nd({ design: "arched", width: 450, height: 900, opts: { margin: margin || 50, top: 100 } }).door }; if (version) d.version = version; const ps = E.buildDoor(d).paths.slice(1);
+    return { x: Math.min(...ps.flatMap((p) => p.pts.map((q) => q[0]))), y: Math.min(...ps.flatMap((p) => p.pts.map((q) => q[1]))), tool: ps[0].tool }; };
+  const a10 = outer(), a9 = outer(9);
+  assert(a10.tool === "flute5b" && a9.tool === "arch5");
+  assert(Math.abs(a10.x - (50 + 14.76 / 2)) < 0.01 && Math.abs(a9.x - (50 + 12.7 / 2)) < 0.01, "side margin measured to the edge of the real groove");
+  assert(Math.abs(a10.y - (100 + 14.76 / 2)) < 0.05, "top measured to the edge of the real groove");
+  const flt = (version) => { const d = { ...nd({ design: "fluted", width: 400, height: 600 }).door }; if (version) d.version = version; return E.buildDoor(d).paths.slice(1); };
+  assert(flt().every((p) => p.tool === "flute5b") && Math.abs(flt()[0].pts[0][1] - (40 + 14.76 / 2)) < 0.01, "flutes stop half the real groove width inside the margin");
+  assert(flt(9).every((p) => p.tool === "flute16") && flt(9)[0].pts[0][1] === 48, "version 9 fluted orders keep the 16 mm flute");
   // engine version 8: tongue & bead groove, bead on the reed bit 12.5 mm from the V-groove
   const tb = (version) => { const d = { ...nd({ design: "tbgroove", width: 600, height: 720, opts: { fit: "exact", spacing: 100 } }).door }; if (version) d.version = version; return d; };
   const tbP = E.buildDoor(tb()).paths, tbV = tbP.filter((p) => p.tool === "v90d4"), tbB = tbP.filter((p) => p.tool === "reed5");
@@ -435,7 +446,7 @@ async function payPath(ref) {
   for (const w of [450, 600, 733]) { const xs = ex(w); for (let i = 1; i < xs.length; i++) assert(Math.abs(xs[i] - xs[i - 1] - 100) < 1e-6, "exact boards are exactly 100 mm"); }
   const rd = E.buildDoor(nd({ design: "reeded", width: 450, height: 600, opts: { spacing: 20 } }).door).paths.filter((p) => p.tool === "reed5").map((p) => p.pts[0][0]);
   assert(Math.abs(rd[1] - rd[0] - 12.5) < 1e-6, "reed spacing fixed at 12.5 mm");
-  const arc4 = (layout, margin) => E.buildDoor(nd({ design: "arched", width: 450, height: 900, opts: { layout, margin } }).door).paths.filter((p) => p.tool === "arch5");
+  const arc4 = (layout, margin) => E.buildDoor(nd({ design: "arched", width: 450, height: 900, opts: { layout, margin } }).door).paths.filter((p) => p.tool === "flute5b");
   const topY = (paths) => Math.min(...paths.flatMap((p) => p.pts.map((q) => q[1])));
   assert(Math.abs(topY(arc4("single", 50)) - topY(arc4("single", 90))) < 0.5, "arch top stays put when the width changes");
   const L = arc4("left", 50), R = arc4("right", 50);
