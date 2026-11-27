@@ -98,7 +98,8 @@
     border: 30,           // left round the sheet edge for screwing down, mm
     gap: 25,              // between parts, mm
     wasteShare: 0.5,      // share of a strip too narrow for another door that's charged to the door
-    delivery: { first: 12, extra: 5, freeOver: 400 } // £; free when the doors come to at least freeOver (0 = never)
+    delivery: { first: 12, extra: 5, freeOver: 400 }, // £; free when the doors come to at least freeOver (0 = never)
+    hinges: { charge: false, perDoor: 0 } // £ added to each door with hinge holes, when charge is on (Tim's choice on /admin/pricing; off by default)
   };
   let PRICING = JSON.parse(JSON.stringify(PRICING_DEFAULTS));
   // Use saved settings where they're sensible, otherwise the defaults.
@@ -112,6 +113,10 @@
       next.bands = cfg.bands.map((b) => ({ name: String(b.name || "").slice(0, 30), maxW: b.maxW, maxH: b.maxH, price: b.price }));
     }
     if (cfg.delivery) for (const k of ["first", "extra", "freeOver"]) if (numOk(cfg.delivery[k])) next.delivery[k] = cfg.delivery[k];
+    if (cfg.hinges) {
+      next.hinges.charge = cfg.hinges.charge === true;
+      if (numOk(cfg.hinges.perDoor)) next.hinges.perDoor = Math.round(cfg.hinges.perDoor * 100) / 100;
+    }
     PRICING = next;
     return getPricing();
   }
@@ -674,26 +679,49 @@
     return Math.min(1, side(W) * side(H) / (usable * usable));
   }
   const bandFor = (W, H) => PRICING.bands.find((b) => W <= b.maxW && H <= b.maxH) || null;
-  // Price of one door, in whole pounds.
+  // Price of one door, in whole pounds, before any hinge charge.
   function priceOne(door) {
     const W = door.width, H = door.height, band = bandFor(W, H);
     if (band) return band.price;
     const top = PRICING.bands.reduce((a, b) => (b.maxW * b.maxH > a.maxW * a.maxH ? b : a));
     return Math.max(top.price, Math.round(top.price * sheetShare(W, H) / sheetShare(top.maxW, top.maxH)));
   }
+  // The hinge-hole charge for one order line's worth (each door of a pair is charged), in £.
+  // Nothing when the charge is switched off (the default) or the door has no hinge holes.
+  function hingeCharge(door) {
+    const h = PRICING.hinges;
+    if (!h.charge || !h.perDoor || !door.hingeSide || door.hingeSide === "none") return 0;
+    return h.perDoor * doorParts(door).length;
+  }
   const minDoorPrice = () => Math.min(...PRICING.bands.map((b) => b.price));
   // Price of one order line's worth (a pair counts as two doors).
   function priceDoor(door) {
     if (!Number.isFinite(door.width) || !Number.isFinite(door.height)) return null;
-    return doorParts(door).reduce((a, p) => a + priceOne(p), 0);
+    return doorParts(door).reduce((a, p) => a + priceOne(p), 0) + hingeCharge(door);
   }
-  function priceOrder(doors) {
+  const pounds = (n) => Math.round(n * 100) / 100;
+  // How much a discount code takes off the doors (never delivery), in £.
+  // code: { code, kind: "percent" | "amount", value, minSpend } as checked by the server.
+  function discountFor(code, sub) {
+    if (!code || !sub) return 0;
+    if (code.minSpend && sub < code.minSpend) return 0;
+    const off = code.kind === "percent" ? sub * Math.min(100, code.value) / 100 : code.value;
+    return pounds(Math.max(0, Math.min(sub, off)));
+  }
+  // Totals for a basket. Free delivery is judged on the doors before any discount.
+  function priceOrder(doors, code) {
     const D = PRICING.delivery;
     const count = doors.reduce((a, d) => a + d.qty * doorParts(d).length, 0);
-    const sub = doors.reduce((a, d) => a + d.qty * (priceDoor(d) || 0), 0);
+    const sub = pounds(doors.reduce((a, d) => a + d.qty * (priceDoor(d) || 0), 0));
+    const hinges = pounds(doors.reduce((a, d) => a + d.qty * hingeCharge(d), 0));
     const free = !!(count && D.freeOver > 0 && sub >= D.freeOver);
     const ship = count && !free ? D.first + D.extra * (count - 1) : 0;
-    return { count, sub, ship, total: sub + ship, freeDelivery: free, freeOver: D.freeOver };
+    const off = discountFor(code, sub);
+    const t = { count, sub, hinges, ship, total: pounds(sub - off + ship), freeDelivery: free, freeOver: D.freeOver };
+    if (code) {
+      t.discount = { code: code.code, kind: code.kind, value: code.value, minSpend: code.minSpend || 0, amount: off };
+    }
+    return t;
   }
 
   /* ---------- descriptions ---------- */
@@ -915,5 +943,5 @@
     return Array.from(seen, ([layer, label]) => ({ layer, label }));
   }
 
-  return { VERSION, LIMITS, TOOLS, PRICING_DEFAULTS, setPricing, getPricing, deliveryArea, sheetShare, bandFor, minDoorPrice, DESIGNS, designById, orderable, optShown, doorParts, designNote, normalizeDoor, buildDoor, hingeDefault, priceDoor, priceOrder, describe, doorSVG, orderDXF, layerList };
+  return { VERSION, LIMITS, TOOLS, PRICING_DEFAULTS, setPricing, getPricing, deliveryArea, sheetShare, bandFor, minDoorPrice, DESIGNS, designById, orderable, optShown, doorParts, designNote, normalizeDoor, buildDoor, hingeDefault, hingeCharge, priceDoor, priceOrder, discountFor, describe, doorSVG, orderDXF, layerList };
 });

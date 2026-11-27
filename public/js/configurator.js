@@ -20,6 +20,9 @@
   // Tim's admin orders and the test page always work the old way.
   const CHECKOUT = document.body.dataset.mode === "checkout" && !ADMIN && !LAB;
   let wantQuote = false; // the customer chose "Ask for a quote instead"
+  let codeText = ""; // what the accepted code gives, e.g. "10% off your doors"
+  let codesOn = false; // discount codes switched on at /admin/discounts (from /api/pricing)
+  let code = null; // a discount code the server has accepted: { code, kind, value, minSpend }
   const LIST_KEY = LAB ? "pivot-door-list-lab" : ADMIN ? "pivot-door-list-admin" : "pivot-door-list";
   const offered = (d) => LAB || E.orderable(d);
   try { const saved = JSON.parse(localStorage.getItem(LIST_KEY) || "[]"); if (Array.isArray(saved)) list = saved.map((d) => E.normalizeDoor(d)).filter((r) => !Object.keys(r.errors).length && offered(E.designById(r.door.design))).map((r) => r.door); } catch (e) { list = []; }
@@ -89,6 +92,9 @@
       $("barPrice").textContent = "";
     }
     $("hingeFields").hidden = state.hingeSide === "none";
+    const hc = E.getPricing().hinges;
+    $("hingeCost").hidden = !(hc.charge && hc.perDoor);
+    $("hingeCost").textContent = hc.charge && hc.perDoor ? `Hinge holes add ${gbp(hc.perDoor)} per door. No hinge holes, no charge.` : "";
     $("pvNote").hidden = state.hingeSide === "none";
     // An arched pair has its hinges on the outer edges of both doors.
     const isPair = d.id === "arched" && state.opts.arched.layout === "pair";
@@ -108,10 +114,21 @@
       return `<div class="item">${E.doorSVG(door)}<div><div class="t">${i + 1}. ${esc(door.name || d.name)}${pair ? " (pair)" : ""}</div><div class="s">${pair ? "Each " : ""}${door.width} × ${door.height} mm</div><div class="s">${esc(E.describe(door))}</div></div>` +
         `<div class="r"><span>${door.qty} × ${gbp(p)}</span><button type="button" class="linkbtn" data-remove="${i}">Remove</button></div></div>`;
     }).join("") : `<div class="empty">Your basket is empty. Design a door above and press Add to basket.</div>`;
-    const t = E.priceOrder(list);
+    const t = E.priceOrder(list, code);
     $("barBasket").textContent = t.count ? `Basket (${t.count}) · ${gbp(t.total)}` : "Basket (0)";
     $("sCount").textContent = t.count; $("sSub").textContent = gbp(t.sub); $("sShip").textContent = t.freeDelivery ? "Free" : gbp(t.ship); $("sTotal").textContent = gbp(t.total);
     $("sFree").textContent = !t.freeOver ? "" : t.freeDelivery ? "Your order qualifies for free delivery." : t.count ? `Add ${gbp(t.freeOver - t.sub)} more for free delivery.` : `Free delivery on orders over ${gbp(t.freeOver).replace(".00", "")}.`;
+    $("sHinges").hidden = !t.hinges;
+    $("sHinges").textContent = t.hinges ? `Includes ${gbp(t.hinges)} for hinge holes.` : "";
+    $("sDiscRow").hidden = !code;
+    if (code) {
+      $("sDiscCode").textContent = code.code;
+      $("sDisc").textContent = t.discount.amount ? "−" + gbp(t.discount.amount) : "—";
+      $("codeMsg").className = t.discount.amount || !t.count ? "hint" : "hint bad";
+      $("codeMsg").textContent = t.discount.amount || !t.count ? codeText : `This code needs your doors to come to at least ${gbp(code.minSpend)}.`;
+    }
+    $("codeToggle").hidden = !!code;
+    $("codeBox").hidden = LAB || !(codesOn || code);
     $("sendBtn").disabled = !list.length;
     $("testDxf").hidden = !(TEST && list.length);
     // Contact and address details come after the door list is ready.
@@ -156,7 +173,7 @@
   const payingNow = () => CHECKOUT && !wantQuote && !outsideArea();
   function updateIntent() {
     if (!CHECKOUT) return;
-    const area = outsideArea(), t = E.priceOrder(list);
+    const area = outsideArea(), t = E.priceOrder(list, code);
     $("areaMsg").hidden = !area;
     if (area) $("areaMsg").textContent = `We can't take payment online for delivery to ${area}. Send us a quote request and we'll email you a price that includes delivery.`;
     $("intentToggle").hidden = !!area;
@@ -169,6 +186,31 @@
     $("intentToggle").addEventListener("click", () => { wantQuote = !wantQuote; updateIntent(); });
     for (const ev of ["input", "change", "blur"]) $("cPostcode").addEventListener(ev, updateIntent);
   }
+
+  /* ---------- discount codes (made on /admin/discounts; checked again when the order is sent) ---------- */
+  $("codeToggle").addEventListener("click", () => {
+    const f = $("codeForm"); f.hidden = !f.hidden;
+    $("codeToggle").setAttribute("aria-expanded", String(!f.hidden));
+    if (!f.hidden) $("codeIn").focus();
+  });
+  async function applyCode() {
+    const typed = $("codeIn").value.trim(), m = $("codeMsg");
+    if (!typed) { m.className = "hint bad"; m.textContent = "Please type a discount code."; return; }
+    $("codeApply").disabled = true; m.className = "hint"; m.textContent = "Checking…";
+    try {
+      const r = await fetch("/api/discount?code=" + encodeURIComponent(typed), { cache: "no-store" });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok || !d.discount) throw new Error(d.error || "We couldn't check that code. Please try again.");
+      code = d.discount;
+      $("codeForm").hidden = true; $("codeIn").value = "";
+      codeText = d.text ? `Code ${code.code}: ${d.text}.` : "";
+      renderList();
+    } catch (e) { m.className = "hint bad"; m.textContent = e.message; }
+    $("codeApply").disabled = false;
+  }
+  $("codeApply").addEventListener("click", applyCode);
+  $("codeIn").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); applyCode(); } });
+  $("codeRemove").addEventListener("click", () => { code = null; codeText = ""; $("codeMsg").textContent = ""; renderList(); });
 
   /* ---------- events ---------- */
   $("designs").addEventListener("click", (e) => {
@@ -246,7 +288,7 @@
     $("sendBtn").disabled = true; msg.className = "send-msg"; msg.textContent = "Sending…";
     try {
       const paying = payingNow();
-      const r = await fetch(ADMIN ? "/admin/orders" : "/api/orders", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ customer, doors: list, intent: paying ? "pay" : "quote" }) });
+      const r = await fetch(ADMIN ? "/admin/orders" : "/api/orders", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ customer, doors: list, intent: paying ? "pay" : "quote", discountCode: code ? code.code : undefined }) });
       if (ADMIN && (r.status === 401 || r.status === 403)) throw new Error("You're not signed in to the orders page. Open /admin in this browser, sign in, then try again.");
       const data = await r.json().catch(() => ({}));
       if (!r.ok) throw new Error(data.error || "Something went wrong. Please try again, or email tim@pivotdesigns.co.uk.");
@@ -257,7 +299,7 @@
       }
       msg.className = "send-msg ok";
       msg.textContent = `Thank you. Your ${CHECKOUT ? "quote" : "order"} request ${data.ref} has been sent. We'll email you to confirm the price and lead time, with a link to pay securely online.`;
-      list = []; saveList(); renderList();
+      list = []; saveList(); code = null; codeText = ""; $("codeMsg").textContent = ""; renderList();
     } catch (err) {
       msg.className = "send-msg bad"; msg.textContent = err.message;
       $("sendBtn").disabled = false;
@@ -405,5 +447,5 @@
   renderDesigns(); renderOpts(); update(); renderList();
   setTimeout(centreDesign, 50);
   // Prices are set on /admin/pricing; redraw once the current ones arrive.
-  fetch("/api/pricing", { cache: "no-cache" }).then((r) => r.ok ? r.json() : null).then((p) => { if (p) { E.setPricing(p); update(); renderList(); } }).catch(() => {});
+  fetch("/api/pricing", { cache: "no-cache" }).then((r) => r.ok ? r.json() : null).then((p) => { if (p) { codesOn = p.codes === true; E.setPricing(p); update(); renderList(); } }).catch(() => {});
 })();
