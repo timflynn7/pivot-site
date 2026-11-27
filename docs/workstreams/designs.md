@@ -133,3 +133,7 @@ Proposed engine change (needs Tim's OK, bump `VERSION`): New Country = `POCKET_D
 ## Changes on 27 Nov 2026 (engine VERSION 8): Tongue & bead groove (Tim approved)
 - Bead line **12.5 mm** to the right of each V-groove line (was 9 mm), on new layer **`REED_D5`** (the 12.7 mm reed bit at 5 mm). V-grooves unchanged on `VGROOVE_D4` (their depth waits for the T08 ladder result). Orders before version 8 keep the 6 mm bead (`BEAD_D3`) 9 mm away. Checked: DXF read back and drawn, preview drawn, `npm test` passes. Live on 27 Nov 2026.
 - Still on `REED_D4`: Reeded and Arched. Ask Tim whether they should move to 5 mm too (T12 was about the bead), and send a past delivered reeded job for the edge-overflow change.
+
+## Changes on 27 Nov 2026 (engine VERSION 9): reed and arch layers (Tim's instruction)
+- **Reeded** on `REED_D5` (the reed bit at 5 mm). **Arched** on `FLUTE_D5`. Geometry unchanged for both; orders before version 9 keep `REED_D4`. Checked: DXF read back and drawn, `npm test` passes. Live on 27 Nov 2026.
+- **Open question for Tim:** the arches are still spaced for a 12.7 mm wide groove (side margin and top are measured to the groove's edge), and the Arched help text tells customers "The grooves are cut with a 12.7 mm form tool". If the flute bit used for arches is a different width, give its width and Claude will update the spacing and the text. The Fluted design also still assumes a 16 mm flute (placeholder).

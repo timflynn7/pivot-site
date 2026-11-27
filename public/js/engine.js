@@ -15,7 +15,7 @@
 })(typeof self !== "undefined" ? self : this, function () {
   "use strict";
 
-  const VERSION = 8; // 8: tongue & bead groove: the bead is cut with the 12.7 mm reed bit at 5 mm (REED_D5), its line 12.5 mm from the V-groove line (was a 6 mm bead 9 mm away). 7: bevelled shaker options: five-piece joints, and a bevel that stops 2 mm above the panel (a chamfer on the pocket line). 6: New Country redrawn from the test cuts (3 mm pocket, grooves 5 mm from the face, a 5 mm chamfer round the panel, frame width to the top of the chamfer, optional five-piece joint grooves). 5: bevelled shaker pocket 8 mm deep with an 8 mm bevel. 4: 4: bevel matches the 5 mm pocket (90 degree V-bit); beaded shaker uses a round-over moulding rail; arched sized by side margin, mirrored about the centre; fluted margins split; reeds fixed at 12.5 mm. 2: hinge distances and notes; bevelled shaker redrawn as a 5 mm recessed panel with a bevel. 3: skinny shaker pocket 5 mm deep (was 8); arched doors adjustable, with left, right and pair layouts
+  const VERSION = 9; // 9: reeded cut at 5 mm (REED_D5); arched grooves on FLUTE_D5 (same geometry, spaced for a 12.7 mm groove). 8: tongue & bead groove: the bead is cut with the 12.7 mm reed bit at 5 mm (REED_D5), its line 12.5 mm from the V-groove line (was a 6 mm bead 9 mm away). 7: bevelled shaker options: five-piece joints, and a bevel that stops 2 mm above the panel (a chamfer on the pocket line). 6: New Country redrawn from the test cuts (3 mm pocket, grooves 5 mm from the face, a 5 mm chamfer round the panel, frame width to the top of the chamfer, optional five-piece joint grooves). 5: bevelled shaker pocket 8 mm deep with an 8 mm bevel. 4: 4: bevel matches the 5 mm pocket (90 degree V-bit); beaded shaker uses a round-over moulding rail; arched sized by side margin, mirrored about the centre; fluted margins split; reeds fixed at 12.5 mm. 2: hinge distances and notes; bevelled shaker redrawn as a 5 mm recessed panel with a bevel. 3: skinny shaker pocket 5 mm deep (was 8); arched doors adjustable, with left, right and pair layouts
   const LIMITS = { wMin: 300, wMax: 1000, hMin: 300, hMax: 1200 }; // machine bed takes 1200 x 1200 sheets; 1000 x 1200 is the largest that can be held down safely
   const OVERCUT = 10;
   const BEVEL_W = 12;            // bevelled shaker before engine version 4. From version 4 a 90 degree V-bit makes the bevel, so its width equals the pocket depth.
@@ -44,6 +44,7 @@
     flute8:   { layer: "FLUTE_D4",     label: "Flute, 8 mm wide, 4 mm deep",                        width: 8,    color: 3 },
     reed13:   { layer: "REED_D4",      label: "Reed groove, 12.7 mm wide, 4 mm deep",               width: 12.7, color: 4 },
     reed5:    { layer: "REED_D5",      label: "Reed bit (12.7 mm), 5 mm deep",                       width: 12.7, color: 4 },
+    arch5:    { layer: "FLUTE_D5",     label: "Flute, 5 mm deep (arches spaced for a 12.7 mm wide groove)", width: 12.7, color: 3 },
     bead6:    { layer: "BEAD_D3",      label: "Bead, 6 mm wide, 3 mm deep",                         width: 6,    color: 4 },
     v90d4:    { layer: "VGROOVE_D4",   label: "V-groove, 90 degrees, 4 mm deep",                    width: 8,    color: 1 },
     v90d5:    { layer: "VGROOVE_D5",   label: "V-groove, 90 degrees, 5 mm deep",                    width: 10,   color: 1 },
@@ -345,13 +346,14 @@
       id: "reeded", name: "Reeded", family: "Your current range", adjustable: false,
       blurb: "Reeds 12.5 mm apart, running the full height of the door.",
       opts: [],
-      build(W, H, o) {
+      build(W, H, o, door) {
         const pitch = o.spacing || REED_PITCH; // orders before engine version 4 chose their own spacing
+        const tool = door && door.version < 9 ? "reed13" : "reed5"; // 5 mm deep from version 9 (Tim's test T12)
         const n = Math.floor(W / pitch + 1e-9);
         if (n < 2) fail("The door is too narrow for reeds.");
         const start = W / 2 - ((n - 1) * pitch) / 2;
         const paths = [];
-        for (let k = 0; k < n; k++) paths.push({ tool: "reed13", pts: fullHeight(start + k * pitch, H) });
+        for (let k = 0; k < n; k++) paths.push({ tool, pts: fullHeight(start + k * pitch, H) });
         const x = start + (Math.floor(n / 2) - 1) * pitch;
         return { outline: rect(0, 0, W, H), paths, dims: [dim([x, H * 0.5], [x + pitch, H * 0.5], mm(pitch))] };
       }
@@ -533,6 +535,7 @@
         const box = { x0: -OVERCUT, y0: -OVERCUT, x1: W + OVERCUT, y1: H + OVERCUT };
         const tw = TOOLS.reed13.width;
         if (door && door.version < 4) return archedV3(W, H, o, layout, gap, box);
+        const groove = door && door.version < 9 ? "reed13" : "arch5"; // FLUTE_D5 from version 9 (Tim); the same 12.7 mm spacing geometry
         // Version 4: the arches are mirrored about the centre line of the door, or of the
         // gap for a pair. The side margin sets their width; the top stays where it's set.
         const cx = layout === "single" ? W / 2 : layout === "left" ? W + gap / 2 : -gap / 2;
@@ -544,7 +547,7 @@
         const paths = [];
         for (let i = 0; i < o.count; i++) {
           const r = R - i * o.spacing;
-          for (const pts of clipPolyline([[cx - r, H + OVERCUT]].concat(arc(cx, cy, r, 180, 360, 90), [[cx + r, H + OVERCUT]]), box)) paths.push({ tool: "reed13", pts });
+          for (const pts of clipPolyline([[cx - r, H + OVERCUT]].concat(arc(cx, cy, r, 180, 360, 90), [[cx + r, H + OVERCUT]]), box)) paths.push({ tool: groove, pts });
         }
         // Measurements: top, spacing, side margin, and from the innermost arch to the door's inner edge.
         const mx = layout === "single" ? cx : layout === "left" ? W - 30 : 30, left = layout === "left";

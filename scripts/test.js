@@ -403,6 +403,14 @@ async function payPath(ref) {
   assert(E.layerList([ncDoor({ joints: "fivepiece" })]).some((l) => l.layer === "VGROOVE_D2"));
   const ncOld = E.buildDoor(ncDoor({ border: 70, joints: "fivepiece" }, 5));
   assert(ncOld.paths[1].tool === "pocket8" && ncOld.paths[1].pts[0][0] === 70 && ncOld.paths.slice(2).every((p) => p.tool === "v90d4"), "version 5 New Country orders keep their geometry");
+  // engine version 9: reeded on REED_D5, arched on FLUTE_D5 (same geometry), older orders unchanged
+  const lay = (design, opts, version) => { const d = { ...nd({ design, width: 450, height: 900, opts }).door }; if (version) d.version = version; return E.layerList([d]).map((l) => l.layer).sort().join(); };
+  assert.strictEqual(lay("reeded", {}), "CUTOUT,REED_D5");
+  assert.strictEqual(lay("reeded", {}, 8), "CUTOUT,REED_D4", "version 8 reeded orders keep REED_D4");
+  assert.strictEqual(lay("arched", {}), "CUTOUT,FLUTE_D5");
+  assert.strictEqual(lay("arched", {}, 8), "CUTOUT,REED_D4", "version 8 arched orders keep REED_D4");
+  const archPts = (version) => { const d = { ...nd({ design: "arched", width: 450, height: 900, opts: {} }).door }; if (version) d.version = version; return JSON.stringify(E.buildDoor(d).paths.slice(1).map((p) => p.pts)); };
+  assert.strictEqual(archPts(), archPts(8), "arched geometry unchanged, only the layer");
   // engine version 8: tongue & bead groove, bead on the reed bit 12.5 mm from the V-groove
   const tb = (version) => { const d = { ...nd({ design: "tbgroove", width: 600, height: 720, opts: { fit: "exact", spacing: 100 } }).door }; if (version) d.version = version; return d; };
   const tbP = E.buildDoor(tb()).paths, tbV = tbP.filter((p) => p.tool === "v90d4"), tbB = tbP.filter((p) => p.tool === "reed5");
@@ -425,9 +433,9 @@ async function payPath(ref) {
   assert(nd({ design: "georgian", width: 450, height: 700, opts: { border: 35 } }).errors.border, "Georgian frame minimum matches the shaker");
   const ex = (w) => E.buildDoor(nd({ design: "tvgroove", width: w, height: 600, opts: { fit: "exact", spacing: 100 } }).door).paths.filter((p) => p.tool === "v90d4").map((p) => p.pts[0][0]);
   for (const w of [450, 600, 733]) { const xs = ex(w); for (let i = 1; i < xs.length; i++) assert(Math.abs(xs[i] - xs[i - 1] - 100) < 1e-6, "exact boards are exactly 100 mm"); }
-  const rd = E.buildDoor(nd({ design: "reeded", width: 450, height: 600, opts: { spacing: 20 } }).door).paths.filter((p) => p.tool === "reed13").map((p) => p.pts[0][0]);
+  const rd = E.buildDoor(nd({ design: "reeded", width: 450, height: 600, opts: { spacing: 20 } }).door).paths.filter((p) => p.tool === "reed5").map((p) => p.pts[0][0]);
   assert(Math.abs(rd[1] - rd[0] - 12.5) < 1e-6, "reed spacing fixed at 12.5 mm");
-  const arc4 = (layout, margin) => E.buildDoor(nd({ design: "arched", width: 450, height: 900, opts: { layout, margin } }).door).paths.filter((p) => p.tool === "reed13");
+  const arc4 = (layout, margin) => E.buildDoor(nd({ design: "arched", width: 450, height: 900, opts: { layout, margin } }).door).paths.filter((p) => p.tool === "arch5");
   const topY = (paths) => Math.min(...paths.flatMap((p) => p.pts.map((q) => q[1])));
   assert(Math.abs(topY(arc4("single", 50)) - topY(arc4("single", 90))) < 0.5, "arch top stays put when the width changes");
   const L = arc4("left", 50), R = arc4("right", 50);
