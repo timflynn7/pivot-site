@@ -403,6 +403,18 @@ async function payPath(ref) {
   assert(E.layerList([ncDoor({ joints: "fivepiece" })]).some((l) => l.layer === "VGROOVE_D2"));
   const ncOld = E.buildDoor(ncDoor({ border: 70, joints: "fivepiece" }, 5));
   assert(ncOld.paths[1].tool === "pocket8" && ncOld.paths[1].pts[0][0] === 70 && ncOld.paths.slice(2).every((p) => p.tool === "v90d4"), "version 5 New Country orders keep their geometry");
+  // engine version 7: bevelled shaker options
+  const bv = (opts, version) => { const d = { ...nd({ design: "bevelled", width: 500, height: 720, opts }).door }; if (version) d.version = version; return d; };
+  const bvLayers = (d) => E.layerList([d]).map((l) => l.layer).sort().join();
+  const bvPocket = (d) => E.buildDoor(d).paths.find((p) => p.tool === "pocket8").pts[0];
+  assert.strictEqual(bvLayers(bv({ border: 70 })), "BEVEL_D8,CUTOUT,POCKET_D8", "default bevel unchanged");
+  assert.deepStrictEqual(bvPocket(bv({ border: 70 })), [78, 78]);
+  assert.strictEqual(bvLayers(bv({ border: 70, bevel: "step" })), "CHAMFER_D6,CUTOUT,POCKET_D8", "step: a 6 mm chamfer on the pocket line, no BEVEL line");
+  assert.deepStrictEqual(bvPocket(bv({ border: 70, bevel: "step" })), [76, 76], "step: bevel top still at the frame width, pocket line 6 mm in");
+  assert.deepStrictEqual(E.buildDoor(bv({ border: 70, bevel: "step" })).paths.find((p) => p.tool === "pchamfer6").pts[0], [76, 76]);
+  for (const bevel of ["floor", "step"]) assert.deepStrictEqual(E.buildDoor(bv({ border: 70, bevel, joints: "fivepiece" })).paths.filter((p) => p.tool === "v90d2").map((p) => p.pts),
+    [[[68, -10], [68, 68]], [[432, -10], [432, 68]], [[68, 652], [68, 730]], [[432, 652], [432, 730]]], "bevel joint grooves meet the top of the bevel");
+  assert.strictEqual(bvLayers(bv({ border: 70, bevel: "step", joints: "fivepiece" }, 6)), "BEVEL_D8,CUTOUT,POCKET_D8", "version 6 bevelled orders keep their geometry");
   assert(nd({ design: "georgian", width: 450, height: 700, opts: { border: 35 } }).errors.border, "Georgian frame minimum matches the shaker");
   const ex = (w) => E.buildDoor(nd({ design: "tvgroove", width: w, height: 600, opts: { fit: "exact", spacing: 100 } }).door).paths.filter((p) => p.tool === "v90d4").map((p) => p.pts[0][0]);
   for (const w of [450, 600, 733]) { const xs = ex(w); for (let i = 1; i < xs.length; i++) assert(Math.abs(xs[i] - xs[i - 1] - 100) < 1e-6, "exact boards are exactly 100 mm"); }

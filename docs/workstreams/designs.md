@@ -115,3 +115,14 @@ Proposed engine change (needs Tim's OK, bump `VERSION`): New Country = `POCKET_D
 - Checked: DXF read back with ezdxf and drawn; configurator option tested in a browser.
 - **Live on 27 Nov 2026** (merged to `main` at Tim's request, together with the discount-code and hinge-charge work already on `main`). Checked on pivotdesigns.co.uk: engine version 6 served, new render in place.
 - **Preview fix (27 Nov 2026, Tim's comment):** the configurator drew the five-piece joint grooves as a band centred on the cutting line, so they looked as if they sat outside the chamfer line. The preview now draws them as a fine line on the chamfer's top edge (paths marked `joint`). The DXF is unchanged: the grooves' inner edges meet the chamfer's top edge, as specified.
+
+## Changes on 27 Nov 2026 (engine VERSION 7): Bevelled shaker options (Tim's request)
+- **Bevel:** *Down to the panel* (default, unchanged: `BEVEL_D8` on the top edge, Chamfer inside, slope downwards, the pocket depth; Tim's testing confirms this works) or *With a 2 mm step* (`CHAMFER_D6` on the pocket line, Chamfer outside, slope upwards, the pocket depth less 2 mm, as in Tim's test). The frame width runs to the top of the bevel in both, so with a step the pocket line is 6 mm in (the panel is 4 mm wider overall than with the full bevel).
+- **Frame joints: Five-piece look**, as on New Country. Shared helper `jointGrooves()`: grooves set out by their own 2 mm depth from the frame's inner edge (the top of the bevel or chamfer), ends 2 mm short of that edge, overcut 10 mm past the door edge. New Country moved onto the same helper (geometry unchanged, tested).
+- Layer rule: `BEVEL_Dn` = on the top edge, inside, slope downwards; `CHAMFER_Dn` = on the pocket line, outside, slope upwards.
+- Bevelled orders before version 7 ignore the new options.
+- Checked: DXF read back and drawn, preview and renders drawn, configurator tested in a browser, `npm test` passes.
+
+**Open questions for Tim:**
+1. **Five-piece joint groove ends** (New Country and Bevelled): in Tim's own experiments the groove ends lined up vertically with the top and bottom of the chamfer toolpath. The website's grooves stop 2 mm short of the frame's inner edge (the V-bit's tip), so the groove's tapered end just reaches that edge. Tim will test a website DXF and confirm whether the ends should move.
+2. **With a 2 mm step:** the step's corners keep the pocket's 1.5 mm radius under the bevel's sharp mitre; check it looks right on a test cut.

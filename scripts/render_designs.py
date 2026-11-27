@@ -84,12 +84,13 @@ def height_map(door, X, Y):
             d = np.clip(sd, 0, R)
             drop = R - np.sqrt(np.maximum(R * R - (R - d) ** 2, 0))
             Z = np.where((sd > 0) & (sd < R), np.minimum(Z, -drop), Z)
-        elif tool == "pchamfer5":
-            # Chamfer on the pocket edge (Sharp corners): 5 mm deep on the line, rising 45 degrees
-            # to the face 5 mm out, and down to the line from the pocket floor on the inside.
+        elif tool.startswith("pchamfer"):
+            # Chamfer on the pocket edge (Sharp corners): its depth on the line, rising 45 degrees
+            # to the face that far out (and, inside, down to the line if it's deeper than the pocket).
+            dc = p["depth"]
             x0, y0, x1, y1 = rect_of(pts)
             sd = np.maximum.reduce([x0 - X, X - x1, y0 - Y, Y - y1])   # square contours outside, distance to the edge inside
-            Z = np.minimum(Z, -np.clip(5 - np.abs(sd), 0, 5))
+            Z = np.minimum(Z, -np.clip(dc - np.abs(sd), 0, dc))
         elif tool in ("v90d5p", "v90d2"):
             # V-grooves measured from the face (a groove in a pocket cuts through air first).
             dp = {"v90d5p": 5, "v90d2": 2}[tool]
