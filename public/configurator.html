@@ -80,6 +80,7 @@
         <div class="seg" role="group" aria-label="Hinge side" id="hingeSide">
           <button type="button" data-v="none">None</button><button type="button" data-v="left">Left</button><button type="button" data-v="right">Right</button>
         </div>
+        <p class="hint" id="hingeCost" hidden></p>
         <div id="hingeFields" hidden>
           <p class="hint">35 mm cup holes for standard concealed hinges, 22.5 mm in from the edge. Extra hinges are spaced evenly between the top and bottom ones.</p>
           <div class="field"><label for="hingeCount">Number of hinges</label>
@@ -118,8 +119,15 @@
       <div id="items"></div>
       <div class="summary">
         <div class="row"><span>Doors (<span id="sCount">0</span>)</span><span id="sSub">£0.00</span></div>
+        <p class="hint" id="sHinges" hidden></p>
         <div class="row"><span>Delivery</span><span id="sShip">£0.00</span></div>
         <p class="hint free" id="sFree"></p>
+        <div class="row disc" id="sDiscRow" hidden><span>Discount <span id="sDiscCode"></span> <button type="button" class="linkbtn" id="codeRemove">Remove</button></span><span id="sDisc"></span></div>
+        <div class="code" id="codeBox">
+          <button type="button" class="linkbtn" id="codeToggle" aria-expanded="false" aria-controls="codeForm">Have a discount code?</button>
+          <div class="code-f" id="codeForm" hidden><input id="codeIn" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="24" placeholder="Discount code" aria-label="Discount code"><button type="button" class="btn line small" id="codeApply">Apply</button></div>
+          <p class="hint" id="codeMsg" role="status" aria-live="polite"></p>
+        </div>
         <div class="row total"><span>Total</span><span id="sTotal">£0.00</span></div>
         <!--mode:quote--><p class="hint">We check every order and confirm the price, including delivery, before you pay.</p><!--/mode--><!--mode:checkout--><p class="hint">Prices include everything except delivery, shown above. Most orders are dispatched within 5–7 working days of payment.</p><!--/mode-->
         <button type="button" class="btn" id="continueBtn" disabled>Continue to your details</button>

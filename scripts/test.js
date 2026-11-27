@@ -523,6 +523,87 @@ async function payPath(ref) {
   assert((await (await req("/")).text()).includes("confirm the price before you pay"));
   step("payment mode: switch on /admin/pricing, page wording follows it, mainland checkout pays at once with emails after payment, outside-area and chosen quotes come in as requests");
 
+  // ---------- hinge-hole charge (off by default) ----------
+  const pubP = async () => (await req("/api/pricing")).json();
+  assert.deepStrictEqual((await pubP()).hinges, { charge: false, perDoor: 0 }, "no hinge charge by default");
+  const hingeDoor = { design: "shaker", width: 500, height: 720, hingeSide: "left", hingeCount: 2 };
+  let ho = await spec((await (await tryOrder([hingeDoor])).json()).ref);
+  assert(ho.totals.sub === 54 && ho.totals.hinges === 0, "hinge holes free while the charge is off");
+  assert((await page("/admin/pricing")).includes("Hinge holes"));
+  assert.strictEqual((await form("/admin/hinges", { charge: "yes", perDoor: "8" }, "https://evil.example")).status, 403);
+  assert.strictEqual((await form("/admin/hinges", { charge: "yes", perDoor: "0" })).status, 400, "a charge needs an amount");
+  assert((await (await form("/admin/hinges", { charge: "yes", perDoor: "8" })).text()).includes("£8.00 per door"));
+  assert.deepStrictEqual((await pubP()).hinges, { charge: true, perDoor: 8 });
+  ho = await spec((await (await tryOrder([{ ...hingeDoor, qty: 2 }, { design: "shaker", width: 500, height: 720 }])).json()).ref);
+  assert(ho.totals.sub === 3 * 54 + 16 && ho.totals.hinges === 16, "£8 per door with hinge holes, none on the door without");
+  const hpr = await spec((await (await tryOrder([{ design: "arched", width: 450, height: 900, opts: { layout: "pair" }, hingeSide: "left" }])).json()).ref);
+  assert.strictEqual(hpr.totals.hinges, 16, "each door of a pair is charged");
+  // saving prices keeps the hinge charge
+  await form("/admin/pricing", body);
+  assert.deepStrictEqual((await pubP()).hinges, { charge: true, perDoor: 8 }, "saving prices keeps the hinge charge");
+  await form("/admin/pricing", { reset: "1" });
+  E.setPricing(await pubP());
+  assert.strictEqual(E.priceDoor(nd(hingeDoor).door), 62, "the engine adds the charge to the door price");
+  assert((await (await form("/admin/hinges", { charge: "no", perDoor: "8" })).text()).includes("Hinge holes are now free"));
+  E.setPricing(await pubP());
+  assert.strictEqual(E.priceDoor(nd(hingeDoor).door), 54);
+  step("hinge holes: free by default, a per-door charge switched on and off at /admin/pricing, pairs charged per door, kept when prices are saved");
+
+  // ---------- discount codes ----------
+  const dform = (b) => form("/admin/discounts", { kind: "percent", minSpend: "0", maxUses: "0", expires: "", note: "", ...b });
+  const chk = async (c) => { const r = await req("/api/discount?code=" + encodeURIComponent(c)); return { status: r.status, ...(await r.json()) }; };
+  assert((await page("/admin/discounts")).includes("No codes yet"));
+  assert.strictEqual((await form("/admin/discounts", { code: "EVIL", value: "50" }, "https://evil.example")).status, 403);
+  assert.strictEqual((await dform({ code: "a b", value: "10" })).status, 400, "codes need 3+ letters or numbers");
+  assert.strictEqual((await dform({ code: "BIG", value: "95" })).status, 400, "at most 90%");
+  assert.strictEqual((await dform({ code: "OLD", value: "10", expires: "2020-01-01" })).status, 400, "no end dates in the past");
+  assert((await (await dform({ code: "welcome10", value: "10", note: "Flyer" })).text()).includes("WELCOME10</b> created"));
+  assert.strictEqual((await dform({ code: "Welcome10", value: "5" })).status, 400, "no duplicate codes");
+  await dform({ code: "TENOFF", kind: "amount", value: "10", minSpend: "100", maxUses: "1" });
+  let ck = await chk(" welcome10 ");
+  assert(ck.status === 200 && ck.discount.code === "WELCOME10" && ck.discount.value === 10 && !("note" in ck.discount) && !("uses" in ck.discount), "codes are checked without the private details");
+  assert.strictEqual((await chk("NOPE")).status, 404);
+  const dcOrder = (doors, code, intent = "quote") => req("/api/orders", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ customer: { name: "Dee Count", email: "dc@example.com", line1: "1 Road", town: "Leeds", postcode: "LS1 4AB" }, doors, intent, discountCode: code }) });
+  // 2 x £54 = £108, 10% off = £10.80, delivery £17 still charged
+  let dr = await dcOrder([{ design: "shaker", width: 500, height: 720, qty: 2 }], "welcome10");
+  let dd = await spec((await dr.json()).ref);
+  assert(dr.status === 201 && dd.totals.discount.amount === 10.8 && dd.totals.ship === 17 && dd.totals.total === 114.2, "10% off the doors, not delivery");
+  assert(dd.history.some((h) => h.what.includes("Discount code WELCOME10")));
+  assert((await page("/admin")).includes("incl. code WELCOME10"));
+  const nb = await dcOrder([{ design: "shaker", width: 500, height: 720 }], "TENOFF");
+  assert(nb.status === 400 && /at least £100/.test((await nb.json()).error), "minimum spend checked");
+  assert(/isn't valid/.test((await (await dcOrder([{ design: "shaker", width: 500, height: 720 }], "NOPE")).json()).error), "unknown codes refused, not ignored");
+  // Pay online: the Stripe price has the discount taken off; a use is counted when paid
+  await form("/admin/mode", { mode: "checkout" });
+  dr = await dcOrder([{ design: "shaker", width: 500, height: 720, qty: 2 }], "TENOFF", "pay");
+  const drd = await dr.json();
+  dd = await spec(drd.ref);
+  assert(dd.quote === 11500 && dd.totals.discount.amount === 10, "£108 - £10 + £17 = £115");
+  const dGo = await req(drd.payUrl);
+  const dSid = dGo.headers.get("location").split("/").pop();
+  assert.strictEqual(sessions[dSid].params.line_items[0].price_data.unit_amount, 11500);
+  assert(sessions[dSid].params.line_items[0].price_data.product_data.description.includes("discount code TENOFF"));
+  assert((await (await req(drd.payUrl.replace("/checkout", ""))).text()).includes("Discount code TENOFF"), "the pay page shows the discount");
+  sessions[dSid].payment_status = "paid";
+  await req(`/pay/${drd.ref}/done?t=${drd.payUrl.split("t=")[1]}&s=${dSid}`);
+  await settle();
+  assert(emails.some((m) => m.to[0] === "dc@example.com" && m.text.includes("Discount code TENOFF: −£10.00")), "emails show the discount");
+  ck = await chk("TENOFF");
+  assert(ck.status === 404 && /used up/.test(ck.error), "a one-use code is used up once paid");
+  assert((await page("/admin/discounts")).includes("Used up"));
+  await form("/admin/mode", { mode: "quote" });
+  // switch off, on and delete
+  await form("/admin/discounts/WELCOME10", { action: "off" });
+  assert((await chk("WELCOME10")).status === 404, "switched-off codes don't work");
+  await form("/admin/discounts/WELCOME10", { action: "on" });
+  assert((await chk("WELCOME10")).status === 200);
+  await form("/admin/discounts/WELCOME10", { action: "delete" });
+  await form("/admin/discounts/TENOFF", { action: "delete" });
+  assert((await chk("WELCOME10")).status === 404 && (await page("/admin/discounts")).includes("No codes yet"));
+  assert.strictEqual((await spec(drd.ref)).totals.discount.code, "TENOFF", "orders keep their discount after the code is deleted");
+  assert.strictEqual(E.discountFor({ kind: "amount", value: 50 }, 30), 30, "a discount never goes below zero");
+  step("discount codes: made, checked, switched off and deleted on /admin/discounts; percent or £ off the doors only; minimum spend, use limits; Stripe charged the discounted price; shown on the pay page and emails");
+
   // ---------- filters, search and deleting several orders ----------
   let fl = await page("/admin?q=pat%40example.com");
   assert(fl.includes(`id="${cod.ref}"`) && !fl.includes(`id="${ref}"`) && fl.includes("matching"), "search by email finds the order");

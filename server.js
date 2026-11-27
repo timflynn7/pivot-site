@@ -14,14 +14,16 @@ const SITE_URL = process.env.SITE_URL || "https://pivotdesigns.co.uk";
 const store = require("./lib/store.js")({ databaseUrl: process.env.DATABASE_URL, dataDir: DATA_DIR });
 const site = require("./lib/site.js")({ store });
 const email = require("./lib/email.js")({ E, siteUrl: SITE_URL });
-const orders = require("./lib/orders.js")({ store, E, email });
+const discounts = require("./lib/discounts.js")({ store });
+const orders = require("./lib/orders.js")({ store, E, email, discounts });
 // When a customer pays by card, they get a receipt and Tim gets a notice.
 const pay = require("./lib/payments.js")({ store, E, siteUrl: SITE_URL, onPaid: async (o) => {
+  if (o.totals.discount) await discounts.used(o.totals.discount.code).catch((e) => console.error("Could not count discount use", e));
   await orders.mail(o.ref, "Payment received, to customer", () => email.paidCustomer(o));
   await orders.mail(o.ref, "Paid notice to Tim", () => email.paidAdmin(o));
 } });
 const auth = require("./lib/auth.js")({ store, email });
-const admin = require("./lib/admin.js")({ store, E, email, pay, orders, site, auth, siteUrl: SITE_URL });
+const admin = require("./lib/admin.js")({ store, E, email, pay, orders, site, auth, discounts, siteUrl: SITE_URL });
 // Wraps async routes so a database error shows the error page instead of hanging.
 const wrap = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 
@@ -45,6 +47,18 @@ app.use((req, res, next) => {
 app.get("/health", (req, res) => res.json({ ok: true }));
 // Current prices for the configurator and home page (set on /admin/pricing).
 app.get("/api/pricing", (req, res) => res.set("Cache-Control", "no-cache").json({ ...E.getPricing(), mode: site.mode() }));
+
+// Discount codes typed in the basket (made on /admin/discounts). Limited per visitor so codes can't be guessed.
+const codeTries = new Map();
+app.get("/api/discount", (req, res) => {
+  const ip = req.ip || "?", now = Date.now(), win = 10 * 60 * 1000;
+  const tries = (codeTries.get(ip) || []).filter((t) => now - t < win);
+  if (tries.length >= 20) return res.status(429).json({ error: "Too many tries. Please wait a few minutes." });
+  tries.push(now); codeTries.set(ip, tries);
+  if (codeTries.size > 5000) codeTries.clear();
+  const r = discounts.check(req.query.code);
+  res.set("Cache-Control", "no-store").status(r.error ? 404 : 200).json(r);
+});
 
 /* ---------- order requests from the configurator ---------- */
 app.post("/api/orders", express.json({ limit: "200kb" }), wrap(async (req, res) => {
@@ -109,6 +123,7 @@ store.init().then(async () => {
   E.setPricing(await store.getSetting("pricing"));
   await site.load();
   await auth.load();
+  await discounts.load();
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`Pivot Designs running on port ${PORT}. Orders kept in ${store.kind}. Mode: ${site.mode()}. Payments ${pay.enabled ? (pay.testMode ? "on (test mode)" : "on (LIVE)") : "off"}.`);
   });

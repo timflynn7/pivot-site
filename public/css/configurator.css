@@ -126,6 +126,11 @@ button.btn { font: inherit; font-weight: 600; cursor: pointer; }
 .opt .top label { font-weight: 600; }
 .summary .free { color: var(--sage); font-weight: 600; }
 .summary .free:empty { display: none; }
+.summary .disc { color: var(--sage); }
+.summary .disc .linkbtn { min-height: 0; padding: 0 0 0 6px; }
+.code-f { display: flex; gap: 8px; }
+.code-f input { flex: 1; min-width: 0; text-transform: uppercase; font-family: "IBM Plex Mono", monospace; }
+#codeMsg:empty { display: none; }
 .area-msg { background: #F3E6C8; color: #5A4210; padding: 10px 14px; border-radius: 3px; font-size: 0.95rem; }
 .area-msg[hidden] { display: none; }
 #intentToggle[hidden] { display: none; }
