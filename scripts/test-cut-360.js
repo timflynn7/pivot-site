@@ -65,7 +65,7 @@ function bevel(d) {
   };
 }
 test(5, 1, 0, "bevel 4mm", "Bevelled shaker at half depth: bevel line (top of the bevel) and a pocket 4 mm inside it, 4 mm deep. V-bit along the bevel line, profile inside, 2 mm passes.", bevel(4));
-test(6, 1, 1, "bevel 8mm", "Bevelled shaker as the website draws it: pocket 8 mm inside the bevel line, 8 mm deep. V-bit in 2-3 mm passes. Compare the corner overshoot with T05: if it doubles, it's depth or Z; if it's the same, it's the V-bit's tip or angle in the library.", bevel(8));
+test(6, 1, 1, "bevel 8mm", "Bevelled shaker as the website draws it: pocket 8 mm inside the bevel line, 8 mm deep. V-bit in 2-3 mm passes. Compare with T05, measuring each bevel's width on a straight side (should equal its depth) and the corner overshoot: if both errors double from T05 to T06, the V-bit's angle in the library is off; if they stay the same, it's Z depth.", bevel(8));
 test(7, 1, 2, "beaded lip", "Beaded shaker: 45 x 45 mm pocket 8 mm deep with the round-over rail on the same line. Try the moulding profile overlapping the line by 0.2-0.3 mm and 0.1 mm below the floor, OR a 2 mm tidy-up profile on the line at 8 mm with a -0.2 mm allowance. Note which.", (id, x, y) => {
   box(`${id}_POCKET_D8`, x + 16, y + 19, x + 61, y + 64, C.pocket);
   box(`${id}_ROUNDOVER`, x + 16, y + 19, x + 61, y + 64, C.round);
