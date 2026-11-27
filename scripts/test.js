@@ -553,6 +553,7 @@ async function payPath(ref) {
   const dform = (b) => form("/admin/discounts", { kind: "percent", minSpend: "0", maxUses: "0", expires: "", note: "", ...b });
   const chk = async (c) => { const r = await req("/api/discount?code=" + encodeURIComponent(c)); return { status: r.status, ...(await r.json()) }; };
   assert((await page("/admin/discounts")).includes("No codes yet"));
+  assert.strictEqual((await pubP()).codes, false, "discount codes are off by default");
   assert.strictEqual((await form("/admin/discounts", { code: "EVIL", value: "50" }, "https://evil.example")).status, 403);
   assert.strictEqual((await dform({ code: "a b", value: "10" })).status, 400, "codes need 3+ letters or numbers");
   assert.strictEqual((await dform({ code: "BIG", value: "95" })).status, 400, "at most 90%");
@@ -560,7 +561,12 @@ async function payPath(ref) {
   assert((await (await dform({ code: "welcome10", value: "10", note: "Flyer" })).text()).includes("WELCOME10</b> created"));
   assert.strictEqual((await dform({ code: "Welcome10", value: "5" })).status, 400, "no duplicate codes");
   await dform({ code: "TENOFF", kind: "amount", value: "10", minSpend: "100", maxUses: "1" });
-  let ck = await chk(" welcome10 ");
+  let ck = await chk("welcome10");
+  assert(ck.status === 404 && /aren't available/.test(ck.error), "codes are refused while the switch is off");
+  assert.strictEqual((await form("/admin/discounts-switch", { on: "yes" }, "https://evil.example")).status, 403);
+  assert((await (await form("/admin/discounts-switch", { on: "yes" })).text()).includes("Discount codes are now <b>on</b>"));
+  assert.strictEqual((await pubP()).codes, true);
+  ck = await chk(" welcome10 ");
   assert(ck.status === 200 && ck.discount.code === "WELCOME10" && ck.discount.value === 10 && !("note" in ck.discount) && !("uses" in ck.discount), "codes are checked without the private details");
   assert.strictEqual((await chk("NOPE")).status, 404);
   const dcOrder = (doors, code, intent = "quote") => req("/api/orders", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ customer: { name: "Dee Count", email: "dc@example.com", line1: "1 Road", town: "Leeds", postcode: "LS1 4AB" }, doors, intent, discountCode: code }) });
@@ -597,6 +603,9 @@ async function payPath(ref) {
   assert((await chk("WELCOME10")).status === 404, "switched-off codes don't work");
   await form("/admin/discounts/WELCOME10", { action: "on" });
   assert((await chk("WELCOME10")).status === 200);
+  await form("/admin/discounts-switch", { on: "no" });
+  assert(/aren't available/.test((await (await dcOrder([{ design: "shaker", width: 500, height: 720 }], "WELCOME10")).json()).error), "orders can't use codes while the switch is off");
+  await form("/admin/discounts-switch", { on: "yes" });
   await form("/admin/discounts/WELCOME10", { action: "delete" });
   await form("/admin/discounts/TENOFF", { action: "delete" });
   assert((await chk("WELCOME10")).status === 404 && (await page("/admin/discounts")).includes("No codes yet"));

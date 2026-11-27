@@ -21,6 +21,7 @@
   const CHECKOUT = document.body.dataset.mode === "checkout" && !ADMIN && !LAB;
   let wantQuote = false; // the customer chose "Ask for a quote instead"
   let codeText = ""; // what the accepted code gives, e.g. "10% off your doors"
+  let codesOn = false; // discount codes switched on at /admin/discounts (from /api/pricing)
   let code = null; // a discount code the server has accepted: { code, kind, value, minSpend }
   const LIST_KEY = LAB ? "pivot-door-list-lab" : ADMIN ? "pivot-door-list-admin" : "pivot-door-list";
   const offered = (d) => LAB || E.orderable(d);
@@ -127,7 +128,7 @@
       $("codeMsg").textContent = t.discount.amount || !t.count ? codeText : `This code needs your doors to come to at least ${gbp(code.minSpend)}.`;
     }
     $("codeToggle").hidden = !!code;
-    $("codeBox").hidden = LAB;
+    $("codeBox").hidden = LAB || !(codesOn || code);
     $("sendBtn").disabled = !list.length;
     $("testDxf").hidden = !(TEST && list.length);
     // Contact and address details come after the door list is ready.
@@ -446,5 +447,5 @@
   renderDesigns(); renderOpts(); update(); renderList();
   setTimeout(centreDesign, 50);
   // Prices are set on /admin/pricing; redraw once the current ones arrive.
-  fetch("/api/pricing", { cache: "no-cache" }).then((r) => r.ok ? r.json() : null).then((p) => { if (p) { E.setPricing(p); update(); renderList(); } }).catch(() => {});
+  fetch("/api/pricing", { cache: "no-cache" }).then((r) => r.ok ? r.json() : null).then((p) => { if (p) { codesOn = p.codes === true; E.setPricing(p); update(); renderList(); } }).catch(() => {});
 })();

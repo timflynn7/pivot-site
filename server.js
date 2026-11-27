@@ -46,7 +46,7 @@ app.use((req, res, next) => {
 
 app.get("/health", (req, res) => res.json({ ok: true }));
 // Current prices for the configurator and home page (set on /admin/pricing).
-app.get("/api/pricing", (req, res) => res.set("Cache-Control", "no-cache").json({ ...E.getPricing(), mode: site.mode() }));
+app.get("/api/pricing", (req, res) => res.set("Cache-Control", "no-cache").json({ ...E.getPricing(), mode: site.mode(), codes: discounts.enabled() }));
 
 // Discount codes typed in the basket (made on /admin/discounts). Limited per visitor so codes can't be guessed.
 const codeTries = new Map();
