@@ -113,3 +113,4 @@ Proposed engine change (needs Tim's OK, bump `VERSION`): New Country = `POCKET_D
 - Preview draws the chamfer as a shaded band; the New Country render (`public/img/designs/newcountry-render.jpg` + thumb) is redrawn from the new geometry (render script now draws `pchamfer5`, `v90d5p` and `v90d2`).
 - Orders saved before version 6 keep the 8 mm pocket with 4 mm grooves (tested in `npm test`).
 - Checked: DXF read back with ezdxf and drawn; configurator option tested in a browser.
+- **Live on 27 Nov 2026** (merged to `main` at Tim's request, together with the discount-code and hinge-charge work already on `main`). Checked on pivotdesigns.co.uk: engine version 6 served, new render in place.
